@@ -33,6 +33,24 @@ function LevelBadge({ level }) {
   return <span className={'lv ' + cls}><span className="lvdots">{[1, 2, 3].map(n => <i key={n} className={n <= level ? 'on' : ''} />)}</span>{name} · +{10 * (level || 1)}</span>
 }
 
+
+const AV_SEEDS = ['Shaker', 'Glacon', 'Citron', 'Olive', 'Safran', 'Zama', 'Momo', 'Tonic']
+const AV_LIB = ['fun-emoji', 'bottts', 'big-smile', 'croodles'].flatMap(st => AV_SEEDS.map(sd => st + ':' + sd))
+let avMod = null
+const avReady = import('./avatars.js').then(m => { avMod = m; return m })
+function Avatar({ value, name, size = 34, me: isMe }) {
+  const [, force] = useState(0)
+  useEffect(() => { if (!avMod && value) avReady.then(() => force(x => x + 1)) }, [value])
+  const svg = avMod ? avMod.render(value) : null
+  return (
+    <div className={'av' + (isMe ? ' meav' : '')} style={{ width: size, height: size, fontSize: Math.round(size / 2.6) }}>
+      {svg ? <span className="avsvg" dangerouslySetInnerHTML={{ __html: svg }} /> : initials(name || '?')}
+    </div>
+  )
+}
+const ROLES = [['manager', 'Manager', 'user-star'], ['directeur', 'Directeur', 'crown'], ['chef_cuisine', 'Chef cuisine', 'chef-hat'], ['chef_mixo', 'Chef mixologue', 'glass-cocktail']]
+const waLink = (phone, text) => 'https://wa.me/' + phone + '?text=' + encodeURIComponent(text)
+
 function Info({ text }) {
   const [open, setOpen] = useState(false)
   return (
@@ -112,7 +130,6 @@ function QuoteSplash({ token, me, close }) {
   const [q, setQ] = useState(null)
   const [k, setK] = useState(0)
   useEffect(() => { rpc('daraja_quote', { p_token: token, p_random: false }).then(setQ).catch(() => close()) }, [token])
-  const other = () => rpc('daraja_quote', { p_token: token, p_random: true }).then(x => { setQ(x); setK(k + 1) }).catch(() => {})
   const day = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
   const icon = { proverbe: 'ti-leaf', citation: 'ti-quote', histoire: 'ti-book-2', motivation: 'ti-rocket', encouragement: 'ti-heart-handshake' }
   return (
@@ -124,7 +141,6 @@ function QuoteSplash({ token, me, close }) {
         {q.author && <div className="sub" style={{ marginTop: 12 }}>{q.author}</div>}
       </div>}
       <div style={{ marginTop: 'auto' }}>
-        <button className="btn ghost" style={{ marginBottom: 10 }} onClick={other}>Une autre <i className="ti ti-refresh" /></button>
         <button className="btn" onClick={close}>C'est parti, {me.name.split(' ')[0]}</button>
       </div>
     </div>
@@ -174,12 +190,17 @@ function Home({ token, me, venue, go }) {
   return (
     <div className="page">
       <div className="row between" style={{ marginBottom: 16 }}>
-        <div><div className="sub">{me.venue_name}</div><h1>Salut {me.name.split(' ')[0]}</h1></div>
+        <div className="row" style={{ gap: 10, cursor: 'pointer' }} onClick={() => go('profile')}>
+          <Avatar value={me.avatar} name={me.display} size={46} me />
+          <div><div className="sub">{me.venue_name}</div><h1 style={{ margin: 0 }}>Salut {me.display.split(' ')[0]}</h1></div>
+        </div>
         <div style={{ textAlign: 'center' }}>
-          <i className={'ti ti-flame flame' + (me.streak ? '' : ' off')} />
+          <i className={'ti ti-flame flame ' + (['out', 'new'].includes(me.flame) ? 'off' : me.flame)} />
           <div className="sub">{me.streak} jour{me.streak > 1 ? 's' : ''}</div>
         </div>
       </div>
+      {me.flame === 'danger' && <div className="card danger rise"><b><i className="ti ti-flame" /> Flamme en danger</b><div className="sub">Tu n'as pas joué hier. Joue aujourd'hui pour sauver tes {me.streak} jours.</div></div>}
+      {me.flame === 'out' && <div className="card rise" style={{ border: '1px solid var(--line)' }}><b><i className="ti ti-snowflake" style={{ color: '#85B7EB' }} /> Flamme éteinte</b><div className="sub">Rallume-la aujourd'hui : chaque jour de série rapporte un bonus qui grandit.</div></div>}
       <div className="card row" style={{ gap: 14, cursor: 'pointer' }} onClick={() => go('profile')}>
         <LevelRing earned={me.earned} />
         <div>
@@ -190,8 +211,8 @@ function Home({ token, me, venue, go }) {
       <GiftProgress r={nextGift(rewards, me.points)} pts={me.points} onClick={() => go('shop')} />
       <div className="card" style={{ position: 'relative' }}>
         <div className="row between">
-          <div><div style={{ fontSize: 17, fontWeight: 600 }}>Défi du jour</div><div className="sub">5 manches · jusqu'à +90 pts</div></div>
-          <Info text="Chaque jour : vrai ou faux, scènes client, anglais, associations… 2 manches faciles, 2 confirmées, 1 experte. Touche pour fermer." />
+          <div><div style={{ fontSize: 17, fontWeight: 600 }}>Défi du jour</div><div className="sub">5 manches · jusqu'à +90 pts{!me.quiz_done && me.next_bonus > 5 ? ' · bonus série +' + me.next_bonus : ''}</div></div>
+          <Info text="Chaque jour : vrai ou faux, scènes client, anglais, associations… 2 manches faciles, 2 confirmées, 1 experte. Chaque jour de série ajoute +5 pts de bonus (jusqu'à +100). Un jour manqué : la flamme est en danger. Deux jours : elle s'éteint. Touche pour fermer." />
         </div>
         <div className="row" style={{ gap: 6, margin: '12px 0 14px' }}>
           {[1, 1, 2, 2, 3].map((l, i) => <span key={i} className={'ddot l' + l} />)}
@@ -251,7 +272,7 @@ function MatchGame({ q, onAnswer, res }) {
   )
 }
 
-function Quiz({ token, done }) {
+function Quiz({ token, me, done }) {
   const [data, setData] = useState(null)
   const [i, setI] = useState(0)
   const [res, setRes] = useState(null)
@@ -283,8 +304,9 @@ function Quiz({ token, done }) {
       <i className={'ti ' + (score >= 4 ? 'ti-trophy' : score >= 2 ? 'ti-thumb-up' : 'ti-mood-smile') + ' acc pop'} style={{ fontSize: 64 }} />
       <h1 style={{ fontSize: 34 }}>{score}/{qs.length}</h1>
       <div className="acc" style={{ fontSize: 20, fontWeight: 600, margin: '6px 0' }}>+{pts} points</div>
-      <div className="sub" style={{ marginBottom: 26 }}>{score === qs.length ? 'Sans faute. Respect.' : score >= 3 ? 'Belle soirée en vue !' : 'Demain, on remet ça. Chaque erreur t\'apprend quelque chose.'}</div>
+      <div className="sub" style={{ marginBottom: 22 }}>{score === qs.length ? 'Sans faute. Respect.' : score >= 3 ? 'Belle soirée en vue !' : 'Demain, on remet ça. Chaque erreur t\'apprend quelque chose.'}</div>
       <button className="btn" onClick={done}>Retour</button>
+      <TalkCard token={token} me={me} />
     </div>
   )
 
@@ -298,6 +320,7 @@ function Quiz({ token, done }) {
       setRes(r)
       if (r.score != null) setScore(r.score)
       if (r.today_points != null) setPts(r.today_points)
+      if (r.streak_bonus > 0) setTimeout(() => flyPoints('+' + r.streak_bonus + ' série'), 900)
       if (r.correct) { const c = combo + 1; setCombo(c); burst(c >= 3 ? 50 : 28); flyPoints('+' + r.points); buzz(20) }
       else if (r.correct === false) { setCombo(0); setShake(true); buzz(120); setTimeout(() => setShake(false), 450) }
     } catch { setErr('Erreur réseau, réessaie') }
@@ -367,6 +390,64 @@ function Quiz({ token, done }) {
   )
 }
 
+
+const REASONS = [
+  ['Discuter d\'un sujet', 'j\'aimerais discuter d\'un sujet avec vous'],
+  ['Demander un entretien', 'j\'aimerais avoir un entretien avec vous'],
+  ['Débattre d\'une réponse', 'j\'aimerais débattre d\'une réponse du défi Daraja d\'aujourd\'hui'],
+  ['Proposer une idée', 'j\'ai une idée à vous proposer'],
+  ['Signaler un souci', 'j\'aimerais vous parler d\'un souci'],
+  ['Autre', 'j\'aimerais vous parler de quelque chose'],
+]
+function TalkCard({ token, me }) {
+  const [contacts, setContacts] = useState([])
+  const [why, setWhy] = useState(0)
+  useEffect(() => { rpc('daraja_contacts', { p_token: token }).then(setContacts).catch(() => {}) }, [token])
+  if (!contacts.length) return null
+  const msg = c => `Bonjour${c.name ? ' ' + c.name.split(' ')[0] : ''}, c'est ${me.name} (${me.venue_name}). ${REASONS[why][1].charAt(0).toUpperCase() + REASONS[why][1].slice(1)}. Est-ce qu'on peut en parler quand vous avez un moment ? Merci`
+  return (
+    <div className="card rise" style={{ textAlign: 'left', marginTop: 22 }}>
+      <div style={{ fontWeight: 600, marginBottom: 8 }}><i className="ti ti-message-circle acc" /> Envie d'en parler ?</div>
+      <div className="chips">{REASONS.map((r, k) => <button key={k} className={'chip ' + (why === k ? 'on' : '')} onClick={() => setWhy(k)}>{r[0]}</button>)}</div>
+      {ROLES.filter(([k]) => contacts.find(c => c.role === k)).map(([k, label, ic]) => {
+        const c = contacts.find(x => x.role === k)
+        return <a key={k} className="who" href={waLink(c.phone, msg(c))} target="_blank" rel="noreferrer">
+          <i className={'ti ti-' + ic + ' acc'} /><span style={{ flex: 1 }}>{label}{c.name ? ' · ' + c.name : ''}</span><i className="ti ti-brand-whatsapp wa-ic" />
+        </a>
+      })}
+      <div className="sub" style={{ marginTop: 6 }}>WhatsApp s'ouvre avec le message prêt : il reste à envoyer.</div>
+    </div>
+  )
+}
+
+function ProfileEdit({ token, me, close, done }) {
+  const [alias, setAlias] = useState(me.alias || '')
+  const [av, setAv] = useState(me.avatar || AV_LIB[0])
+  const [err, setErr] = useState('')
+  const save = async () => {
+    if (alias.trim().length > 24) { setErr('24 caractères maximum'); return }
+    try {
+      const r = await rpc('daraja_set_profile', { p_token: token, p_alias: alias, p_avatar: av })
+      if (r.ok) done(); else setErr('Vérifie ton alias')
+    } catch { setErr('Erreur, réessaie') }
+  }
+  return (
+    <div className="sheet" onClick={close}>
+      <div onClick={e => e.stopPropagation()} style={{ maxHeight: '88dvh', overflowY: 'auto' }}>
+        <div style={{ textAlign: 'center' }}><Avatar value={av} name={me.name} size={86} me /></div>
+        <div className="sub" style={{ margin: '14px 0 6px' }}>Mon alias (visible au classement)</div>
+        <input value={alias} maxLength={24} placeholder={me.name} onChange={e => { setAlias(e.target.value); setErr('') }} />
+        <div className="sub" style={{ marginBottom: 10 }}>Nom complet gardé par la direction : {me.name}</div>
+        <div className="avgrid">
+          {AV_LIB.map(v => <div key={v} className={'avpick ' + (v === av ? 'on' : '')} onClick={() => setAv(v)}><Avatar value={v} name="" size={56} /></div>)}
+        </div>
+        <div className="err">{err}</div>
+        <button className="btn" onClick={save}>Enregistrer</button>
+      </div>
+    </div>
+  )
+}
+
 function Board({ token, me, venue }) {
   const [list, setList] = useState(null)
   useEffect(() => { rpc('daraja_leaderboard', { p_token: token, p_venue: venue }).then(setList).catch(() => setList([])) }, [token, venue])
@@ -384,8 +465,8 @@ function Board({ token, me, venue }) {
             <span className={k < 3 ? 'acc' : ''} style={{ width: 22, fontWeight: 600 }}>
               {k < 3 ? <i className={'ti ti-medal'} /> : k + 1}
             </span>
-            <div className="av">{initials(p.name)}</div>
-            <span style={{ flex: 1, fontWeight: p.id === me.id ? 600 : 400 }}>{p.id === me.id ? 'Toi' : p.name}</span>
+            <Avatar value={p.avatar} name={p.name} />
+            <span style={{ flex: 1, fontWeight: p.id === me.id ? 600 : 400 }}>{p.id === me.id ? 'Toi' : p.name}{p.streak >= 3 && <span className="sub"> <i className="ti ti-flame" style={{ color: '#E8833A' }} />{p.streak}</span>}</span>
             <span className={k < 3 ? 'acc' : ''}>{fmt(p.pts)}</span>
           </div>
         ))}
@@ -396,14 +477,18 @@ function Board({ token, me, venue }) {
 function Shop({ token, me, venue, refresh, toast }) {
   const [items, setItems] = useState(null)
   const [sel, setSel] = useState(null)
+  const [claim, setClaim] = useState(null)
+  const [contacts, setContacts] = useState([])
+  useEffect(() => { rpc('daraja_contacts', { p_token: token, p_venue: venue }).then(setContacts).catch(() => {}) }, [token, venue])
   useEffect(() => { rpc('daraja_rewards', { p_token: token, p_venue: venue }).then(setItems).catch(() => setItems([])) }, [token, venue])
   const buy = async () => {
     try {
       const r = await rpc('daraja_redeem', { p_token: token, p_reward: sel.id })
-      if (r.ok) { toast('Demande envoyée au manager'); refresh() } else toast(r.error === 'blocked' ? 'Boutique bloquée suite à une faute grave' : 'Pas assez de points')
+      if (r.ok) { setClaim(sel); burst(60); refresh() } else toast(r.error === 'blocked' ? 'Boutique bloquée suite à une faute grave' : 'Pas assez de points')
     } catch { toast('Erreur, réessaie') }
     setSel(null)
   }
+  const mgr = contacts.find(c => c.role === 'manager') || contacts.find(c => c.role === 'directeur')
   return (
     <div className="page">
       <div className="row between" style={{ marginBottom: 14 }}>
@@ -428,6 +513,15 @@ function Shop({ token, me, venue, refresh, toast }) {
             )
           })}
         </div>}
+      {claim && <div className="sheet" onClick={() => setClaim(null)}>
+        <div onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+          <i className={'ti ti-' + claim.icon + ' acc pop'} style={{ fontSize: 48 }} />
+          <h1>Gagné !</h1>
+          <div className="sub" style={{ marginBottom: 18 }}>{claim.name} · ton manager a été prévenu dans l'appli</div>
+          {mgr && <a className="btn wa" href={waLink(mgr.phone, `Bonjour${mgr.name ? ' ' + mgr.name.split(' ')[0] : ''} ! J'ai gagné le cadeau « ${claim.name} » sur Daraja (${fmt(claim.cost)} pts). Quand est-ce que je peux le récupérer ? ${me.name}, ${me.venue_name}`)} target="_blank" rel="noreferrer"><i className="ti ti-brand-whatsapp" /> Réclamer sur WhatsApp</a>}
+          <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => setClaim(null)}>Plus tard</button>
+        </div>
+      </div>}
       {sel && <div className="sheet" onClick={() => setSel(null)}>
         <div onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
           <i className={'ti ti-' + sel.icon + ' acc'} style={{ fontSize: 40 }} />
@@ -446,6 +540,7 @@ function Profile({ token, me, logout, toast, refresh }) {
   const [avis, setAvis] = useState(false)
   const [note, setNote] = useState('')
   const [err, setErr] = useState('')
+  const [edit, setEdit] = useState(false)
   const pct = lv.to ? Math.round(((me.earned - lv.from) / (lv.to - lv.from)) * 100) : 100
   const badges = [
     ['flame', 'Série 7', me.streak >= 7], ['target', 'Sans faute', me.perfect >= 1],
@@ -461,8 +556,12 @@ function Profile({ token, me, logout, toast, refresh }) {
   return (
     <div className="page">
       <div style={{ textAlign: 'center', marginBottom: 16 }}>
-        <div className="av" style={{ width: 68, height: 68, fontSize: 22, margin: '0 auto 10px', background: 'var(--acc)', color: 'var(--btxt)' }}>{initials(me.name)}</div>
-        <h1>{me.name}</h1>
+        <div style={{ display: 'inline-block', position: 'relative', cursor: 'pointer' }} onClick={() => setEdit(true)}>
+          <Avatar value={me.avatar} name={me.display} size={86} me />
+          <span className="editdot"><i className="ti ti-pencil" /></span>
+        </div>
+        <h1 style={{ marginTop: 8 }}>{me.display}</h1>
+        {me.alias && <div className="sub">{me.name}</div>}
         <div className="acc" style={{ fontSize: 14 }}>Niveau {lv.n} · {lv.name}</div>
       </div>
       <div className="card">
@@ -476,7 +575,13 @@ function Profile({ token, me, logout, toast, refresh }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
         {badges.map(([ic, l, on]) => <div key={l} className={'badge ' + (on ? '' : 'off')}><div><i className={'ti ti-' + (on ? ic : 'lock')} /></div>{l}</div>)}
       </div>
+      <div className="card row" style={{ gap: 12, marginTop: 12 }}>
+        <i className={'ti ti-flame flame ' + (['out', 'new'].includes(me.flame) ? 'off' : me.flame)} style={{ fontSize: 36 }} />
+        <div><div style={{ fontWeight: 600 }}>{me.streak} jour{me.streak > 1 ? 's' : ''} de série</div>
+          <div className="sub">Prochain défi : bonus série +{me.next_bonus} pts{me.next_bonus >= 100 ? ' (max)' : ''}</div></div>
+      </div>
       {me.role === 'staff' && <MyConduct token={token} toast={toast} refresh={refresh} />}
+      {edit && <ProfileEdit token={token} me={me} close={() => setEdit(false)} done={() => { setEdit(false); refresh(); toast('Profil mis à jour') }} />}
       <button className="btn ghost" style={{ marginTop: 24 }} onClick={() => setAvis(true)}><i className="ti ti-star" /> Un client m'a cité dans un avis</button>
       <button className="btn ghost" style={{ marginTop: 10, color: 'var(--muted)' }} onClick={logout}><i className="ti ti-logout" /> Me déconnecter</button>
       {avis && <div className="sheet" onClick={() => setAvis(false)}>
@@ -532,6 +637,7 @@ function Admin({ token, me, venue, toast }) {
         </div>
       ))}
 
+      <ContactsAdmin token={token} venue={venue} toast={toast} />
       <div className="sec"><i className="ti ti-users acc" /> Équipe · bonus</div>
       {d.staff.map(s => (
         <div key={s.id} className="lb" style={{ cursor: 'pointer' }} onClick={() => setPts(s)}>
@@ -689,6 +795,37 @@ function Register({ token, me, venue, toast }) {
   ))
 }
 
+
+function ContactsAdmin({ token, venue, toast }) {
+  const [c, setC] = useState(null)
+  const [open, setOpen] = useState(false)
+  useEffect(() => { rpc('daraja_admin_contacts', { p_token: token, p_venue: venue }).then(setC).catch(() => setC({})) }, [token, venue])
+  if (!c) return null
+  const set = (k, f, v) => setC({ ...c, [k]: { ...(c[k] || {}), [f]: v } })
+  const save = async k => {
+    try {
+      const r = await rpc('daraja_admin_set_contact', { p_token: token, p_venue: venue, p_role: k, p_name: c[k]?.name || '', p_phone: c[k]?.phone || '' })
+      toast(r.ok ? 'Contact enregistré' : 'Numéro invalide')
+    } catch { toast('Erreur') }
+  }
+  const n = ROLES.filter(([k]) => c[k]?.phone).length
+  return (
+    <>
+      <div className="sec" style={{ cursor: 'pointer' }} onClick={() => setOpen(!open)}><i className="ti ti-brand-whatsapp wa-ic" /> Contacts WhatsApp · {n}/4 <i className={'ti ti-chevron-' + (open ? 'up' : 'down')} /></div>
+      {open && ROLES.map(([k, label, ic]) => (
+        <div key={k} className="card" style={{ padding: 10 }}>
+          <div className="sub" style={{ marginBottom: 6 }}><i className={'ti ti-' + ic} /> {label}</div>
+          <input placeholder="Prénom" value={c[k]?.name || ''} onChange={e => set(k, 'name', e.target.value)} />
+          <div className="row" style={{ gap: 8 }}>
+            <input placeholder="06 12 34 56 78" inputMode="tel" value={c[k]?.phone || ''} onChange={e => set(k, 'phone', e.target.value)} style={{ marginBottom: 0 }} />
+            <button className="mini" onClick={() => save(k)}>OK</button>
+          </div>
+        </div>
+      ))}
+    </>
+  )
+}
+
 function PointsSheet({ s, close, act }) {
   const opts = [
     ['bonus', 50, 'Bonus 50', 'ti-plus'], ['bonus', 100, 'Bonus 100', 'ti-star'],
@@ -818,7 +955,7 @@ export default function App() {
         </div>
       )}
       {tab === 'home' && <Home token={token} me={me} venue={venue} go={go} />}
-      {tab === 'quiz' && <Quiz token={token} done={() => go('home')} />}
+      {tab === 'quiz' && <Quiz token={token} me={me} done={() => go('home')} />}
       {tab === 'board' && <Board token={token} me={me} venue={venue} />}
       {tab === 'shop' && <Shop token={token} me={me} venue={venue} refresh={refresh} toast={toast} />}
       {tab === 'profile' && <Profile token={token} me={me} logout={logout} toast={toast} refresh={refresh} />}
