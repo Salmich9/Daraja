@@ -54,3 +54,10 @@ input, select, textarea { width: 100%; background: var(--card); color: var(--fg)
 .seg button { flex:1; border:1px solid var(--line); background: transparent; color: var(--fg); border-radius: 10px; padding: 9px; font: 500 14px Inter, sans-serif; cursor:pointer; }
 .seg button.on { background: var(--acc); color: var(--btxt); border-color: var(--acc); }
 .err { color: var(--bad); font-size: 14px; text-align:center; min-height: 20px; }
+.lv { display:inline-flex; align-items:center; gap:6px; border-radius:20px; padding:4px 10px; font-size:12px; font-weight:600; white-space:nowrap; }
+.lvdots { display:inline-flex; gap:3px; }
+.lvdots i { width:7px; height:7px; border-radius:50%; background: currentColor; opacity:.25; display:inline-block; }
+.lvdots i.on { opacity:1; }
+.lv1 { background: color-mix(in srgb, var(--good) 22%, transparent); color: var(--good); }
+.lv2 { background: color-mix(in srgb, var(--acc) 22%, transparent); color: var(--acc); }
+.lv3 { background: var(--acc); color: var(--btxt); }

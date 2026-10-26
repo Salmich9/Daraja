@@ -27,6 +27,11 @@ function level(earned) {
 }
 const initials = n => n.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
 const fmt = n => (n ?? 0).toLocaleString('fr-FR')
+const LV = { 1: ['Facile', 'lv1'], 2: ['Confirmé', 'lv2'], 3: ['Expert', 'lv3'] }
+function LevelBadge({ level }) {
+  const [name, cls] = LV[level] || LV[1]
+  return <span className={'lv ' + cls}><span className="lvdots">{[1, 2, 3].map(n => <i key={n} className={n <= level ? 'on' : ''} />)}</span>{name} · +{10 * (level || 1)}</span>
+}
 
 function Info({ text }) {
   const [open, setOpen] = useState(false)
@@ -92,9 +97,9 @@ function Home({ me, go }) {
       <div className="card">
         <div className="row between">
           <div style={{ fontSize: 17, fontWeight: 600 }}>Quiz du jour</div>
-          <Info text="5 questions par jour, 10 points par bonne réponse. Joue chaque jour pour faire grimper ta série. Touche pour fermer." />
+          <Info text="5 questions par jour : 2 faciles (+10), 2 confirmées (+20) et 1 experte (+30). Joue chaque jour pour faire grimper ta série. Touche pour fermer." />
         </div>
-        <div className="sub" style={{ margin: '4px 0 14px' }}>5 questions · 3 min · jusqu'à +50 pts</div>
+        <div className="sub" style={{ margin: '4px 0 14px' }}>5 questions · 3 niveaux · jusqu'à +90 pts</div>
         {me.quiz_done
           ? <button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Fait, reviens demain</button>
           : <button className="btn" onClick={() => go('quiz')}>Jouer</button>}
@@ -109,12 +114,14 @@ function Quiz({ token, done }) {
   const [res, setRes] = useState(null)
   const [pick, setPick] = useState(null)
   const [score, setScore] = useState(0)
+  const [pts, setPts] = useState(0)
   const [err, setErr] = useState('')
 
   useEffect(() => {
     rpc('daraja_quiz', { p_token: token }).then(d => {
       setData(d)
       setScore(d.correct || 0)
+      setPts(d.today_points || 0)
       const first = (d.questions || []).findIndex(q => !(d.answered || []).includes(q.id))
       setI(first === -1 ? (d.questions || []).length : first)
     }).catch(() => setErr('Impossible de charger le quiz'))
@@ -129,7 +136,7 @@ function Quiz({ token, done }) {
     <div className="page" style={{ textAlign: 'center', paddingTop: 60 }}>
       <i className="ti ti-trophy acc" style={{ fontSize: 56 }} />
       <h1>{score}/{qs.length}</h1>
-      <div className="sub" style={{ marginBottom: 24 }}>+{score * 10} points aujourd'hui</div>
+      <div className="sub" style={{ marginBottom: 24 }}>+{pts} points aujourd'hui</div>
       <button className="btn" onClick={done}>Retour</button>
     </div>
   )
@@ -142,6 +149,7 @@ function Quiz({ token, done }) {
       const r = await rpc('daraja_answer', { p_token: token, p_question: q.id, p_choice: k })
       setRes(r)
       if (r.score != null) setScore(r.score)
+      if (r.today_points != null) setPts(r.today_points)
     } catch { setErr('Erreur réseau, réessaie') }
   }
   const next = () => { setRes(null); setPick(null); setI(i + 1) }
@@ -149,7 +157,7 @@ function Quiz({ token, done }) {
   return (
     <div className="page">
       <div className="row between sub" style={{ marginBottom: 8 }}>
-        <span>Question {i + 1}/{qs.length}</span><span className="acc">{q.theme}</span>
+        <span>Question {i + 1}/{qs.length} · {q.theme}</span><LevelBadge level={q.level} />
       </div>
       <div className="bar" style={{ marginBottom: 20 }}><div style={{ width: `${(i / qs.length) * 100}%` }} /></div>
       <div style={{ fontSize: 19, fontWeight: 600, lineHeight: 1.4, marginBottom: 18 }}>{q.question}</div>
@@ -163,7 +171,7 @@ function Quiz({ token, done }) {
       })}
       {res && <>
         <div className="card" style={{ fontSize: 14, lineHeight: 1.45 }}>
-          <b style={{ color: res.correct ? 'var(--good)' : 'var(--bad)' }}>{res.correct ? '+10 pts' : 'Raté'}</b>
+          <b style={{ color: res.correct ? 'var(--good)' : 'var(--bad)' }}>{res.correct ? '+' + (res.points || 10) + ' pts' : 'Raté'}</b>
           {res.explanation ? ' · ' + res.explanation : ''}
         </div>
         <button className="btn" onClick={next}>{i + 1 < qs.length ? 'Suivante' : 'Voir mon score'}</button>
