@@ -213,7 +213,7 @@ function Shop({ token, me, venue, refresh, toast }) {
   const buy = async () => {
     try {
       const r = await rpc('daraja_redeem', { p_token: token, p_reward: sel.id })
-      if (r.ok) { toast('Demande envoyée au manager'); refresh() } else toast('Pas assez de points')
+      if (r.ok) { toast('Demande envoyée au manager'); refresh() } else toast(r.error === 'blocked' ? 'Boutique bloquée suite à une faute grave' : 'Pas assez de points')
     } catch { toast('Erreur, réessaie') }
     setSel(null)
   }
@@ -249,7 +249,7 @@ function Shop({ token, me, venue, refresh, toast }) {
   )
 }
 
-function Profile({ token, me, logout, toast }) {
+function Profile({ token, me, logout, toast, refresh }) {
   const lv = level(me.earned)
   const [avis, setAvis] = useState(false)
   const [note, setNote] = useState('')
@@ -259,6 +259,7 @@ function Profile({ token, me, logout, toast }) {
     ['flame', 'Série 7', me.streak >= 7], ['target', 'Sans faute', me.perfect >= 1],
     ['star', 'Cité en avis', me.avis >= 1], ['gift', '1er cadeau', me.gifts >= 1],
     ['bolt', 'Expert', me.earned >= 2000], ['crown', 'Légende', me.earned >= 7000],
+    ['shield-check', 'Exemplaire', me.exemplary],
   ]
   const send = async () => {
     if (!note.trim()) { setErr('Colle le lien ou décris l\'avis'); return }
@@ -283,6 +284,7 @@ function Profile({ token, me, logout, toast }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
         {badges.map(([ic, l, on]) => <div key={l} className={'badge ' + (on ? '' : 'off')}><div><i className={'ti ti-' + (on ? ic : 'lock')} /></div>{l}</div>)}
       </div>
+      {me.role === 'staff' && <MyConduct token={token} toast={toast} refresh={refresh} />}
       <button className="btn ghost" style={{ marginTop: 24 }} onClick={() => setAvis(true)}><i className="ti ti-star" /> Un client m'a cité dans un avis</button>
       <button className="btn ghost" style={{ marginTop: 10, color: 'var(--muted)' }} onClick={logout}><i className="ti ti-logout" /> Me déconnecter</button>
       {avis && <div className="sheet" onClick={() => setAvis(false)}>
@@ -302,6 +304,7 @@ function Admin({ token, me, venue, toast }) {
   const [d, setD] = useState(null)
   const [pts, setPts] = useState(null)
   const [add, setAdd] = useState(false)
+  const [tab, setTab] = useState('team')
   const load = useCallback(() => rpc('daraja_admin', { p_token: token, p_venue: venue }).then(setD).catch(() => setD({ reviews: [], gifts: [], staff: [] })), [token, venue])
   useEffect(() => { load() }, [load])
   const act = async (fn, args, msg) => { try { await rpc(fn, { p_token: token, ...args }); toast(msg); load() } catch { toast('Erreur') } }
@@ -313,7 +316,11 @@ function Admin({ token, me, venue, toast }) {
         <button className="mini" onClick={() => setAdd(true)}><i className="ti ti-user-plus" /> Équipier</button>
       </div>
       <div className="sub">{me.venue_name}</div>
-
+      <div className="seg" style={{ marginTop: 12 }}>
+        <button className={tab === 'team' ? 'on' : ''} onClick={() => setTab('team')}>Équipe</button>
+        <button className={tab === 'conduct' ? 'on' : ''} onClick={() => setTab('conduct')}>Conduite{me.direction_todo ? ' · ' + me.direction_todo : ''}</button>
+      </div>
+      {tab === 'conduct' ? <Conduct token={token} me={me} venue={venue} staff={d.staff} toast={toast} /> : <>
       <div className="sec"><i className="ti ti-star acc" /> Avis clients à valider</div>
       {!d.reviews.length && <div className="sub">Rien en attente</div>}
       {d.reviews.map(r => (
@@ -333,7 +340,7 @@ function Admin({ token, me, venue, toast }) {
         </div>
       ))}
 
-      <div className="sec"><i className="ti ti-users acc" /> Équipe · bonus et malus</div>
+      <div className="sec"><i className="ti ti-users acc" /> Équipe · bonus</div>
       {d.staff.map(s => (
         <div key={s.id} className="lb" style={{ cursor: 'pointer' }} onClick={() => setPts(s)}>
           <div className="av">{initials(s.name)}</div>
@@ -342,16 +349,158 @@ function Admin({ token, me, venue, toast }) {
           <i className="ti ti-chevron-right sub" />
         </div>
       ))}
+      </>}
       {pts && <PointsSheet s={pts} close={() => setPts(null)} act={act} />}
       {add && <AddStaff token={token} me={me} venue={venue} close={() => setAdd(false)} done={() => { setAdd(false); load(); toast('Équipier ajouté') }} />}
     </div>
   )
 }
 
+
+const LINE = { blanche: ['Blanche', 'lb-w'], grise: ['Grise', 'lb-g'], rouge: ['Rouge', 'lb-r'] }
+const Pill = ({ line }) => <span className={'pill ' + (LINE[line] || LINE.blanche)[1]}>{(LINE[line] || LINE.blanche)[0]}</span>
+const dshort = d => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+
+function MyConduct({ token, toast, refresh }) {
+  const [c, setC] = useState(null)
+  const load = useCallback(() => rpc('daraja_conduct_mine', { p_token: token }).then(setC).catch(() => setC(null)), [token])
+  useEffect(() => { load() }, [load])
+  if (!c) return null
+  const ack = async id => { try { await rpc('daraja_conduct_ack', { p_token: token, p_record: id }); toast('Pris en compte'); load(); refresh() } catch { toast('Erreur') } }
+  return (
+    <>
+      <div className="sec" style={{ position: 'relative' }}>Ma conduite <Info text="Visible par toi et ta direction seulement, jamais au classement. Chaque mois sans grise ni rouge te rapporte +100 points." /></div>
+      <div className="card" style={{ textAlign: 'center' }}>
+        <div className="sub">Jours sans faute</div>
+        <div className="big acc">{c.days_clean}</div>
+      </div>
+      <div className="grid3">
+        <div className="card" style={{ textAlign: 'center', margin: 0 }}><Pill line="blanche" /><div style={{ fontSize: 20, marginTop: 6 }}>{c.blanche}</div></div>
+        <div className="card" style={{ textAlign: 'center', margin: 0 }}><Pill line="grise" /><div style={{ fontSize: 20, marginTop: 6 }}>{c.grise}</div></div>
+        <div className="card" style={{ textAlign: 'center', margin: 0 }}><Pill line="rouge" /><div style={{ fontSize: 20, marginTop: 6 }}>{c.rouge}</div></div>
+      </div>
+      {c.records.map(r => (
+        <div key={r.id} className="card" style={{ marginTop: 10, border: r.ack ? 0 : '1px solid var(--acc)' }}>
+          <div className="row between"><Pill line={r.line} /><span className="sub">{dshort(r.at)} · −{r.malus}</span></div>
+          <div style={{ fontSize: 14, margin: '8px 0 4px' }}>{r.behavior}</div>
+          <div className="sub">{r.sanction}{r.escalation ? ' · ' + r.escalation : ''}</div>
+          {!r.ack && <button className="btn" style={{ marginTop: 10, padding: 10 }} onClick={() => ack(r.id)}>J'ai pris connaissance</button>}
+        </div>
+      ))}
+    </>
+  )
+}
+
+function Conduct({ token, me, venue, staff, toast }) {
+  const [mode, setMode] = useState('add')
+  return (
+    <>
+      <div className="seg" style={{ marginTop: 14 }}>
+        <button className={mode === 'add' ? 'on' : ''} onClick={() => setMode('add')}>Signaler</button>
+        <button className={mode === 'reg' ? 'on' : ''} onClick={() => setMode('reg')}>Registre</button>
+      </div>
+      {mode === 'add' ? <ConductAdd token={token} me={me} staff={staff} toast={toast} done={() => setMode('reg')} /> : <Register token={token} me={me} venue={venue} toast={toast} />}
+    </>
+  )
+}
+
+function ConductAdd({ token, me, staff, toast, done }) {
+  const [rules, setRules] = useState([])
+  const [who, setWho] = useState('')
+  const [dom, setDom] = useState('')
+  const [rule, setRule] = useState(null)
+  const [prev, setPrev] = useState(null)
+  const [facts, setFacts] = useState('')
+  const [wit, setWit] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { rpc('daraja_conduct_rules', { p_token: token }).then(setRules).catch(() => setRules([])) }, [token])
+  useEffect(() => {
+    setPrev(null)
+    if (who && rule) rpc('daraja_conduct_preview', { p_token: token, p_staff: who, p_rule: rule.id }).then(setPrev).catch(() => setPrev(null))
+  }, [token, who, rule])
+  const doms = [...new Set(rules.map(r => r.domain))]
+  const team = staff.filter(s => s.id !== me.id)
+  const save = async () => {
+    if (!who) { setErr('Choisis un équipier'); return }
+    if (!rule) { setErr('Choisis un comportement'); return }
+    if (facts.trim().length < 3) { setErr('Décris les faits'); return }
+    setBusy(true)
+    try {
+      const r = await rpc('daraja_conduct_add', { p_token: token, p_staff: who, p_rule: rule.id, p_facts: facts, p_witnesses: wit, p_applied: '' })
+      if (r.ok) { toast('Inscrit et verrouillé · −' + r.result.malus); done() }
+      else setErr(r.error === 'direction' ? 'Réservé à la direction' : 'Vérifie les champs')
+    } catch { setErr('Erreur, réessaie') }
+    setBusy(false)
+  }
+  return (
+    <>
+      <select value={who} onChange={e => { setWho(e.target.value); setErr('') }}>
+        <option value="">Équipier…</option>
+        {team.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+      </select>
+      <div className="chips">
+        {doms.map(d => <button key={d} className={'chip ' + (dom === d ? 'on' : '')} onClick={() => { setDom(d); setRule(null) }}>{d}</button>)}
+      </div>
+      {dom && rules.filter(r => r.domain === dom).map(r => (
+        <button key={r.id} className={'opt ' + (rule?.id === r.id ? 'sel' : '')} style={{ opacity: r.locked ? .45 : 1 }}
+          onClick={() => { if (r.locked) { toast('Réservé à la direction'); return } setRule(r); setErr('') }}>
+          <Pill line={r.line} /> {r.locked && <i className="ti ti-lock" />} <span style={{ marginLeft: 4 }}>{r.behavior}</span>
+        </button>
+      ))}
+      {prev && (
+        <div className="card" style={{ border: '1px solid var(--acc)' }}>
+          <div className="row between" style={{ marginBottom: 6 }}><span className="sub">Calcul automatique</span><Pill line={prev.line} /></div>
+          {prev.escalation && <div style={{ fontSize: 13, marginBottom: 4 }}>{prev.escalation}</div>}
+          <div style={{ fontSize: 14 }}>{prev.sanction}</div>
+          <div style={{ color: 'var(--bad)', fontWeight: 600, fontSize: 14, marginTop: 4 }}>Malus −{prev.malus} pts</div>
+          {prev.line === 'rouge' && <div className="sub" style={{ marginTop: 6 }}>Rouge : rapport le jour même, entretien, notification écrite signée.</div>}
+        </div>
+      )}
+      <textarea rows={3} placeholder="Faits constatés (heure, lieu, ce qui s'est passé)" value={facts} onChange={e => { setFacts(e.target.value); setErr('') }} />
+      <input placeholder="Témoins (facultatif)" value={wit} onChange={e => setWit(e.target.value)} />
+      <div className="err">{err}</div>
+      <button className="btn" disabled={busy} onClick={save}><i className="ti ti-lock" /> Valider et verrouiller</button>
+    </>
+  )
+}
+
+function Register({ token, me, venue, toast }) {
+  const [list, setList] = useState(null)
+  const [open, setOpen] = useState(null)
+  const load = useCallback(() => rpc('daraja_conduct_register', { p_token: token, p_venue: venue }).then(setList).catch(() => setList([])), [token, venue])
+  useEffect(() => { load() }, [load])
+  const notify = async id => { try { await rpc('daraja_conduct_notify', { p_token: token, p_record: id }); toast('Notification enregistrée'); load() } catch { toast('Erreur') } }
+  if (!list) return <div className="sub">Chargement…</div>
+  if (!list.length) return <div className="sub" style={{ marginTop: 10 }}>Aucune inscription. Bonne nouvelle.</div>
+  return list.map(r => (
+    <div key={r.id} className="lb" style={{ flexDirection: 'column', alignItems: 'stretch', cursor: 'pointer' }} onClick={() => setOpen(open === r.id ? null : r.id)}>
+      <div className="row between">
+        <span style={{ fontWeight: 600 }}>{r.staff}</span>
+        <span className="row" style={{ gap: 6 }}>
+          <Pill line={r.line} />
+          {r.needs_direction ? <span className="sub" style={{ color: 'var(--bad)' }}>à notifier</span>
+            : r.ack ? <i className="ti ti-checks acc" /> : <i className="ti ti-lock sub" />}
+        </span>
+      </div>
+      <div className="sub" style={{ marginTop: 3 }}>{dshort(r.at)} · {r.behavior}</div>
+      {open === r.id && (
+        <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5 }}>
+          <div><b>Sanction :</b> {r.sanction}{r.escalation ? ' (' + r.escalation + ')' : ''}</div>
+          <div><b>Faits :</b> {r.facts}</div>
+          {r.witnesses && <div><b>Témoins :</b> {r.witnesses}</div>}
+          <div className="sub">Par {r.by} · −{r.malus} pts · {r.ack ? 'lu par le salarié' : 'pas encore lu'}</div>
+          {r.line === 'rouge' && !r.notified && me.role === 'super' && <button className="mini" style={{ marginTop: 8 }} onClick={e => { e.stopPropagation(); notify(r.id) }}>Notification signée remise</button>}
+        </div>
+      )}
+    </div>
+  ))
+}
+
 function PointsSheet({ s, close, act }) {
   const opts = [
-    ['malus', 100, 'Ligne grise', 'ti-alert-triangle'], ['malus', 500, 'Ligne rouge', 'ti-alert-octagon'],
-    ['bonus', 50, 'Bonus 50', 'ti-plus'], ['bonus', 200, 'Bonus 200', 'ti-sparkles'],
+    ['bonus', 50, 'Bonus 50', 'ti-plus'], ['bonus', 100, 'Bonus 100', 'ti-star'],
+    ['bonus', 200, 'Bonus 200', 'ti-sparkles'], ['bonus', 500, 'Bonus 500', 'ti-trophy'],
   ]
   const [pick, setPick] = useState(null)
   const [note, setNote] = useState('')
@@ -366,7 +515,7 @@ function PointsSheet({ s, close, act }) {
     <div className="sheet" onClick={close}>
       <div onClick={e => e.stopPropagation()}>
         <h1>{s.name}</h1>
-        <div className="sub" style={{ marginBottom: 14 }}>Ligne blanche : on pardonne, pas de malus</div>
+        <div className="sub" style={{ marginBottom: 14 }}>Pour une faute, passe par l'onglet Conduite</div>
         <div className="grid2" style={{ marginBottom: 12 }}>
           {opts.map(o => (
             <button key={o[2]} className={'opt ' + (pick === o ? 'sel' : '')} style={{ margin: 0, textAlign: 'center' }} onClick={() => { setPick(o); setErr('') }}>
@@ -459,10 +608,10 @@ export default function App() {
       {tab === 'quiz' && <Quiz token={token} done={() => go('home')} />}
       {tab === 'board' && <Board token={token} me={me} venue={venue} />}
       {tab === 'shop' && <Shop token={token} me={me} venue={venue} refresh={refresh} toast={toast} />}
-      {tab === 'profile' && <Profile token={token} me={me} logout={logout} toast={toast} />}
+      {tab === 'profile' && <Profile token={token} me={me} logout={logout} toast={toast} refresh={refresh} />}
       {tab === 'admin' && isAdmin && <Admin token={token} me={me} venue={venue} toast={toast} />}
       <nav className="nav">
-        {tabs.map(([k, ic]) => <button key={k} aria-label={k} className={tab === k || (tab === 'quiz' && k === 'home') ? 'on' : ''} onClick={() => go(k)}><i className={'ti ti-' + ic} /></button>)}
+        {tabs.map(([k, ic]) => <button key={k} aria-label={k} className={tab === k || (tab === 'quiz' && k === 'home') ? 'on' : ''} onClick={() => go(k)}><i className={'ti ti-' + ic} />{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && me.direction_todo > 0)) && <span className="dot" />}</button>)}
       </nav>
     </div>
   )

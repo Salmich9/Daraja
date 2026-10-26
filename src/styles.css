@@ -61,3 +61,14 @@ input, select, textarea { width: 100%; background: var(--card); color: var(--fg)
 .lv1 { background: color-mix(in srgb, var(--good) 22%, transparent); color: var(--good); }
 .lv2 { background: color-mix(in srgb, var(--acc) 22%, transparent); color: var(--acc); }
 .lv3 { background: var(--acc); color: var(--btxt); }
+.pill { display:inline-block; border-radius:20px; padding:3px 9px; font-size:11px; font-weight:600; white-space:nowrap; }
+.lb-w { background:#E9E2D6; color:#2B211C; }
+.lb-g { background:#8A8F96; color:#fff; }
+.lb-r { background:#C0503A; color:#fff; }
+.grid3 { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
+.chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.chip { border:1px solid var(--line); background:transparent; color:var(--fg); border-radius:20px; padding:6px 11px; font: 500 13px Inter, sans-serif; cursor:pointer; }
+.chip.on { background: var(--acc); color: var(--btxt); border-color: var(--acc); }
+.nav button { position: relative; }
+.dot { position:absolute; top:2px; right:10px; width:8px; height:8px; border-radius:50%; background: var(--bad); }
+select { appearance:none; }
