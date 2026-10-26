@@ -82,29 +82,172 @@ function Login({ onToken }) {
   )
 }
 
-function Home({ me, go }) {
+function burst(n = 30) {
+  const host = document.getElementById('fx')
+  if (!host) return
+  const cols = ['#C9A55C', '#9CC08A', '#E07A5F', '#F3E9DA', '#B85C38', '#E8833A']
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement('i')
+    d.className = 'conf'
+    d.style.left = Math.random() * 100 + '%'
+    d.style.background = cols[i % cols.length]
+    d.style.animationDelay = Math.random() * 0.25 + 's'
+    d.style.transform = `rotate(${Math.random() * 360}deg)`
+    host.appendChild(d)
+    setTimeout(() => d.remove(), 1700)
+  }
+}
+function flyPoints(text) {
+  const host = document.getElementById('fx')
+  if (!host) return
+  const d = document.createElement('div')
+  d.className = 'flypts'
+  d.textContent = text
+  host.appendChild(d)
+  setTimeout(() => d.remove(), 1300)
+}
+function buzz(ms = 30) { try { navigator.vibrate && navigator.vibrate(ms) } catch {} }
+
+function QuoteSplash({ token, me, close }) {
+  const [q, setQ] = useState(null)
+  const [k, setK] = useState(0)
+  useEffect(() => { rpc('daraja_quote', { p_token: token, p_random: false }).then(setQ).catch(() => close()) }, [token])
+  const other = () => rpc('daraja_quote', { p_token: token, p_random: true }).then(x => { setQ(x); setK(k + 1) }).catch(() => {})
+  const day = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const icon = { proverbe: 'ti-leaf', citation: 'ti-quote', histoire: 'ti-book-2', motivation: 'ti-rocket', encouragement: 'ti-heart-handshake' }
   return (
-    <div className="page">
-      <div className="row between" style={{ marginBottom: 18 }}>
-        <div><div className="sub">{me.venue_name}</div><h1>Salut {me.name.split(' ')[0]}</h1></div>
-        <div className="acc" style={{ fontSize: 17, fontWeight: 600 }}><i className="ti ti-flame" /> {me.streak} j</div>
-      </div>
-      <div className="card" style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => go('shop')}>
-        <div className="sub">Mes points</div>
-        <div className="big acc">{fmt(me.points)}</div>
-        {me.role === 'staff' && <div className="sub">{me.rank === 1 ? '1er' : me.rank + 'e'} du {me.venue_name} ce mois</div>}
-      </div>
-      <div className="card">
-        <div className="row between">
-          <div style={{ fontSize: 17, fontWeight: 600 }}>Quiz du jour</div>
-          <Info text="5 questions par jour : 2 faciles (+10), 2 confirmées (+20) et 1 experte (+30). Joue chaque jour pour faire grimper ta série. Touche pour fermer." />
-        </div>
-        <div className="sub" style={{ margin: '4px 0 14px' }}>5 questions · 3 niveaux · jusqu'à +90 pts</div>
-        {me.quiz_done
-          ? <button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Fait, reviens demain</button>
-          : <button className="btn" onClick={() => go('quiz')}>Jouer</button>}
+    <div className="page splash">
+      <div className="sub" style={{ textTransform: 'capitalize', letterSpacing: '.5px' }}>{day} · le mot du jour</div>
+      {q && <div key={k} className="rise">
+        <i className={'ti ' + (icon[q.kind] || 'ti-quote') + ' acc'} style={{ fontSize: 36, display: 'block', margin: '28px 0 10px' }} />
+        <div className="qbody">{q.kind === 'histoire' ? q.body : '« ' + q.body + ' »'}</div>
+        {q.author && <div className="sub" style={{ marginTop: 12 }}>{q.author}</div>}
+      </div>}
+      <div style={{ marginTop: 'auto' }}>
+        <button className="btn ghost" style={{ marginBottom: 10 }} onClick={other}>Une autre <i className="ti ti-refresh" /></button>
+        <button className="btn" onClick={close}>C'est parti, {me.name.split(' ')[0]}</button>
       </div>
     </div>
+  )
+}
+
+function LevelRing({ earned, size = 66 }) {
+  const lv = level(earned)
+  const pct = lv.to ? (earned - lv.from) / (lv.to - lv.from) : 1
+  const r = size / 2 - 6, c = 2 * Math.PI * r
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="ring">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line)" strokeWidth="7" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--acc)" strokeWidth="7" strokeLinecap="round"
+        strokeDasharray={c} strokeDashoffset={c * (1 - pct)} transform={`rotate(-90 ${size / 2} ${size / 2})`} className="ringbar" />
+      <text x="50%" y="55%" textAnchor="middle" fill="var(--fg)" fontSize="15" fontWeight="600">N{lv.n}</text>
+    </svg>
+  )
+}
+
+function nextGift(rewards, pts) {
+  const sorted = [...rewards].sort((a, b) => a.cost - b.cost)
+  return sorted.find(r => r.cost > pts) || sorted[sorted.length - 1]
+}
+
+function GiftProgress({ r, pts, onClick }) {
+  if (!r) return null
+  const pct = Math.min(100, Math.round((pts / r.cost) * 100))
+  const left = Math.max(0, r.cost - pts)
+  const near = pct >= 80 && left > 0
+  return (
+    <div className={'card gp ' + (near ? 'near' : '') + (left === 0 ? ' ready' : '')} onClick={onClick}>
+      <div className="row between">
+        <span><i className={'ti ti-' + r.icon + ' acc'} /> {r.name}</span>
+        <span className="acc" style={{ fontWeight: 600, fontSize: 13 }}>{left === 0 ? 'À toi !' : near ? 'Presque !' : pct + ' %'}</span>
+      </div>
+      <div className="bar" style={{ height: 9, margin: '9px 0 6px' }}><div style={{ width: pct + '%', height: 9 }} /></div>
+      <div className="sub">{left === 0 ? 'Touche pour l\'échanger' : <>Plus que <b className="acc">{fmt(left)} pts</b>{left <= 90 ? ' : un quiz parfait et c\'est à toi' : ''}</>}</div>
+    </div>
+  )
+}
+
+function Home({ token, me, venue, go }) {
+  const [rewards, setRewards] = useState([])
+  useEffect(() => { rpc('daraja_rewards', { p_token: token, p_venue: venue }).then(setRewards).catch(() => {}) }, [token, venue])
+  const lv = level(me.earned)
+  return (
+    <div className="page">
+      <div className="row between" style={{ marginBottom: 16 }}>
+        <div><div className="sub">{me.venue_name}</div><h1>Salut {me.name.split(' ')[0]}</h1></div>
+        <div style={{ textAlign: 'center' }}>
+          <i className={'ti ti-flame flame' + (me.streak ? '' : ' off')} />
+          <div className="sub">{me.streak} jour{me.streak > 1 ? 's' : ''}</div>
+        </div>
+      </div>
+      <div className="card row" style={{ gap: 14, cursor: 'pointer' }} onClick={() => go('profile')}>
+        <LevelRing earned={me.earned} />
+        <div>
+          <div className="big acc" style={{ fontSize: 28 }}>{fmt(me.points)}</div>
+          <div className="sub">{lv.name}{me.role === 'staff' ? ' · ' + (me.rank === 1 ? '1er' : me.rank + 'e') + ' du mois' : ''}</div>
+        </div>
+      </div>
+      <GiftProgress r={nextGift(rewards, me.points)} pts={me.points} onClick={() => go('shop')} />
+      <div className="card" style={{ position: 'relative' }}>
+        <div className="row between">
+          <div><div style={{ fontSize: 17, fontWeight: 600 }}>Défi du jour</div><div className="sub">5 manches · jusqu'à +90 pts</div></div>
+          <Info text="Chaque jour : vrai ou faux, scènes client, anglais, associations… 2 manches faciles, 2 confirmées, 1 experte. Touche pour fermer." />
+        </div>
+        <div className="row" style={{ gap: 6, margin: '12px 0 14px' }}>
+          {[1, 1, 2, 2, 3].map((l, i) => <span key={i} className={'ddot l' + l} />)}
+        </div>
+        {me.quiz_done
+          ? <button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Défi relevé, à demain</button>
+          : <button className="btn pulse" onClick={() => go('quiz')}>Jouer <i className="ti ti-player-play" /></button>}
+      </div>
+    </div>
+  )
+}
+
+function OrderGame({ q, onAnswer, res }) {
+  const [picked, setPicked] = useState([])
+  const words = q.payload?.words || []
+  const left = words.map((w, i) => ({ w, i })).filter(x => !picked.includes(x.i))
+  useEffect(() => {
+    if (!res && picked.length === words.length && words.length) onAnswer(null, picked.map(i => words[i]))
+  }, [picked])
+  return (
+    <>
+      <div className="slot">{picked.map(i => <span key={i} className="wchip in" onClick={() => !res && setPicked(picked.filter(x => x !== i))}>{words[i]}</span>)}</div>
+      {res && !res.correct && res.solution && <div className="sub" style={{ marginBottom: 8 }}>Bonne phrase : <b className="acc">{res.solution.join(' ').replace(/ ([?,.!])/g, '$1')}</b></div>}
+      <div>{left.map(x => <span key={x.i} className="wchip" onClick={() => !res && setPicked([...picked, x.i])}>{x.w}</span>)}</div>
+      {!res && picked.length > 0 && <div className="sub" style={{ marginTop: 8 }}>Touche un mot placé pour le retirer</div>}
+    </>
+  )
+}
+
+function MatchGame({ q, onAnswer, res }) {
+  const pairs = q.payload?.pairs || []
+  const [right] = useState(() => pairs.map((p, i) => i).sort(() => Math.random() - 0.5))
+  const [L, setL] = useState(null)
+  const [done, setDone] = useState([])
+  const [bad, setBad] = useState(null)
+  const [mistakes, setMistakes] = useState(0)
+  const tryPair = (l, r) => {
+    if (l === r) {
+      const nd = [...done, l]; setDone(nd); setL(null); buzz(15)
+      if (nd.length === pairs.length) onAnswer(null, { mistakes })
+    } else {
+      setMistakes(mistakes + 1); setBad([l, r]); buzz(60); setTimeout(() => { setBad(null); setL(null) }, 450)
+    }
+  }
+  return (
+    <>
+      {pairs.map((p, i) => (
+        <div key={i} className="mrow">
+          <span className={'mchip' + (done.includes(i) ? ' ok' : L === i ? ' sel' : '') + (bad && bad[0] === i ? ' shake bad' : '')}
+            onClick={() => !res && !done.includes(i) && setL(i)}>{p[0]}</span>
+          <span className={'mchip' + (done.includes(right[i]) ? ' ok' : '') + (bad && bad[1] === right[i] ? ' shake bad' : '')}
+            onClick={() => !res && L !== null && !done.includes(right[i]) && tryPair(L, right[i])}>{pairs[right[i]][1]}</span>
+        </div>
+      ))}
+      {!res && <div className="sub" style={{ textAlign: 'center', marginTop: 6 }}>Touche à gauche, puis sa paire à droite · {mistakes} erreur{mistakes > 1 ? 's' : ''}</div>}
+    </>
   )
 }
 
@@ -115,7 +258,9 @@ function Quiz({ token, done }) {
   const [pick, setPick] = useState(null)
   const [score, setScore] = useState(0)
   const [pts, setPts] = useState(0)
+  const [combo, setCombo] = useState(0)
   const [err, setErr] = useState('')
+  const [shake, setShake] = useState(false)
 
   useEffect(() => {
     rpc('daraja_quiz', { p_token: token }).then(d => {
@@ -124,58 +269,100 @@ function Quiz({ token, done }) {
       setPts(d.today_points || 0)
       const first = (d.questions || []).findIndex(q => !(d.answered || []).includes(q.id))
       setI(first === -1 ? (d.questions || []).length : first)
-    }).catch(() => setErr('Impossible de charger le quiz'))
+    }).catch(() => setErr('Impossible de charger le défi'))
   }, [token])
+  useEffect(() => { if (data && i >= (data.questions || []).length && score >= 4) setTimeout(() => burst(60), 200) }, [i, data])
 
   if (err) return <div className="page"><div className="err">{err}</div></div>
-  if (!data) return <div className="page sub">Chargement…</div>
+  if (!data) return <div className="page sub">Le barman prépare tes questions…</div>
   const qs = data.questions || []
-  if (!qs.length) return <div className="page"><h1>Quiz du jour</h1><div className="sub">Pas encore de questions.</div></div>
+  if (!qs.length) return <div className="page"><h1>Défi du jour</h1><div className="sub">Pas encore de questions.</div></div>
 
   if (i >= qs.length) return (
     <div className="page" style={{ textAlign: 'center', paddingTop: 60 }}>
-      <i className="ti ti-trophy acc" style={{ fontSize: 56 }} />
-      <h1>{score}/{qs.length}</h1>
-      <div className="sub" style={{ marginBottom: 24 }}>+{pts} points aujourd'hui</div>
+      <i className={'ti ' + (score >= 4 ? 'ti-trophy' : score >= 2 ? 'ti-thumb-up' : 'ti-mood-smile') + ' acc pop'} style={{ fontSize: 64 }} />
+      <h1 style={{ fontSize: 34 }}>{score}/{qs.length}</h1>
+      <div className="acc" style={{ fontSize: 20, fontWeight: 600, margin: '6px 0' }}>+{pts} points</div>
+      <div className="sub" style={{ marginBottom: 26 }}>{score === qs.length ? 'Sans faute. Respect.' : score >= 3 ? 'Belle soirée en vue !' : 'Demain, on remet ça. Chaque erreur t\'apprend quelque chose.'}</div>
       <button className="btn" onClick={done}>Retour</button>
     </div>
   )
 
   const q = qs[i]
-  const answer = async k => {
+  const kind = q.kind || 'qcm'
+  const answer = async (k, ans) => {
     if (res) return
     setPick(k)
     try {
-      const r = await rpc('daraja_answer', { p_token: token, p_question: q.id, p_choice: k })
+      const r = await rpc('daraja_answer_v2', { p_token: token, p_question: q.id, p_choice: k ?? -1, p_answer: ans ?? null })
       setRes(r)
       if (r.score != null) setScore(r.score)
       if (r.today_points != null) setPts(r.today_points)
+      if (r.correct) { const c = combo + 1; setCombo(c); burst(c >= 3 ? 50 : 28); flyPoints('+' + r.points); buzz(20) }
+      else if (r.correct === false) { setCombo(0); setShake(true); buzz(120); setTimeout(() => setShake(false), 450) }
     } catch { setErr('Erreur réseau, réessaie') }
   }
   const next = () => { setRes(null); setPick(null); setI(i + 1) }
+  const optClass = k => res ? (k === res.answer_idx && kind !== 'order' && kind !== 'match' ? 'ok' : k === pick ? 'ko' : '') : (k === pick ? 'sel' : '')
 
   return (
     <div className="page">
       <div className="row between sub" style={{ marginBottom: 8 }}>
-        <span>Question {i + 1}/{qs.length} · {q.theme}</span><LevelBadge level={q.level} />
+        <span>Manche {i + 1}/{qs.length} · {q.theme}</span>
+        {combo >= 2 ? <span className="combo pop"><i className="ti ti-bolt" /> Combo x{combo}</span> : <LevelBadge level={q.level} />}
       </div>
-      <div className="bar" style={{ marginBottom: 20 }}><div style={{ width: `${(i / qs.length) * 100}%` }} /></div>
-      <div style={{ fontSize: 19, fontWeight: 600, lineHeight: 1.4, marginBottom: 18 }}>{q.question}</div>
-      {q.options.map((o, k) => {
-        let c = ''
-        if (res) { if (k === res.answer_idx) c = 'ok'; else if (k === pick) c = 'ko' }
-        else if (k === pick) c = 'sel'
-        return <button key={k} className={'opt ' + c} onClick={() => answer(k)}>
-          {res && k === res.answer_idx && <i className="ti ti-check" style={{ color: 'var(--good)', marginRight: 6 }} />}{o}
-        </button>
-      })}
-      {res && <>
-        <div className="card" style={{ fontSize: 14, lineHeight: 1.45 }}>
-          <b style={{ color: res.correct ? 'var(--good)' : 'var(--bad)' }}>{res.correct ? '+' + (res.points || 10) + ' pts' : 'Raté'}</b>
-          {res.explanation ? ' · ' + res.explanation : ''}
+      <div className="bar" style={{ marginBottom: 18 }}><div style={{ width: `${(i / qs.length) * 100}%` }} /></div>
+
+      <div className={shake ? 'shake' : ''}>
+        {kind === 'tf' && <>
+          <div className="card tfcard rise">
+            <i className="ti ti-glass-cocktail acc" style={{ fontSize: 30 }} />
+            <div style={{ fontSize: 18, lineHeight: 1.45, marginTop: 10 }}>{q.question}</div>
+          </div>
+          <div className="row" style={{ gap: 10 }}>
+            <button className={'btn tfb no ' + optClass(1)} onClick={() => answer(1)}><i className="ti ti-x" /> Faux</button>
+            <button className={'btn tfb yes ' + optClass(0)} onClick={() => answer(0)}><i className="ti ti-check" /> Vrai</button>
+          </div>
+        </>}
+
+        {kind === 'scene' && <>
+          <div className="bubble-in rise">{q.question}</div>
+          <div className="sub" style={{ margin: '14px 0 8px' }}>Ta meilleure réplique ?</div>
+          {q.options.map((o, k) => <button key={k} className={'opt reply ' + optClass(k)} onClick={() => answer(k)}>{o}</button>)}
+        </>}
+
+        {kind === 'price' && <>
+          <div style={{ fontSize: 19, fontWeight: 600, marginBottom: 14 }}><i className="ti ti-scale acc" /> {q.question}</div>
+          <div className="grid2">
+            {q.options.map((o, k) => <button key={k} className={'opt pricecard ' + optClass(k)} onClick={() => answer(k)}>{o}</button>)}
+          </div>
+        </>}
+
+        {kind === 'order' && <>
+          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}><i className="ti ti-language acc" /> {q.question}</div>
+          <OrderGame key={q.id} q={q} res={res} onAnswer={answer} />
+        </>}
+
+        {kind === 'match' && <>
+          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}><i className="ti ti-arrows-shuffle acc" /> {q.question}</div>
+          <MatchGame key={q.id} q={q} res={res} onAnswer={answer} />
+        </>}
+
+        {kind === 'qcm' && <>
+          <div style={{ fontSize: 19, fontWeight: 600, lineHeight: 1.4, marginBottom: 18 }}>{q.question}</div>
+          {q.options.map((o, k) => <button key={k} className={'opt ' + optClass(k)} onClick={() => answer(k)}>
+            {res && k === res.answer_idx && <i className="ti ti-check" style={{ color: 'var(--good)', marginRight: 6 }} />}{o}
+          </button>)}
+        </>}
+      </div>
+
+      {res && <div className="rise">
+        <div className="card" style={{ fontSize: 14, lineHeight: 1.45, marginTop: 12 }}>
+          <b style={{ color: res.correct ? 'var(--good)' : 'var(--bad)' }}>{res.correct ? 'Bien joué ! +' + (res.points || 10) : 'Raté, mais retiens bien :'}</b>
+          {res.explanation ? ' ' + res.explanation : ''}
         </div>
-        <button className="btn" onClick={next}>{i + 1 < qs.length ? 'Suivante' : 'Voir mon score'}</button>
-      </>}
+        <button className="btn" onClick={next}>{i + 1 < qs.length ? 'Manche suivante' : 'Voir mon score'}</button>
+      </div>}
     </div>
   )
 }
@@ -227,11 +414,16 @@ function Shop({ token, me, venue, refresh, toast }) {
         <div className="grid2">
           {items.map(r => {
             const ok = me.points >= r.cost
+            const pct = Math.max(0, Math.min(100, Math.round((me.points / r.cost) * 100)))
+            const near = !ok && pct >= 80
             return (
-              <div key={r.id} className={'card gift ' + (ok ? '' : 'locked')} onClick={() => ok && setSel(r)}>
+              <div key={r.id} className={'card gift ' + (ok ? 'ready' : near ? 'near' : 'locked')} onClick={() => ok ? setSel(r) : toast('Plus que ' + fmt(r.cost - me.points) + ' pts pour ' + r.name)}>
+                {near && <span className="tag">Presque !</span>}
+                {ok && <span className="tag">Dispo</span>}
                 <i className={'ti ti-' + r.icon + ' acc'} />
                 <div style={{ fontSize: 14, margin: '6px 0', minHeight: 36 }}>{r.name}</div>
-                <div className={ok ? 'acc' : ''} style={{ fontWeight: 600, fontSize: 14 }}>{!ok && <i className="ti ti-lock" />} {fmt(r.cost)}</div>
+                <div className="bar" style={{ margin: '0 0 6px' }}><div style={{ width: pct + '%' }} /></div>
+                <div className={ok || near ? 'acc' : 'sub'} style={{ fontWeight: 600, fontSize: 13 }}>{ok ? fmt(r.cost) + ' pts' : 'encore ' + fmt(r.cost - me.points)}</div>
               </div>
             )
           })}
@@ -570,13 +762,23 @@ export default function App() {
   const [me, setMe] = useState(null)
   const [tab, setTab] = useState('home')
   const [msg, setMsg] = useState('')
+  const [splash, setSplash] = useState(false)
+  const [levelUp, setLevelUp] = useState(null)
   const toast = m => { setMsg(m); setTimeout(() => setMsg(''), 2200) }
+  const todayKey = new Date().toLocaleDateString('fr-CA')
 
   const refresh = useCallback(() => {
     if (!token) return
     rpc('daraja_me', { p_token: token, p_venue: venue }).then(setMe).catch(() => { store.set(TK, null); setToken(null); setMe(null) })
   }, [token, venue])
   useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    if (!me) return
+    if (store.get('daraja_quote_day') !== todayKey) setSplash(true)
+    const n = level(me.earned).n, key = 'daraja_lv_' + me.id, prev = parseInt(store.get(key) || '0', 10)
+    if (prev && n > prev) { setLevelUp(level(me.earned)); setTimeout(() => burst(80), 150) }
+    store.set(key, String(n))
+  }, [me?.id, me?.earned])
 
   const theme = 't-' + (me?.venue === 'zz' ? 'zz' : 'baro')
   useEffect(() => {
@@ -591,6 +793,7 @@ export default function App() {
 
   if (!token) return <div className={'app ' + theme}><Login onToken={login} /></div>
   if (!me) return <div className={'app ' + theme}><div className="page sub">Chargement…</div></div>
+  if (splash) return <div className={'app ' + theme}><div id="fx" /><QuoteSplash token={token} me={me} close={() => { store.set('daraja_quote_day', todayKey); setSplash(false) }} /></div>
 
   const isAdmin = me.role !== 'staff'
   const tabs = [['home', 'home'], ['board', 'trophy'], ['shop', 'gift'], ['profile', 'user'], ...(isAdmin ? [['admin', 'settings']] : [])]
@@ -598,13 +801,23 @@ export default function App() {
   return (
     <div className={'app ' + theme}>
       <Toast msg={msg} />
+      <div id="fx" />
+      {levelUp && <div className="sheet center" onClick={() => setLevelUp(null)}>
+        <div className="lvup pop">
+          <i className="ti ti-stairs-up acc" style={{ fontSize: 48 }} />
+          <div className="sub" style={{ marginTop: 8 }}>Tu montes d'une marche</div>
+          <h1 style={{ fontSize: 30 }}>Niveau {levelUp.n}</h1>
+          <div className="acc" style={{ fontSize: 18, fontWeight: 600 }}>{levelUp.name}</div>
+          <button className="btn" style={{ marginTop: 18 }}>Bravo à moi</button>
+        </div>
+      </div>}
       {me.role === 'super' && tab !== 'quiz' && (
         <div className="seg" style={{ padding: '12px 16px 0', margin: 0 }}>
           <button className={me.venue === 'baro' ? 'on' : ''} onClick={() => switchVenue('baro')}>Baromètre</button>
           <button className={me.venue === 'zz' ? 'on' : ''} onClick={() => switchVenue('zz')}>ZamaZama</button>
         </div>
       )}
-      {tab === 'home' && <Home me={me} go={go} />}
+      {tab === 'home' && <Home token={token} me={me} venue={venue} go={go} />}
       {tab === 'quiz' && <Quiz token={token} done={() => go('home')} />}
       {tab === 'board' && <Board token={token} me={me} venue={venue} />}
       {tab === 'shop' && <Shop token={token} me={me} venue={venue} refresh={refresh} toast={toast} />}
