@@ -17,7 +17,11 @@
     "@supabase/supabase-js": "^2.45.0",
     "@tabler/icons-webfont": "^3.19.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "@dicebear/thumbs": "^9.4.2",
+    "@dicebear/adventurer": "^9.4.2",
+    "@dicebear/pixel-art": "^9.4.2",
+    "@dicebear/avataaars": "^9.4.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",

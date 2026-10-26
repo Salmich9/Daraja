@@ -31,6 +31,14 @@ export default async function mock(fn, a) {
     case 'daraja_admin_rewards': return rewards
     case 'daraja_posts': return [{ id: 'serveur', family: 'salle', label: 'Serveur' }]
     case 'daraja_quote': return { kind: 'proverbe', body: 'Petit à petit, l\'oiseau fait son nid.', author: 'Proverbe' }
+    case 'daraja_birthdays': return [{ id: 's2', display: 'Salma', avatar: 'big-smile:Safran', phone: '212600000003', in_days: 0, me: false }, { id: 's1', display: 'Youssef', avatar: 'bottts:Shaker', in_days: 3, me: false }]
+    case 'daraja_eotm': return { can_vote: true, my_vote: null, voters: 7, days_left: 5, candidates: staff.map(s => ({ id: s.id, display: s.display, avatar: s.avatar })), last: { month: '2026-09', votes: 6, me: false, display: 'Amina', avatar: 'fun-emoji:Citron' } }
+    case 'daraja_duels': return [{ id: 'd1', status: 'open', mine: false, other: 'Youssef', other_avatar: 'bottts:Shaker', todo: true, my_done: 0, n: 5 }, { id: 'd2', status: 'open', mine: true, other: 'Karim', other_avatar: 'croodles:Olive', todo: false }, { id: 'd3', status: 'done', mine: true, other: 'Salma', other_avatar: 'big-smile:Safran', my_score: 4, other_score: 3, won: true }, { id: 'd4', status: 'done', mine: false, other: 'Hind', other_avatar: 'fun-emoji:Momo', my_score: 2, other_score: 3, won: false }]
+    case 'daraja_quiz': case 'daraja_test_quiz': case 'daraja_duel_get': return { answered: [], correct: 0, today_points: 0, questions: [{ id: 'q1', theme: 'Bar en images', question: 'Comment s\'appelle cet outil du bar ?', options: ['Un shaker', 'Un jigger (doseur)', 'Une passoire', 'Un pilon'], level: 1, kind: 'image', limit: 6, payload: { img: 'jigger' } }, { id: 'q2', theme: 'Hospitalité', question: 'x', options: ['a', 'b'], level: 2, kind: 'qcm', limit: 6 }] }
+    case 'daraja_q_start': case 'daraja_duel_start': return { elapsed: 2.2 }
+    case 'daraja_avatars_taken': return ['fun-emoji:Citron', 'fun-emoji:Momo', 'fun-emoji:Safran', 'fun-emoji:Mojito']
+    case 'daraja_rulebook': return [{ line: 'blanche', domain: 'Ponctualité', behavior: 'Retard de moins de 15 min, premier du mois, prévenu avant', sanction: 'Recadrage oral en privé, sans trace', malus: 20 }, { line: 'blanche', domain: 'Uniforme', behavior: 'Chemise froissée, chaussures non cirées', sanction: 'Recadrage oral en privé, sans trace', malus: 20 }]
+    case 'daraja_conduct_mine': return { days_clean: 42, blanche: 1, grise: 0, rouge: 0, records: [] }
     default: return { ok: true }
   }
 }

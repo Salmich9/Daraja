@@ -186,3 +186,17 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 .cond { display:flex; align-items:center; gap:7px; font-size: 13px; margin-top: 6px; text-align: left; }
 .gift .lockline { font-size: 11px; color: var(--bad); margin-top: 4px; }
 .ticket .info { color: inherit; }
+.timer { display:flex; align-items:center; gap:10px; margin-bottom: 16px; font-weight: 700; font-size: 14px; min-height: 18px; }
+.timer .tbar { flex:1; height: 10px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.timer .tbar > div { height: 10px; background: var(--good); border-radius: 6px; }
+.timer.hot .tbar > div { background: var(--bad); }
+.timer.hot span { color: var(--bad); animation: pulse .5s ease-in-out infinite; }
+.timer span { width: 30px; text-align: right; }
+.qimg { display:flex; justify-content:center; padding: 14px; }
+.qimg img { width: 150px; height: 150px; object-fit: contain; }
+.eotm { border: 2px solid color-mix(in srgb, var(--acc) 60%, transparent); }
+.bday { background: linear-gradient(120deg, color-mix(in srgb, var(--b3) 40%, var(--card)), var(--card)); }
+.duelcard { background: linear-gradient(120deg, color-mix(in srgb, var(--b1) 70%, var(--card)), var(--card)); }
+.duelcard.hot { border: 2px solid var(--acc); animation: pulse 1.6s ease-in-out infinite; }
+.previewbar { position: sticky; top: 0; z-index: 6; display:flex; align-items:center; gap: 8px; padding: 8px 16px; background: var(--acc); color: var(--btxt); font-weight: 600; font-size: 13px; }
+.previewbar .mini { margin-left: auto; background: var(--btxt); color: var(--acc); }

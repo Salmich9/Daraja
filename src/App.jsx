@@ -36,8 +36,9 @@ function LevelBadge({ level }) {
 }
 
 
-const AV_SEEDS = ['Shaker', 'Glacon', 'Citron', 'Olive', 'Safran', 'Zama', 'Momo', 'Tonic']
-const AV_LIB = ['fun-emoji', 'bottts', 'big-smile', 'croodles'].flatMap(st => AV_SEEDS.map(sd => st + ':' + sd))
+const AV_SEEDS = ['Shaker', 'Glacon', 'Citron', 'Olive', 'Safran', 'Zama', 'Momo', 'Tonic', 'Mojito', 'Negroni', 'Spritz', 'Martini', 'Paprika', 'Cumin', 'Tajine', 'Couscous', 'Mezcal', 'Bitter', 'Sirop', 'Menthe']
+const AV_STYLES = ['fun-emoji', 'bottts', 'big-smile', 'croodles', 'thumbs', 'adventurer', 'pixel-art', 'avataaars']
+const AV_LIB = AV_STYLES.flatMap(st => AV_SEEDS.map(sd => st + ':' + sd))
 let avMod = null
 const avReady = import('./avatars.js').then(m => { avMod = m; return m })
 function Avatar({ value, name, size = 34, me: isMe }) {
@@ -185,7 +186,7 @@ function GiftProgress({ r, pts, onClick }) {
   )
 }
 
-function Home({ token, me, venue, go }) {
+function Home({ token, me, venue, go, toast }) {
   const [rewards, setRewards] = useState([])
   useEffect(() => { rpc('daraja_rewards', { p_token: token, p_venue: venue }).then(setRewards).catch(() => {}) }, [token, venue])
   const lv = level(me.earned)
@@ -203,6 +204,7 @@ function Home({ token, me, venue, go }) {
       </div>
       {me.flame === 'danger' && <div className="card danger rise"><b><i className="ti ti-flame" /> Flamme en danger</b><div className="sub">Tu n'as pas joué hier. Joue aujourd'hui pour sauver tes {me.streak} jours.</div></div>}
       {me.flame === 'out' && <div className="card rise" style={{ border: '1px solid var(--line)' }}><b><i className="ti ti-snowflake" style={{ color: '#85B7EB' }} /> Flamme éteinte</b><div className="sub">Rallume-la aujourd'hui : chaque jour de série rapporte un bonus qui grandit.</div></div>}
+      <BirthdayCard token={token} me={me} venue={venue} />
       <div className="card row" style={{ gap: 14, cursor: 'pointer' }} onClick={() => go('profile')}>
         <LevelRing earned={me.earned} />
         <div>
@@ -222,9 +224,11 @@ function Home({ token, me, venue, go }) {
           ? <button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Défi relevé, à demain</button>
           : <button className="btn pulse" onClick={() => go('quiz')}>Jouer <i className="ti ti-player-play" /></button>}
       </div>
+      {me.role === 'staff' && <DuelCard token={token} go={go} />}
       <GiftProgress r={nextGift(rewards, me.points)} pts={me.points} onClick={() => go('shop')} />
       {me.role === 'staff' && <MissionCard token={token} />}
       {me.role === 'staff' && <DrawCard token={token} me={me} venue={venue} />}
+      <EotmCard token={token} me={me} venue={venue} toast={toast} />
       <div className="card row" style={{ gap: 12, cursor: 'pointer' }} onClick={() => go('stories')}>
         <i className="ti ti-book-2 acc" style={{ fontSize: 28 }} />
         <div style={{ flex: 1 }}><div style={{ fontWeight: 600 }}>L'histoire du jour</div><div className="sub">Partis de zéro, arrivés au sommet</div></div>
@@ -281,7 +285,39 @@ function MatchGame({ q, onAnswer, res }) {
   )
 }
 
-function Quiz({ token, me, done }) {
+const QMODES = {
+  daily: { load: t => rpc('daraja_quiz', { p_token: t }), start: (t, q) => rpc('daraja_q_start', { p_token: t, p_question: q }), answer: (t, q, c, a) => rpc('daraja_answer_v2', { p_token: t, p_question: q, p_choice: c, p_answer: a }) },
+  duel: { load: (t, x) => rpc('daraja_duel_get', { p_token: t, p_duel: x.duel }), start: (t, q, x) => rpc('daraja_duel_start', { p_token: t, p_duel: x.duel, p_question: q }), answer: (t, q, c, a, x) => rpc('daraja_duel_answer', { p_token: t, p_duel: x.duel, p_question: q, p_choice: c, p_answer: a }) },
+  test: { load: (t, x) => rpc('daraja_test_quiz', { p_token: t, p_venue: x.venue, p_post: x.post, p_kind: x.kind || null }), start: async () => ({ elapsed: 0 }), answer: (t, q, c, a) => rpc('daraja_test_answer', { p_token: t, p_question: q, p_choice: c, p_answer: a }) },
+}
+const imgSrc = n => '/img/' + n + '.svg'
+
+function Timer({ q, deadline, onEnd, stopped }) {
+  const [left, setLeft] = useState(() => Math.max(0, deadline - Date.now()))
+  useEffect(() => {
+    if (stopped) return
+    let raf, fired = false
+    const tick = () => {
+      const l = Math.max(0, deadline - Date.now()); setLeft(l)
+      if (l <= 0 && !fired) { fired = true; onEnd(); return }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [deadline, stopped])
+  const total = (q.limit || 6) * 1000
+  const pct = Math.max(0, Math.min(100, (left / total) * 100))
+  const sec = Math.ceil(left / 1000)
+  return (
+    <div className={'timer' + (sec <= 2 && !stopped ? ' hot' : '')}>
+      <div className="tbar"><div style={{ width: pct + '%' }} /></div>
+      <span>{stopped ? '' : sec + ' s'}</span>
+    </div>
+  )
+}
+
+function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
+  const M = QMODES[mode]
   const [data, setData] = useState(null)
   const [i, setI] = useState(0)
   const [res, setRes] = useState(null)
@@ -292,62 +328,83 @@ function Quiz({ token, me, done }) {
   const [err, setErr] = useState('')
   const [shake, setShake] = useState(false)
   const [bonus, setBonus] = useState(0)
+  const [deadline, setDeadline] = useState(null)
+  const [round, setRound] = useState(0)
+  const busy = React.useRef(false)
+  const live = React.useRef({})
 
   useEffect(() => {
-    rpc('daraja_quiz', { p_token: token }).then(d => {
+    setData(null); setScore(0); setPts(0); setI(0)
+    M.load(token, ctx).then(d => {
       setData(d)
       setScore(d.correct || 0)
       setPts(d.today_points || 0)
+      ;(d.questions || []).forEach(q => { if (q.kind === 'image' && q.payload?.img) { const im = new Image(); im.src = imgSrc(q.payload.img) } })
       const first = (d.questions || []).findIndex(q => !(d.answered || []).includes(q.id))
       setI(first === -1 ? (d.questions || []).length : first)
     }).catch(() => setErr('Impossible de charger le défi'))
-  }, [token])
-  useEffect(() => { if (data && i >= (data.questions || []).length && score >= 4) setTimeout(() => burst(60), 200) }, [i, data])
+  }, [token, mode, ctx.duel, round])
+  const qs = data?.questions || []
+  const q = qs[i]
+  useEffect(() => {
+    if (!q || res) return
+    setDeadline(null)
+    M.start(token, q.id, ctx).then(r => setDeadline(Date.now() + ((q.limit || 6) - (r?.elapsed || 0)) * 1000)).catch(() => setDeadline(Date.now() + (q.limit || 6) * 1000))
+  }, [q?.id])
+  useEffect(() => { if (data && i >= qs.length && qs.length && score >= 4) setTimeout(() => burst(60), 200) }, [i, data])
 
   if (err) return <div className="page"><div className="err">{err}</div></div>
   if (!data) return <div className="page sub">Le barman prépare tes questions…</div>
-  const qs = data.questions || []
-  if (!qs.length) return <div className="page"><h1>Défi du jour</h1><div className="sub">Pas encore de questions.</div></div>
+  if (!qs.length) return <div className="page"><h1>Défi</h1><div className="sub">Pas encore de questions.</div><button className="btn ghost" style={{ marginTop: 16 }} onClick={done}>Retour</button></div>
 
   if (i >= qs.length) return (
     <div className="page" style={{ textAlign: 'center', paddingTop: 60 }}>
       <i className={'ti ' + (score >= 4 ? 'ti-trophy' : score >= 2 ? 'ti-thumb-up' : 'ti-mood-smile') + ' acc pop'} style={{ fontSize: 64 }} />
       <h1 style={{ fontSize: 34 }}>{score}/{qs.length}</h1>
-      <div className="acc" style={{ fontSize: 20, fontWeight: 600, margin: '6px 0' }}>+{pts + bonus} points</div>
-      {bonus > 0 && <div className="sub">dont +3 de présence{bonus > 3 ? ' et +' + (bonus - 3) + ' de série' : ''}</div>}
-      <div className="sub" style={{ marginBottom: 22 }}>{score === qs.length ? 'Sans faute. Respect.' : score >= 3 ? 'Belle soirée en vue !' : 'Demain, on remet ça. Chaque erreur t\'apprend quelque chose.'}</div>
-      <button className="btn" onClick={done}>Retour</button>
-      <TalkCard token={token} me={me} />
+      {mode === 'daily' && <>
+        <div className="acc" style={{ fontSize: 20, fontWeight: 600, margin: '6px 0' }}>+{pts + bonus} points</div>
+        {bonus > 0 && <div className="sub">dont +3 de présence{bonus > 3 ? ' et +' + (bonus - 3) + ' de série' : ''} · +1 ticket</div>}
+      </>}
+      {mode === 'duel' && <div className="sub" style={{ margin: '6px 0' }}>Résultat dès que ton adversaire a joué</div>}
+      {mode === 'test' && <div className="sub" style={{ margin: '6px 0' }}>Mode test : rien n'est enregistré</div>}
+      <div className="sub" style={{ margin: '8px 0 22px' }}>{score === qs.length ? 'Sans faute. Respect.' : score >= 3 ? 'Belle soirée en vue !' : 'Demain, on remet ça. Chaque erreur t\'apprend quelque chose.'}</div>
+      {mode === 'test' && <button className="btn" style={{ marginBottom: 10 }} onClick={() => setRound(round + 1)}>Encore un quiz test</button>}
+      <button className={mode === 'test' ? 'btn ghost' : 'btn'} onClick={() => { onEnd && onEnd(); done() }}>Retour</button>
+      {mode === 'daily' && <TalkCard token={token} me={me} />}
     </div>
   )
 
-  const q = qs[i]
   const kind = q.kind || 'qcm'
   const answer = async (k, ans) => {
-    if (res) return
+    if (res || busy.current) return
+    busy.current = true
     setPick(k)
     try {
-      const r = await rpc('daraja_answer_v2', { p_token: token, p_question: q.id, p_choice: k ?? -1, p_answer: ans ?? null })
+      const r = await M.answer(token, q.id, k ?? -1, ans ?? null, ctx)
       setRes(r)
-      if (r.score != null) setScore(r.score)
+      if (r.score != null) setScore(r.score); else if (r.correct) setScore(s => s + 1)
       if (r.today_points != null) setPts(r.today_points)
       if (r.streak_bonus > 0) setTimeout(() => flyPoints('+' + r.streak_bonus + ' série'), 900)
       if (r.presence > 0 || r.streak_bonus > 0) setBonus((r.presence || 0) + (r.streak_bonus || 0))
-      if (r.correct) { const c = combo + 1; setCombo(c); burst(c >= 3 ? 50 : 28); flyPoints('+' + r.points); buzz(20) }
-      else if (r.correct === false) { setCombo(0); setShake(true); buzz(120); setTimeout(() => setShake(false), 450) }
+      if (r.correct) { const c = combo + 1; setCombo(c); burst(c >= 3 ? 50 : 28); if (mode === 'daily') flyPoints('+' + r.points); buzz(20) }
+      else { setCombo(0); setShake(true); buzz(120); setTimeout(() => setShake(false), 450) }
     } catch { setErr('Erreur réseau, réessaie') }
+    busy.current = false
   }
-  const next = () => { setRes(null); setPick(null); setI(i + 1) }
+  const timeout = () => answer(-1, null)
+  const next = () => { setRes(null); setPick(null); setDeadline(null); setI(i + 1) }
   const optClass = k => res ? (k === res.answer_idx && kind !== 'order' && kind !== 'match' ? 'ok' : k === pick ? 'ko' : '') : (k === pick ? 'sel' : '')
+  const ready = deadline != null
 
   return (
     <div className="page">
       <div className="row between sub" style={{ marginBottom: 8 }}>
-        <span>Manche {i + 1}/{qs.length} · {q.theme}</span>
+        <span>{mode === 'duel' ? 'Duel' : mode === 'test' ? 'Test' : 'Manche'} {i + 1}/{qs.length} · {q.theme}</span>
         {combo >= 2 ? <span className="combo pop"><i className="ti ti-bolt" /> Combo x{combo}</span> : <LevelBadge level={q.level} />}
       </div>
-      <div className="bar" style={{ marginBottom: 18 }}><div style={{ width: `${(i / qs.length) * 100}%` }} /></div>
+      {ready ? <Timer key={q.id} q={q} deadline={deadline} onEnd={timeout} stopped={!!res} /> : <div className="timer"><div className="tbar" /></div>}
 
+      {!ready ? <div className="sub" style={{ textAlign: 'center', marginTop: 40 }}>Prêt ?</div> :
       <div className={shake ? 'shake' : ''}>
         {kind === 'tf' && <>
           <div className="card tfcard rise">
@@ -358,6 +415,13 @@ function Quiz({ token, me, done }) {
             <button className={'btn tfb no ' + optClass(1)} onClick={() => answer(1)}><i className="ti ti-x" /> Faux</button>
             <button className={'btn tfb yes ' + optClass(0)} onClick={() => answer(0)}><i className="ti ti-check" /> Vrai</button>
           </div>
+        </>}
+
+        {kind === 'image' && <>
+          <div className="card qimg rise"><img src={imgSrc(q.payload?.img)} alt="" width="150" height="150" decoding="async" /></div>
+          <div style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.35, margin: '4px 0 12px' }}>{q.question}</div>
+          {q.options.map((o, k) => <button key={k} className={'opt ' + optClass(k)} onClick={() => answer(k)}>
+            {res && k === res.answer_idx && <i className="ti ti-check" style={{ color: 'var(--good)', marginRight: 6 }} />}{o}</button>)}
         </>}
 
         {kind === 'scene' && <>
@@ -389,11 +453,11 @@ function Quiz({ token, me, done }) {
             {res && k === res.answer_idx && <i className="ti ti-check" style={{ color: 'var(--good)', marginRight: 6 }} />}{o}
           </button>)}
         </>}
-      </div>
+      </div>}
 
       {res && <div className="rise">
         <div className="card" style={{ fontSize: 14, lineHeight: 1.45, marginTop: 12 }}>
-          <b style={{ color: res.correct ? 'var(--good)' : 'var(--bad)' }}>{res.correct ? 'Bien joué ! +' + (res.points || 10) : 'Raté, mais retiens bien :'}</b>
+          <b style={{ color: res.correct ? 'var(--good)' : 'var(--bad)' }}>{res.correct ? 'Bien joué !' + (mode === 'daily' ? ' +' + (res.points || 10) : '') : res.timeout || pick === -1 ? '⏱ Temps écoulé ! Retiens bien :' : 'Raté, mais retiens bien :'}</b>
           {res.explanation ? ' ' + res.explanation : ''}
         </div>
         <button className="btn" onClick={next}>{i + 1 < qs.length ? 'Manche suivante' : 'Voir mon score'}</button>
@@ -434,13 +498,16 @@ function TalkCard({ token, me }) {
 
 function ProfileEdit({ token, me, close, done }) {
   const [alias, setAlias] = useState(me.alias || '')
-  const [av, setAv] = useState(me.avatar || AV_LIB[0])
+  const [av, setAv] = useState(me.avatar || '')
   const [err, setErr] = useState('')
+  const [taken, setTaken] = useState(null)
+  const [style, setStyle] = useState(me.avatar ? me.avatar.split(':')[0] : 'fun-emoji')
+  useEffect(() => { rpc('daraja_avatars_taken', { p_token: token }).then(setTaken).catch(() => setTaken([])) }, [token])
   const save = async () => {
     if (alias.trim().length > 24) { setErr('24 caractères maximum'); return }
     try {
-      const r = await rpc('daraja_set_profile', { p_token: token, p_alias: alias, p_avatar: av })
-      if (r.ok) done(); else setErr('Vérifie ton alias')
+      const r = await rpc('daraja_set_profile', { p_token: token, p_alias: alias, p_avatar: av || null })
+      if (r.ok) done(); else setErr(r.error === 'taken' ? 'Oups, quelqu\'un vient de prendre cet avatar' : 'Vérifie ton alias')
     } catch { setErr('Erreur, réessaie') }
   }
   return (
@@ -450,9 +517,11 @@ function ProfileEdit({ token, me, close, done }) {
         <div className="sub" style={{ margin: '14px 0 6px' }}>Mon alias (visible au classement)</div>
         <input value={alias} maxLength={24} placeholder={me.name} onChange={e => { setAlias(e.target.value); setErr('') }} />
         <div className="sub" style={{ marginBottom: 10 }}>Nom complet gardé par la direction : {me.name}</div>
-        <div className="avgrid">
-          {AV_LIB.map(v => <div key={v} className={'avpick ' + (v === av ? 'on' : '')} onClick={() => setAv(v)}><Avatar value={v} name="" size={56} /></div>)}
-        </div>
+        <div className="tabs" style={{ marginTop: 0 }}>{AV_STYLES.map(st => <button key={st} className={style === st ? 'on' : ''} onClick={() => setStyle(st)}>{{ 'fun-emoji': 'Émojis', bottts: 'Robots', 'big-smile': 'Sourires', croodles: 'Gribouillis', thumbs: 'Pouces', adventurer: 'Aventuriers', 'pixel-art': 'Pixels', avataaars: 'Persos' }[st]}</button>)}</div>
+        {!taken ? <div className="sub">Chargement…</div> : <div className="avgrid">
+          {AV_LIB.filter(v => v.startsWith(style + ':') && (!taken.includes(v) || v === me.avatar)).map(v => <div key={v} className={'avpick ' + (v === av ? 'on' : '')} onClick={() => setAv(v)}><Avatar value={v} name="" size={56} /></div>)}
+        </div>}
+        <div className="sub" style={{ marginBottom: 8 }}>Chaque avatar est unique : une fois choisi, il disparaît pour les autres.</div>
         <div className="err">{err}</div>
         <button className="btn" onClick={save}>Enregistrer</button>
       </div>
@@ -580,7 +649,7 @@ function Shop({ token, me, venue, refresh, toast }) {
   )
 }
 
-function Profile({ token, me, logout, toast, refresh }) {
+function Profile({ token, me, logout, toast, refresh, go, openTest }) {
   const lv = level(me.earned)
   const [avis, setAvis] = useState(false)
   const [note, setNote] = useState('')
@@ -591,7 +660,7 @@ function Profile({ token, me, logout, toast, refresh }) {
     ['flame', 'Série 7', me.streak >= 7], ['target', 'Sans faute', me.perfect >= 1],
     ['star', 'Cité en avis', me.avis >= 1], ['gift', '1er cadeau', me.gifts >= 1],
     ['bolt', 'Expert', me.earned >= 2000], ['crown', 'Légende', me.earned >= 7000],
-    ['shield-check', 'Exemplaire', me.exemplary],
+    ['shield-check', 'Exemplaire', me.exemplary], ['crown', 'Employé du mois', me.eotm > 0],
   ]
   const send = async () => {
     if (!note.trim()) { setErr('Colle le lien ou décris l\'avis'); return }
@@ -627,7 +696,9 @@ function Profile({ token, me, logout, toast, refresh }) {
       </div>
       {me.role === 'staff' && <MyConduct token={token} toast={toast} refresh={refresh} />}
       {edit && <ProfileEdit token={token} me={me} close={() => setEdit(false)} done={() => { setEdit(false); refresh(); toast('Profil mis à jour') }} />}
-      <button className="btn ghost" style={{ marginTop: 24 }} onClick={() => setAvis(true)}><i className="ti ti-star" /> Un client m'a cité dans un avis</button>
+      <button className="btn ghost" style={{ marginTop: 24 }} onClick={() => go('rules')}><i className="ti ti-book" /> Règles du jeu</button>
+      {me.role === 'super' && <button className="btn ghost" style={{ marginTop: 10 }} onClick={openTest}><i className="ti ti-flask" /> Mode test</button>}
+      <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => setAvis(true)}><i className="ti ti-star" /> Un client m'a cité dans un avis</button>
       <button className="btn ghost" style={{ marginTop: 10, color: 'var(--muted)' }} onClick={logout}><i className="ti ti-logout" /> Me déconnecter</button>
       {avis && <div className="sheet" onClick={() => setAvis(false)}>
         <div onClick={e => e.stopPropagation()}>
@@ -902,12 +973,15 @@ function PostSelect({ token, value, onChange }) {
 function StaffSheet({ token, s, mission, close, act, toast, reload }) {
   const [post, setPost] = useState(s.post || '')
   const [phone, setPhone] = useState(s.phone || '')
+  const [bd, setBd] = useState(s.birthday ? s.birthday.split('-') : ['', ''])
   const [pick, setPick] = useState(null)
   const [note, setNote] = useState('')
   const saveInfo = async () => {
     try {
       const r = await rpc('daraja_admin_update_staff', { p_token: token, p_staff: s.id, p_post: post || null, p_phone: phone })
-      if (r?.ok === false) toast(r.error === 'phone' ? 'Numéro invalide' : 'Vérifie les champs'); else { toast('Fiche à jour'); reload() }
+      if (r?.ok === false) { toast(r.error === 'phone' ? 'Numéro invalide' : 'Vérifie les champs'); return }
+      await rpc('daraja_admin_set_birthday', { p_token: token, p_staff: s.id, p_mmdd: bd[0] && bd[1] ? bd[0] + '-' + bd[1] : '' })
+      toast('Fiche à jour'); reload()
     } catch { toast('Erreur') }
   }
   const opts = [[50, 'Bonus 50', 'ti-plus'], [100, 'Bonus 100', 'ti-star'], [200, 'Bonus 200', 'ti-sparkles'], [500, 'Bonus 500', 'ti-trophy']]
@@ -918,6 +992,11 @@ function StaffSheet({ token, s, mission, close, act, toast, reload }) {
         <div className="sub" style={{ marginBottom: 6 }}>Poste (choisit ses questions et sa mission)</div>
         <PostSelect token={token} value={post} onChange={setPost} />
         <input placeholder="WhatsApp : 06 12 34 56 78" inputMode="tel" value={phone} onChange={e => setPhone(e.target.value)} />
+        <div className="sub" style={{ marginBottom: 6 }}><i className="ti ti-cake" /> Anniversaire (+50 pts le jour J, l'équipe est prévenue)</div>
+        <div className="row" style={{ gap: 8 }}>
+          <select value={bd[1]} onChange={e => setBd([bd[0], e.target.value])}><option value="">Jour</option>{[...Array(31)].map((_, k) => { const v = String(k + 1).padStart(2, '0'); return <option key={v} value={v}>{k + 1}</option> })}</select>
+          <select value={bd[0]} onChange={e => setBd([e.target.value, bd[1]])}><option value="">Mois</option>{['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'].map((m, k) => { const v = String(k + 1).padStart(2, '0'); return <option key={v} value={v}>{m}</option> })}</select>
+        </div>
         <button className="btn ghost" onClick={saveInfo}>Enregistrer la fiche</button>
         {mission && <div className={'card mission' + (s.mission_done ? ' done' : '')} style={{ marginTop: 14 }}>
           <div className="sub">Mission de la semaine</div>
@@ -1223,6 +1302,12 @@ function QuizSettings({ token, venue, toast }) {
   )
 }
 
+const DRAW_LOTS = [
+  ['Temps', ['½ journée off', 'Journée off payée', 'Choix du planning du mois', 'Départ 1 h plus tôt toute une semaine']],
+  ['Expériences', ['Dîner pour 2', 'Brunch pour 2', 'Masterclass mixologie', 'Spa ou hammam', 'Nuit à l\'hôtel', 'Journée piscine']],
+  ['Bons et objets', ['Bon Decathlon 300 DH', 'Bon Marjane 300 DH', 'Recharge téléphone 100 DH', 'Écouteurs sans fil', 'Places de cinéma pour 2', 'Place pour un match']],
+  ['Gros lot', ['Week-end à Agafay', 'Week-end à Essaouira', 'Formation barista ou WSET', 'Prime 1 000 DH']],
+]
 function DrawAdmin({ token, me, venue, toast }) {
   const [info, setInfo] = useState(null)
   const [m, setM] = useState(new Date().getDate() <= 10 ? -1 : 0)
@@ -1249,7 +1334,8 @@ function DrawAdmin({ token, me, venue, toast }) {
       </div>
       <div className="sub" style={{ marginBottom: 8, textTransform: 'capitalize' }}>Tirage de {label}</div>
       <input placeholder="Le lot du mois" value={prize} onChange={e => setPrize(e.target.value)} />
-      <div className="chips">{['½ journée off', 'Dîner pour 2', 'Bon Decathlon 300 DH', 'Places de cinéma'].map(p => <button key={p} className={'chip ' + (prize === p ? 'on' : '')} onClick={() => setPrize(p)}>{p}</button>)}</div>
+      {DRAW_LOTS.map(([g, l]) => <div key={g}><div className="sub" style={{ margin: '6px 0 4px' }}>{g}</div>
+        <div className="chips">{l.map(p => <button key={p} className={'chip ' + (prize === p ? 'on' : '')} onClick={() => setPrize(p)}>{p}</button>)}</div></div>)}
       <button className="btn pulse" disabled={busy} onClick={draw}><i className="ti ti-dice-5" /> Tirer au sort</button>
       <div className="sub" style={{ marginTop: 10 }}>1 ticket par défi terminé, +2 par semaine à l'heure. Exclus : ligne grise ou rouge dans le mois. Un seul tirage par mois.</div>
       {res && <div className="sheet center" onClick={() => setRes(null)}>
@@ -1334,14 +1420,199 @@ function RewardEdit({ r, close, save }) {
   )
 }
 
+function EotmCard({ token, me, venue, toast }) {
+  const [e, setE] = useState(null)
+  const [open, setOpen] = useState(false)
+  const load = useCallback(() => rpc('daraja_eotm', { p_token: token, p_venue: venue }).then(setE).catch(() => {}), [token, venue])
+  useEffect(() => { load() }, [load])
+  if (!e) return null
+  const vote = async id => {
+    try { const r = await rpc('daraja_vote', { p_token: token, p_candidate: id }); if (r.ok) { toast('Vote enregistré 🤫'); buzz(20); setOpen(false); load() } else toast('Vote impossible') } catch { toast('Erreur') }
+  }
+  const mine = e.candidates.find(c => c.id === e.my_vote)
+  return (
+    <div className="card eotm rise" style={{ position: 'relative' }}>
+      <div className="row between">
+        <span className="sub"><i className="ti ti-crown acc" /> Employé du mois</span>
+        <Info text="Chaque mois, vote en secret pour le collègue qui t'a le plus impressionné. Le gagnant reçoit +100 pts et le badge, annoncé le 1er du mois. Tu peux changer ton vote jusqu'à la fin du mois. Touche pour fermer." />
+      </div>
+      {e.last && <div className="row" style={{ gap: 10, margin: '8px 0' }}>
+        <Avatar value={e.last.avatar} name={e.last.display} size={44} />
+        <div><div style={{ fontWeight: 700 }}>{e.last.me ? 'C\'est toi ! 👑' : e.last.display}</div><div className="sub">Élu de {new Date(e.last.month + '-15').toLocaleDateString('fr-FR', { month: 'long' })}</div></div>
+      </div>}
+      {e.can_vote && (mine
+        ? <button className="mini ghost" onClick={() => setOpen(true)}><i className="ti ti-check" /> Tu as voté · changer</button>
+        : <button className="mini" onClick={() => setOpen(true)}><i className="ti ti-thumb-up" /> Voter ({e.days_left} j restants)</button>)}
+      {open && <div className="sheet" onClick={() => setOpen(false)}>
+        <div onClick={ev => ev.stopPropagation()} style={{ maxHeight: '85dvh', overflowY: 'auto' }}>
+          <h1>Ton vote secret</h1>
+          <div className="sub" style={{ marginBottom: 14 }}>Qui mérite d'être l'employé du mois ?</div>
+          <div className="avgrid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            {e.candidates.map(c => <div key={c.id} className={'avpick ' + (c.id === e.my_vote ? 'on' : '')} style={{ borderRadius: 16, padding: 6, textAlign: 'center' }} onClick={() => vote(c.id)}>
+              <Avatar value={c.avatar} name={c.display} size={58} /><div style={{ fontSize: 12, marginTop: 4 }}>{c.display}</div></div>)}
+          </div>
+        </div>
+      </div>}
+    </div>
+  )
+}
+
+function BirthdayCard({ token, me, venue }) {
+  const [list, setList] = useState([])
+  useEffect(() => { rpc('daraja_birthdays', { p_token: token, p_venue: venue }).then(l => { setList(l); if (l.find(x => x.me && x.in_days === 0)) setTimeout(() => burst(70), 400) }).catch(() => {}) }, [token, venue])
+  if (!list.length) return null
+  const today = list.filter(x => x.in_days === 0), soon = list.filter(x => x.in_days > 0)
+  return (
+    <div className="card bday rise">
+      <div style={{ fontWeight: 700, marginBottom: 6 }}><i className="ti ti-cake" /> Anniversaires</div>
+      {today.map(b => b.me
+        ? <div key={b.id} className="row" style={{ gap: 10 }}><Avatar value={b.avatar} name={b.display} /><b style={{ flex: 1 }}>Joyeux anniversaire ! +50 pts 🎉</b></div>
+        : <div key={b.id} className="row" style={{ gap: 10, marginBottom: 6 }}>
+            <Avatar value={b.avatar} name={b.display} /><span style={{ flex: 1 }}><b>{b.display}</b> fête son anniversaire aujourd'hui 🎂</span>
+            {b.phone && <a className="mini" style={{ background: '#25D366', color: '#fff', textDecoration: 'none' }} href={waLink(b.phone, `Joyeux anniversaire ${first(b.display)} ! 🎂🎉 Toute l'équipe te souhaite une super journée. ${first(me.display)}`)} target="_blank" rel="noreferrer"><i className="ti ti-brand-whatsapp" /></a>}
+          </div>)}
+      {soon.map(b => <div key={b.id} className="sub">{b.me ? 'Toi' : b.display} · dans {b.in_days} jour{b.in_days > 1 ? 's' : ''}</div>)}
+    </div>
+  )
+}
+
+function DuelCard({ token, go }) {
+  const [list, setList] = useState(null)
+  useEffect(() => { rpc('daraja_duels', { p_token: token }).then(setList).catch(() => setList([])) }, [token])
+  const todo = (list || []).filter(d => d.todo)
+  return (
+    <div className={'card duelcard rise' + (todo.length ? ' hot' : '')} onClick={() => go('duels')} style={{ cursor: 'pointer' }}>
+      <div className="row" style={{ gap: 12 }}>
+        <i className="ti ti-swords" style={{ fontSize: 30 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700 }}>{todo.length ? (todo[0].mine ? 'Termine ton duel contre ' + todo[0].other : todo[0].other + ' te défie !') : 'Défie un collègue'}</div>
+          <div className="sub">Mêmes 5 questions · le gagnant prend +20 pts</div>
+        </div>
+        {todo.length > 0 && <span className="tag" style={{ position: 'static' }}>{todo.length}</span>}
+        <i className="ti ti-chevron-right" />
+      </div>
+    </div>
+  )
+}
+
+function Duels({ token, me, venue, toast, play }) {
+  const [list, setList] = useState(null)
+  const [pickOpen, setPickOpen] = useState(false)
+  const [mates, setMates] = useState([])
+  const load = useCallback(() => rpc('daraja_duels', { p_token: token }).then(setList).catch(() => setList([])), [token])
+  useEffect(() => { load() }, [load])
+  useEffect(() => { rpc('daraja_eotm', { p_token: token, p_venue: venue }).then(e => setMates(e.candidates || [])).catch(() => {}) }, [token, venue])
+  const challenge = async id => {
+    try {
+      const r = await rpc('daraja_duel_new', { p_token: token, p_opponent: id })
+      if (r.ok) { setPickOpen(false); play(r.id) }
+      else toast({ limit: '3 duels lancés par jour maximum', open: 'Un duel est déjà en cours avec cette personne', role: 'Réservé aux équipiers' }[r.error] || 'Impossible')
+    } catch { toast('Erreur') }
+  }
+  const st = d => d.status === 'expired' ? 'Expiré' : d.status === 'done' ? (d.won === true ? 'Gagné · +20' : d.won === false ? 'Perdu' : 'Égalité · +10') : d.todo ? 'À toi de jouer' : 'En attente de ' + d.other
+  return (
+    <div className="page">
+      <div className="row between" style={{ position: 'relative' }}>
+        <h1>Duels</h1>
+        <Info text="Tu choisis un collègue : vous répondez aux 5 mêmes questions, chacun de son côté, avec le chrono. Le plus de bonnes réponses gagne +20 pts. En cas d'égalité, le plus rapide gagne. Égalité parfaite : +10 chacun. 3 duels lancés par jour maximum, 48 h pour répondre. Touche pour fermer." />
+      </div>
+      <button className="btn pulse" style={{ margin: '12px 0 6px' }} onClick={() => setPickOpen(true)}><i className="ti ti-swords" /> Défier un collègue</button>
+      {!list ? <div className="sub">Chargement…</div> : !list.length ? <div className="sub" style={{ marginTop: 12 }}>Aucun duel pour l'instant. Lance le premier !</div> :
+        list.map(d => (
+          <div key={d.id} className={'lb' + (d.todo ? ' me' : '')} style={{ cursor: d.todo ? 'pointer' : 'default' }} onClick={() => d.todo && play(d.id)}>
+            <Avatar value={d.other_avatar} name={d.other} />
+            <div style={{ flex: 1 }}>
+              <div>{d.mine ? 'Toi vs ' : ''}{d.other}{!d.mine ? ' vs toi' : ''}</div>
+              <div className="sub" style={{ color: d.won === true ? 'var(--good)' : d.todo ? 'var(--acc)' : undefined }}>{st(d)}</div>
+            </div>
+            {d.status === 'done' && <b>{d.my_score} – {d.other_score}</b>}
+            {d.todo && <i className="ti ti-player-play acc" />}
+          </div>
+        ))}
+      {pickOpen && <div className="sheet" onClick={() => setPickOpen(false)}>
+        <div onClick={e => e.stopPropagation()} style={{ maxHeight: '85dvh', overflowY: 'auto' }}>
+          <h1>Qui veux-tu défier ?</h1>
+          <div className="sub" style={{ marginBottom: 14 }}>Tu joues tout de suite, ton collègue a 48 h</div>
+          <div className="avgrid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            {mates.map(c => <div key={c.id} className="avpick" style={{ borderRadius: 16, padding: 6, textAlign: 'center' }} onClick={() => challenge(c.id)}>
+              <Avatar value={c.avatar} name={c.display} size={58} /><div style={{ fontSize: 12, marginTop: 4 }}>{c.display}</div></div>)}
+          </div>
+        </div>
+      </div>}
+    </div>
+  )
+}
+
+const EARN = [
+  ['circle-check', 'Bonne réponse', '+10 / +20 / +30 selon le niveau'],
+  ['calendar-check', 'Défi terminé, même avec des erreurs', '+3 et 1 ticket'],
+  ['flame', 'Jours de suite (série)', '+5 par jour, jusqu\'à +100'],
+  ['target-arrow', 'Mission terrain validée', '+10'],
+  ['star', 'Avis client qui te cite', '+100'],
+  ['clock-check', 'Semaine à l\'heure (moins de 10 min de retard)', '+25 et 2 tickets'],
+  ['trending-up', 'Tu progresses d\'un mois sur l\'autre', '+50'],
+  ['shield-check', 'Mois sans ligne grise ni rouge', '+100'],
+  ['crown', 'Employé du mois', '+100'],
+  ['cake', 'Ton anniversaire', '+50'],
+  ['swords', 'Duel gagné', '+20 (égalité : +10)'],
+]
+function Rules({ token, back }) {
+  const [rules, setRules] = useState(null)
+  const [line, setLine] = useState('blanche')
+  useEffect(() => { rpc('daraja_rulebook', { p_token: token }).then(setRules).catch(() => setRules([])) }, [token])
+  return (
+    <div className="page">
+      <button className="mini ghost" onClick={back}><i className="ti ti-chevron-left" /> Retour</button>
+      <h1 style={{ marginTop: 12 }}><i className="ti ti-book acc" /> Règles du jeu</h1>
+      <div className="sub">Le référentiel officiel. Il est le même pour tout le monde.</div>
+      <div className="sec"><i className="ti ti-plus acc" /> Gagner des points</div>
+      {EARN.map(([ic, l, v]) => <div key={l} className="lb"><i className={'ti ti-' + ic + ' acc'} style={{ fontSize: 20 }} /><span style={{ flex: 1, fontSize: 14 }}>{l}</span><b style={{ fontSize: 13, color: 'var(--good)', textAlign: 'right' }}>{v}</b></div>)}
+      <div className="sec"><i className="ti ti-stopwatch acc" /> Le chrono</div>
+      <div className="card" style={{ fontSize: 14, lineHeight: 1.5 }}>6 secondes par question, 15 secondes pour remettre des mots dans l'ordre ou faire des associations. Temps écoulé = réponse fausse, sans malus.</div>
+      <div className="sec"><i className="ti ti-gift acc" /> Cadeaux et tirage</div>
+      <div className="card" style={{ fontSize: 14, lineHeight: 1.5 }}>Les cadeaux s'échangent contre tes points. Certains demandent des conditions (bonne conduite, ponctualité, assiduité) : elles sont affichées sur chaque cadeau. Tirage au sort chaque mois : plus tu as de tickets, plus tu as de chances. Une ligne grise ou rouge dans le mois exclut du tirage. Une faute grave bloque la boutique pendant un an.</div>
+      <div className="sec"><i className="ti ti-minus" style={{ color: 'var(--bad)' }} /> Perdre des points : la charte</div>
+      <div className="seg">{['blanche', 'grise', 'rouge'].map(l => <button key={l} className={line === l ? 'on' : ''} onClick={() => setLine(l)}>{LINE[l][0]}</button>)}</div>
+      <div className="sub" style={{ marginBottom: 8 }}>{{ blanche: 'Ligne blanche : −20 pts. Répétée, elle devient grise.', grise: 'Ligne grise : −100 pts. Répétée, elle devient rouge.', rouge: 'Ligne rouge : −300 pts. Faute grave : −1 000 pts.' }[line]}</div>
+      {!rules ? <div className="sub">Chargement…</div> : rules.filter(r => r.line === line).map((r, k) => (
+        <div key={k} className="card" style={{ padding: 12 }}>
+          <div className="row between"><span className="sub">{r.domain}</span><b style={{ color: 'var(--bad)', fontSize: 13 }}>−{r.malus}</b></div>
+          <div style={{ fontSize: 14, margin: '4px 0' }}>{r.behavior}</div>
+          <div className="sub">{r.sanction}{r.grave ? ' · faute grave' : ''}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function TestMode({ token, me, close, startTest, preview }) {
+  const [post, setPost] = useState('serveur')
+  const [kind, setKind] = useState('')
+  return (
+    <div className="sheet" onClick={close}>
+      <div onClick={e => e.stopPropagation()} style={{ maxHeight: '88dvh', overflowY: 'auto' }}>
+        <h1><i className="ti ti-flask acc" /> Mode test</h1>
+        <div className="sub" style={{ marginBottom: 12 }}>{me.venue_name} · joue comme n'importe quel poste, sans rien enregistrer</div>
+        <PostSelect token={token} value={post} onChange={setPost} />
+        <div className="seg">{[['', 'Tous les formats'], ['image', 'Images'], ['tf', 'Vrai/faux'], ['scene', 'Scènes']].map(([k, l]) => <button key={l} className={kind === k ? 'on' : ''} onClick={() => setKind(k)}>{l}</button>)}</div>
+        <button className="btn" onClick={() => startTest({ post: post || 'serveur', kind, venue: me.venue })}><i className="ti ti-player-play" /> Lancer un quiz test (illimité)</button>
+        <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => preview(post || 'serveur')}><i className="ti ti-eye" /> Voir l'appli comme cet équipier</button>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [token, setToken] = useState(store.get(TK))
   const [venue, setVenue] = useState(store.get(VK))
-  const [me, setMe] = useState(null)
+  let [me, setMe] = useState(null)
   const [tab, setTab] = useState('home')
   const [msg, setMsg] = useState('')
   const [splash, setSplash] = useState(false)
   const [levelUp, setLevelUp] = useState(null)
+  const [play, setPlay] = useState({ mode: 'daily', ctx: {} })
+  const [testOpen, setTestOpen] = useState(false)
+  const [preview, setPreview] = useState(null)
   const toast = m => { setMsg(m); setTimeout(() => setMsg(''), 2200) }
   const todayKey = new Date().toLocaleDateString('fr-CA')
 
@@ -1367,12 +1638,16 @@ export default function App() {
   const login = t => { store.set(TK, t); setToken(t) }
   const logout = () => { store.set(TK, null); setToken(null); setMe(null); setTab('home') }
   const switchVenue = v => { store.set(VK, v); setVenue(v) }
-  const go = t => { setTab(t); window.scrollTo(0, 0); if (t !== 'quiz') refresh() }
+  const go = t => { if (t === 'quiz') setPlay({ mode: 'daily', ctx: {} }); setTab(t); window.scrollTo(0, 0); if (t !== 'quiz') refresh() }
+  const playDuel = id => { setPlay({ mode: 'duel', ctx: { duel: id } }); setTab('quiz'); window.scrollTo(0, 0) }
+  const startTest = ctx => { setTestOpen(false); setPlay({ mode: 'test', ctx }); setTab('quiz'); window.scrollTo(0, 0) }
 
   if (!token) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><Login onToken={login} /></div>
   if (!me) return <div className={'app ' + theme}><div className="page sub">Chargement…</div></div>
   if (splash) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><div id="fx" /><QuoteSplash token={token} me={me} close={() => { store.set('daraja_quote_day', todayKey); setSplash(false) }} /></div>
 
+  const real = me
+  if (preview) me = { ...me, role: 'staff' }
   const isAdmin = me.role !== 'staff'
   const tabs = [['home', 'home'], ['board', 'trophy'], ['stories', 'book-2'], ['shop', 'gift'], ['profile', 'user'], ...(isAdmin ? [['admin', 'settings']] : [])]
 
@@ -1390,21 +1665,27 @@ export default function App() {
           <button className="btn" style={{ marginTop: 18 }}>Bravo à moi</button>
         </div>
       </div>}
-      {me.role === 'super' && tab !== 'quiz' && (
+      {real.role === 'super' && !preview && tab !== 'quiz' && (
         <div className="seg" style={{ padding: '12px 16px 0', margin: 0 }}>
           <button className={me.venue === 'baro' ? 'on' : ''} onClick={() => switchVenue('baro')}>Baromètre</button>
           <button className={me.venue === 'zz' ? 'on' : ''} onClick={() => switchVenue('zz')}>ZamaZama</button>
         </div>
       )}
-      {tab === 'home' && <Home token={token} me={me} venue={venue} go={go} />}
-      {tab === 'quiz' && <Quiz token={token} me={me} done={() => go('home')} />}
+      {preview && <div className="previewbar"><i className="ti ti-eye" /> Aperçu équipier · {preview}<button className="mini" onClick={() => { setPreview(null); setTab('profile') }}>Quitter</button></div>}
+      {tab === 'home' && <Home token={token} me={me} venue={venue} go={go} toast={toast} />}
+      {tab === 'quiz' && (preview && play.mode === 'daily'
+        ? <Quiz key="pv" token={token} me={me} mode="test" ctx={{ post: preview, venue: me.venue }} done={() => go('home')} />
+        : <Quiz key={play.mode + (play.ctx.duel || '')} token={token} me={me} mode={play.mode} ctx={play.ctx} done={() => go(play.mode === 'duel' ? 'duels' : play.mode === 'test' ? 'profile' : 'home')} />)}
+      {tab === 'duels' && <Duels token={token} me={me} venue={venue} toast={toast} play={id => preview ? toast('Pas de duel en aperçu') : playDuel(id)} />}
+      {tab === 'rules' && <Rules token={token} back={() => go('profile')} />}
+      {testOpen && <TestMode token={token} me={real} close={() => setTestOpen(false)} startTest={startTest} preview={p => { setTestOpen(false); setPreview(p); go('home') }} />}
       {tab === 'board' && <Board token={token} me={me} venue={venue} />}
       {tab === 'stories' && <Stories />}
       {tab === 'shop' && <Shop token={token} me={me} venue={venue} refresh={refresh} toast={toast} />}
-      {tab === 'profile' && <Profile token={token} me={me} logout={logout} toast={toast} refresh={refresh} />}
+      {tab === 'profile' && <Profile token={token} me={preview ? real : me} logout={logout} toast={toast} refresh={refresh} go={go} openTest={() => setTestOpen(true)} />}
       {tab === 'admin' && isAdmin && <Admin token={token} me={me} venue={venue} toast={toast} />}
       <nav className="nav">
-        {tabs.map(([k, ic]) => <button key={k} aria-label={k} className={tab === k || (tab === 'quiz' && k === 'home') ? 'on' : ''} onClick={() => go(k)}><i className={'ti ti-' + ic} />{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && me.direction_todo > 0)) && <span className="dot" />}</button>)}
+        {tabs.map(([k, ic]) => <button key={k} aria-label={k} className={tab === k || (['quiz', 'duels'].includes(tab) && k === 'home') || (tab === 'rules' && k === 'profile') ? 'on' : ''} onClick={() => go(k)}><i className={'ti ti-' + ic} />{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && me.direction_todo > 0)) && <span className="dot" />}</button>)}
       </nav>
     </div>
   )
