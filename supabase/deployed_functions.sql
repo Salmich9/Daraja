@@ -1,10 +1,44 @@
--- Dump of all deployed daraja functions (source of truth)
+-- Copie de toutes les fonctions daraja en production (source de vérité, régénérée après l'audit)
 CREATE OR REPLACE FUNCTION daraja.balance(p_staff uuid)
  RETURNS integer
  LANGUAGE sql
  STABLE
  SET search_path TO 'daraja', 'extensions', 'public'
 AS $function$ select coalesce(sum(amount),0)::int from daraja.point_events where staff_id = p_staff and status = 'ok' $function$
+;
+
+CREATE OR REPLACE FUNCTION daraja.bday_on(b text, d date)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select b = to_char(d, 'MM-DD') or (b = '02-29' and to_char(d, 'MM-DD') = '02-28'
+    and extract(day from (date_trunc('year', d) + interval '2 months' - interval '1 day')) = 28) $function$
+;
+
+CREATE OR REPLACE FUNCTION daraja.bday_valid(m text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  select m ~ '^((0[13578]|1[02])-(0[1-9]|[12][0-9]|3[01])|(0[469]|11)-(0[1-9]|[12][0-9]|30)|02-(0[1-9]|[12][0-9]))$' $function$
+;
+
+CREATE OR REPLACE FUNCTION daraja.bonus_once()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'extensions', 'public'
+AS $function$
+begin
+  if new.kind = 'bonus' and new.note ~ '^(Mois exemplaire|Progression|Anniversaire|Ponctualité semaine|Employé du mois) ' then
+    perform pg_advisory_xact_lock(hashtext(new.staff_id::text || new.note));
+    if exists (select 1 from daraja.point_events where staff_id = new.staff_id and kind = 'bonus' and note = new.note) then
+      return null;
+    end if;
+  end if;
+  return new;
+end $function$
 ;
 
 CREATE OR REPLACE FUNCTION daraja.can_admin(s daraja.staff, p_venue text)
@@ -16,6 +50,23 @@ begin
   if s.role = 'super' then return coalesce(p_venue, s.venue, 'baro'); end if;
   if s.role = 'admin' and (p_venue is null or p_venue = s.venue) then return s.venue; end if;
   raise exception 'admin';
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION daraja.can_admin_staff(s daraja.staff, p_target uuid, p_self_ok boolean DEFAULT true)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'extensions', 'public'
+AS $function$
+declare t daraja.staff;
+begin
+  select * into t from daraja.staff where id = p_target;
+  if t.id is null then raise exception 'staff'; end if;
+  if s.role = 'super' then return coalesce(t.venue, s.venue, 'baro'); end if;
+  if t.role = 'super' or t.venue is null then raise exception 'admin'; end if;
+  if not p_self_ok and t.id = s.id then raise exception 'self'; end if;
+  return daraja.can_admin(s, t.venue);
 end $function$
 ;
 
@@ -156,7 +207,10 @@ begin
             when ct < ot then d.challenger when ot < ct then d.opponent else null end;
   update daraja.duels set status = 'done', winner = w, done_at = now() where id = d.id;
   if w is not null then
-    insert into daraja.point_events(staff_id, kind, amount, note) values (w, 'bonus', 20, 'Duel gagné');
+    if (select count(*) from daraja.point_events where staff_id = w and note = 'Duel gagné'
+        and (created_at at time zone 'Africa/Casablanca')::date = daraja.today()) < 3 then
+      insert into daraja.point_events(staff_id, kind, amount, note) values (w, 'bonus', 20, 'Duel gagné');
+    end if;
   elsif cs > 0 then
     insert into daraja.point_events(staff_id, kind, amount, note) values (d.challenger, 'bonus', 10, 'Duel nul'), (d.opponent, 'bonus', 10, 'Duel nul');
   end if;
@@ -288,6 +342,33 @@ CREATE OR REPLACE FUNCTION daraja.month_points(p_staff uuid)
 AS $function$ select coalesce(sum(amount),0)::int from daraja.point_events
    where staff_id = p_staff and status = 'ok' and kind <> 'cadeau'
    and date_trunc('month', created_at at time zone 'Africa/Casablanca') = date_trunc('month', now() at time zone 'Africa/Casablanca') $function$
+;
+
+CREATE OR REPLACE FUNCTION daraja.month_quiz(p_staff uuid)
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'daraja', 'extensions', 'public'
+AS $function$
+  select coalesce(sum(amount), 0)::int from daraja.point_events where staff_id = p_staff and kind = 'quiz' and status = 'ok'
+    and (created_at at time zone 'Africa/Casablanca') >= date_trunc('month', daraja.today()) $function$
+;
+
+CREATE OR REPLACE FUNCTION daraja.new_pin()
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'extensions', 'public'
+AS $function$
+declare p text; n int := 0;
+begin
+  loop
+    p := lpad((floor(random() * 900000) + 100000)::int::text, 6, '0');
+    exit when not exists (select 1 from daraja.staff where active and pin_hash like '$2%' and pin_hash = crypt(p, pin_hash));
+    n := n + 1; if n > 20 then raise exception 'pin'; end if;
+  end loop;
+  return p;
+end $function$
 ;
 
 CREATE OR REPLACE FUNCTION daraja.pick_questions(v text, f text, f2 text DEFAULT NULL::text, p_kind text DEFAULT NULL::text)
@@ -424,12 +505,13 @@ CREATE OR REPLACE FUNCTION daraja.tickets(p_staff uuid, p_month date)
  RETURNS integer
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'daraja', 'public'
+ SET search_path TO 'daraja', 'extensions', 'public'
 AS $function$
   select (select count(*) from daraja.quiz_sessions q where q.staff_id = p_staff
             and date_trunc('month', q.day) = date_trunc('month', p_month) and cardinality(q.answered) >= cardinality(q.question_ids))::int
-       + 2 * (select count(*) from daraja.point_events e where e.staff_id = p_staff and e.note like 'Ponctualité semaine %'
-            and date_trunc('month', substr(e.note, 21)::date) = date_trunc('month', p_month))::int
+       + 2 * (select count(*) from daraja.point_events e where e.staff_id = p_staff and e.kind = 'bonus'
+            and e.note ~ '^Ponctualité semaine [0-9]{4}-[0-9]{2}-[0-9]{2}$'
+            and substr(e.note, 21, 7) = to_char(p_month, 'YYYY-MM'))::int
 $function$
 ;
 
@@ -469,7 +551,7 @@ AS $function$
 declare s daraja.staff;
 begin
   select st.* into s from daraja.sessions se join daraja.staff st on st.id = se.staff_id
-  where se.token = p_token and st.active;
+  where se.token = p_token and st.active and not se.revoked and se.created_at > now() - interval '90 days';
   if s.id is null then raise exception 'session'; end if;
   return s;
 end $function$
@@ -523,19 +605,18 @@ CREATE OR REPLACE FUNCTION public.daraja_admin_add_staff2(p_token text, p_name t
  SECURITY DEFINER
  SET search_path TO 'daraja', 'extensions', 'public'
 AS $function$
-declare s daraja.staff; v text; ph text;
+declare s daraja.staff; v text; ph text; np text;
 begin
   s := daraja.who(p_token); v := daraja.can_admin(s, p_venue);
-  if p_pin !~ '^[0-9]{4}$' then return json_build_object('ok', false, 'error', 'pin'); end if;
   if length(trim(coalesce(p_name,''))) = 0 then return json_build_object('ok', false, 'error', 'name'); end if;
   if p_role not in ('staff','admin') or (p_role = 'admin' and s.role <> 'super') then raise exception 'role'; end if;
   if p_post is not null and not exists (select 1 from daraja.posts where id = p_post) then raise exception 'post'; end if;
-  if exists(select 1 from daraja.staff where active and pin_hash = crypt(p_pin, pin_hash)) then
-    return json_build_object('ok', false, 'error', 'taken'); end if;
   ph := regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g');
   if ph like '0%' then ph := '212' || substr(ph, 2); end if;
-  insert into daraja.staff(venue, name, pin_hash, role, post, phone) values (v, trim(p_name), crypt(p_pin, gen_salt('bf')), p_role, p_post, nullif(ph, ''));
-  return json_build_object('ok', true);
+  if ph <> '' and length(ph) < 10 then return json_build_object('ok', false, 'error', 'phone'); end if;
+  np := daraja.new_pin();
+  insert into daraja.staff(venue, name, pin_hash, pin_len, role, post, phone) values (v, trim(p_name), crypt(np, gen_salt('bf')), 6, p_role, p_post, nullif(ph, ''));
+  return json_build_object('ok', true, 'pin', np, 'phone', nullif(ph, ''));
 end $function$
 ;
 
@@ -573,7 +654,7 @@ begin
   s := daraja.who(p_token);
   for r in select * from jsonb_array_elements(p_rows) loop
     select * into o from daraja.staff where id = (r->>'staff')::uuid;
-    if o.id is null then raise exception 'staff'; end if; perform daraja.can_admin(s, o.venue);
+    if o.id is null then raise exception 'staff'; end if; perform daraja.can_admin_staff(s, o.id);
     insert into daraja.attendance(staff_id, day, status, late_min, late_ok, note, source, by_staff, updated_at)
     values (o.id, (r->>'day')::date, coalesce(r->>'status','present'), greatest(0, coalesce((r->>'late')::int, 0)),
       coalesce((r->>'late_ok')::boolean, false), nullif(r->>'note',''), coalesce(r->>'source','manuel'), s.id, now())
@@ -594,7 +675,7 @@ AS $function$
 declare s daraja.staff; o record; tag text; n int := 0; names text[] := '{}';
 begin
   s := daraja.who(p_token);
-  perform daraja.can_admin(s, p_venue);
+  perform daraja.can_admin(s, p_venue); if extract(isodow from p_week) <> 1 then raise exception 'monday'; end if;
   if p_week + 6 >= daraja.today() then raise exception 'week_not_over'; end if;
   tag := 'Ponctualité semaine ' || p_week;
   for o in
@@ -636,7 +717,7 @@ AS $function$
 declare s daraja.staff;
 begin
   s := daraja.who(p_token);
-  perform daraja.can_admin(s, (select o.venue from daraja.point_events e join daraja.staff o on o.id = e.staff_id where e.id = p_event));
+  perform daraja.can_admin_staff(s, (select e.staff_id from daraja.point_events e where e.id = p_event));
   update daraja.point_events set delivered = true, by_staff = s.id where id = p_event and kind = 'cadeau';
   return json_build_object('ok', true);
 end $function$
@@ -651,7 +732,7 @@ AS $function$
 declare s daraja.staff; m date := date_trunc('month', p_month)::date; tot int; pick int; w record; d daraja.draws; pool json; players int;
 begin
   s := daraja.who(p_token);
-  perform daraja.can_admin(s, p_venue);
+  perform daraja.can_admin(s, p_venue); if m >= date_trunc('month', daraja.today())::date then raise exception 'month_not_over'; end if;
   if nullif(trim(p_prize), '') is null then raise exception 'prize'; end if;
   if exists (select 1 from daraja.draws where venue = p_venue and month = to_char(m, 'YYYY-MM')) then raise exception 'already'; end if;
   select coalesce(json_agg(json_build_object('id', id, 'n', n)), '[]'::json) into pool from (
@@ -695,11 +776,29 @@ AS $function$
 declare s daraja.staff;
 begin
   s := daraja.who(p_token);
-  perform daraja.can_admin(s, (select venue from daraja.staff where id = p_staff));
-  if p_kind not in ('bonus','malus','avis') then raise exception 'kind'; end if;
+  perform daraja.can_admin_staff(s, p_staff, false);
+  if p_kind not in ('bonus','malus','avis') then raise exception 'kind'; end if; if abs(coalesce(p_amount, 0)) > 500 or coalesce(p_amount, 0) = 0 then raise exception 'amount'; end if;
   insert into daraja.point_events(staff_id, kind, amount, note, by_staff)
     values (p_staff, p_kind, case when p_kind = 'malus' then -abs(p_amount) else abs(p_amount) end, p_note, s.id);
   return json_build_object('ok', true);
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.daraja_admin_reset_pin(p_token text, p_staff uuid)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'extensions', 'public'
+AS $function$
+declare s daraja.staff; np text;
+begin
+  s := daraja.who(p_token);
+  perform daraja.can_admin_staff(s, p_staff, false);
+  if (select role from daraja.staff where id = p_staff) = 'admin' and s.role <> 'super' then raise exception 'admin'; end if;
+  np := daraja.new_pin();
+  update daraja.staff set pin_hash = crypt(np, gen_salt('bf')), pin_len = 6 where id = p_staff;
+  update daraja.sessions set revoked = true where staff_id = p_staff;
+  return json_build_object('ok', true, 'pin', np, 'phone', (select phone from daraja.staff where id = p_staff));
 end $function$
 ;
 
@@ -712,7 +811,7 @@ AS $function$
 declare s daraja.staff;
 begin
   s := daraja.who(p_token);
-  perform daraja.can_admin(s, (select o.venue from daraja.point_events e join daraja.staff o on o.id = e.staff_id where e.id = p_event));
+  perform daraja.can_admin_staff(s, (select e.staff_id from daraja.point_events e where e.id = p_event), false);
   update daraja.point_events set status = case when p_ok then 'ok' else 'rejected' end, by_staff = s.id
     where id = p_event and kind = 'avis' and status = 'pending';
   return json_build_object('ok', true);
@@ -771,8 +870,8 @@ AS $function$
 declare s daraja.staff;
 begin
   s := daraja.who(p_token);
-  perform daraja.can_admin(s, (select venue from daraja.staff where id = p_staff));
-  if nullif(p_mmdd, '') is not null and p_mmdd !~ '^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$' then return json_build_object('ok', false); end if;
+  perform daraja.can_admin_staff(s, p_staff);
+  if nullif(p_mmdd, '') is not null and not daraja.bday_valid(p_mmdd) then return json_build_object('ok', false); end if;
   update daraja.staff set birthday = nullif(p_mmdd, '') where id = p_staff;
   return json_build_object('ok', true);
 end $function$
@@ -805,7 +904,7 @@ AS $function$
 declare s daraja.staff; ph text;
 begin
   s := daraja.who(p_token);
-  perform daraja.can_admin(s, (select venue from daraja.staff where id = p_staff));
+  perform daraja.can_admin_staff(s, p_staff);
   if p_post is not null and not exists (select 1 from daraja.posts where id = p_post) then raise exception 'post'; end if;
   ph := regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g');
   if ph like '0%' then ph := '212' || substr(ph, 2); end if;
@@ -825,7 +924,7 @@ declare s daraja.staff; st daraja.staff; m daraja.missions; n int;
 begin
   s := daraja.who(p_token);
   select * into st from daraja.staff where id = p_staff;
-  perform daraja.can_admin(s, st.venue);
+  perform daraja.can_admin_staff(s, st.id);
   m := daraja.week_mission(daraja.family(st));
   if m.id is null then return json_build_object('ok', false); end if;
   insert into daraja.mission_done(staff_id, week, mission_id, validated_by) values (p_staff, daraja.week_start(), m.id, s.id)
@@ -886,8 +985,8 @@ begin
   if qs.staff_id is null or not (p_question = any(qs.question_ids)) then raise exception 'question'; end if;
   select * into q from daraja.questions where id = p_question;
   if not (p_question = any(qs.answered)) then
-    late := (qs.started ? p_question::text)
-      and extract(epoch from clock_timestamp()) - (qs.started->>p_question::text)::numeric > daraja.q_limit(q.kind) + 2.5;
+    late := not (qs.started ? p_question::text)
+      or extract(epoch from clock_timestamp()) - (qs.started->>p_question::text)::numeric > daraja.q_limit(q.kind) + 2.5;
     ok := not late and daraja.grade(q, p_choice, p_answer);
     insert into daraja.answers(staff_id, question_id, correct) values (s.id, q.id, ok);
     update daraja.quiz_sessions set answered = answered || p_question, correct = correct + (case when ok then 1 else 0 end)
@@ -938,14 +1037,14 @@ declare s daraja.staff; v text; t date := daraja.today(); rr record;
 begin
   s := daraja.who(p_token);
   v := case when s.role = 'super' then coalesce(p_venue, s.venue, 'baro') else s.venue end;
-  for rr in select id from daraja.staff where venue = v and active and birthday = to_char(t, 'MM-DD') loop
+  for rr in select id from daraja.staff where venue = v and active and daraja.bday_on(birthday, t) loop
     if not exists (select 1 from daraja.point_events where staff_id = rr.id and note = 'Anniversaire ' || to_char(t, 'YYYY')) then
       insert into daraja.point_events(staff_id, kind, amount, note) values (rr.id, 'bonus', 50, 'Anniversaire ' || to_char(t, 'YYYY'));
     end if;
   end loop;
   return (select coalesce(json_agg(x order by x.in_days, x.display), '[]'::json) from (
     select o.id, daraja.display_name(o) display, o.avatar, o.phone, o.birthday, o.id = s.id me,
-      (select min(g) from generate_series(0, 7) g where to_char(t + g, 'MM-DD') = o.birthday) in_days
+      (select min(g) from generate_series(0, 7) g where daraja.bday_on(o.birthday, t + g)) in_days
     from daraja.staff o where o.venue = v and o.active and o.birthday is not null) x where x.in_days is not null);
 end $function$
 ;
@@ -973,7 +1072,7 @@ AS $function$
 declare s daraja.staff; c json; r daraja.conduct_rules; rec uuid;
 begin
   s := daraja.who(p_token);
-  perform daraja.can_admin(s, (select venue from daraja.staff where id = p_staff));
+  perform daraja.can_admin_staff(s, p_staff, false);
   if p_staff = s.id then raise exception 'self'; end if;
   select * into r from daraja.conduct_rules where id = p_rule and active;
   if r.id is null then raise exception 'rule'; end if;
@@ -1041,7 +1140,7 @@ AS $function$
 declare s daraja.staff;
 begin
   s := daraja.who(p_token);
-  perform daraja.can_admin(s, (select venue from daraja.staff where id = p_staff));
+  perform daraja.can_admin_staff(s, p_staff, false);
   return daraja.conduct_compute(p_staff, p_rule);
 end $function$
 ;
@@ -1219,6 +1318,9 @@ begin
              and ((challenger = s.id and opponent = o.id) or (challenger = o.id and opponent = s.id))
              and created_at > now() - interval '48 hours') then
     return json_build_object('ok', false, 'error', 'open'); end if;
+  if exists (select 1 from daraja.duels where ((challenger = s.id and opponent = o.id) or (challenger = o.id and opponent = s.id))
+             and (created_at at time zone 'Africa/Casablanca')::date = daraja.today() and status not in ('declined','cancelled')) then
+    return json_build_object('ok', false, 'error', 'pair'); end if;
   ids := daraja.pick_questions(s.venue, daraja.family(s), daraja.family(o));
   if ids is null or cardinality(ids) < 3 then ids := daraja.pick_questions(s.venue, daraja.family(s)); end if;
   if ids is null then return json_build_object('ok', false, 'error', 'questions'); end if;
@@ -1337,10 +1439,10 @@ begin
     'answers', case when d.status in ('live','done') then (select json_agg(json_build_object(
           'qid', qid,
           'me', mine->(qid::text),
-          'them', case when d.status = 'done' or nw > daraja.duel_slot(d, (k - 1)::int) + d.limits[k] + 1 or mine ? qid::text then theirs->(qid::text) else null end,
-          'answer_idx', case when d.status = 'done' or nw > daraja.duel_slot(d, (k - 1)::int) + d.limits[k] + 1 or mine ? qid::text then (select answer_idx from daraja.questions where id = qid) end,
-          'explanation', case when d.status = 'done' or nw > daraja.duel_slot(d, (k - 1)::int) + d.limits[k] + 1 or mine ? qid::text then (select explanation from daraja.questions where id = qid) end,
-          'solution', case when d.status = 'done' or nw > daraja.duel_slot(d, (k - 1)::int) + d.limits[k] + 1 or mine ? qid::text then (select case when kind = 'order' then payload->'answer' end from daraja.questions where id = qid) end)
+          'them', case when d.status = 'done' or nw > daraja.duel_slot(d, (k - 1)::int) + d.limits[k] + 2 or mine ? qid::text then theirs->(qid::text) else null end,
+          'answer_idx', case when d.status = 'done' or nw > daraja.duel_slot(d, (k - 1)::int) + d.limits[k] + 2 or mine ? qid::text then (select answer_idx from daraja.questions where id = qid) end,
+          'explanation', case when d.status = 'done' or nw > daraja.duel_slot(d, (k - 1)::int) + d.limits[k] + 2 or mine ? qid::text then (select explanation from daraja.questions where id = qid) end,
+          'solution', case when d.status = 'done' or nw > daraja.duel_slot(d, (k - 1)::int) + d.limits[k] + 2 or mine ? qid::text then (select case when kind = 'order' then payload->'answer' end from daraja.questions where id = qid) end)
         order by k) from unnest(d.question_ids) with ordinality u(qid, k) where k - 1 <= greatest(cur, case when d.status = 'done' then n else -1 end)) end,
     'my_score', (select count(*) from jsonb_each(mine) e where (e.value->>'ok')::boolean),
     'their_score', (select count(*) from jsonb_each(theirs) e where (e.value->>'ok')::boolean),
@@ -1434,12 +1536,12 @@ begin
         when 'assiduite' then (select count(*) from daraja.quiz_sessions q where q.staff_id = o.id and q.day >= m
                                and cardinality(q.answered) >= cardinality(q.question_ids))::numeric
         when 'progression' then (
-          select case when count(*) filter (where a.at >= m) >= 10 and count(*) filter (where a.at < m) >= 10
-            then round(100 * (avg(a.correct::int) filter (where a.at >= m) - avg(a.correct::int) filter (where a.at < m)))
+          select case when count(*) filter (where (a.at at time zone 'Africa/Casablanca') >= m) >= 10 and count(*) filter (where (a.at at time zone 'Africa/Casablanca') < m) >= 10
+            then round(100 * (avg(a.correct::int) filter (where (a.at at time zone 'Africa/Casablanca') >= m) - avg(a.correct::int) filter (where (a.at at time zone 'Africa/Casablanca') < m)))
             else null end
-          from daraja.answers a where a.staff_id = o.id and a.at >= (m - interval '1 month'))
+          from daraja.answers a where a.staff_id = o.id and (a.at at time zone 'Africa/Casablanca') >= (m - interval '1 month'))
         else (select coalesce(sum(e.amount),0) from daraja.point_events e where e.staff_id = o.id and e.kind = 'quiz'
-              and e.status = 'ok' and e.created_at >= m)::numeric
+              and e.status = 'ok' and (e.created_at at time zone 'Africa/Casablanca') >= m)::numeric
       end val
     from daraja.staff o where o.venue = v and o.active and o.role = 'staff') x);
 end $function$
@@ -1451,19 +1553,38 @@ CREATE OR REPLACE FUNCTION public.daraja_login(p_pin text)
  SECURITY DEFINER
  SET search_path TO 'daraja', 'extensions', 'public'
 AS $function$
-declare s daraja.staff; t text;
+declare s daraja.staff; t text; np text;
 begin
   if (select count(*) from daraja.login_fails where at > now() - interval '10 minutes') >= 30 then
     return json_build_object('locked', true);
   end if;
-  select * into s from daraja.staff where active and pin_hash = crypt(p_pin, pin_hash) limit 1;
+  if coalesce(p_pin, '') !~ '^([0-9]{4}|[0-9]{6})$' then
+    insert into daraja.login_fails default values; return null;
+  end if;
+  select * into s from daraja.staff where active and pin_len = length(p_pin) and pin_hash like '$2%' and pin_hash = crypt(p_pin, pin_hash) limit 1;
   if s.id is null then
     insert into daraja.login_fails default values;
     return null;
   end if;
+  if s.pin_len = 4 then
+    np := daraja.new_pin();
+    update daraja.staff set pin_hash = crypt(np, gen_salt('bf')), pin_len = 6 where id = s.id;
+  end if;
   t := encode(gen_random_bytes(24), 'hex');
   insert into daraja.sessions(token, staff_id) values (t, s.id);
-  return json_build_object('token', t);
+  return json_build_object('token', t, 'new_pin', np);
+end $function$
+;
+
+CREATE OR REPLACE FUNCTION public.daraja_logout(p_token text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'extensions', 'public'
+AS $function$
+begin
+  update daraja.sessions set revoked = true where token = p_token;
+  return json_build_object('ok', true);
 end $function$
 ;
 
@@ -1480,7 +1601,7 @@ begin
   if s.role = 'staff' then perform daraja.progress_bonus(s.id); end if;
   v := case when s.role = 'super' then coalesce(p_venue, s.venue, 'baro') else s.venue end;
   select count(*)+1 into rk from daraja.staff o where o.venue = v and o.active and o.role = 'staff'
-    and daraja.month_points(o.id) > daraja.month_points(s.id);
+    and daraja.month_quiz(o.id) > daraja.month_quiz(s.id);
   select exists(select 1 from daraja.quiz_sessions q where q.staff_id = s.id and q.day = daraja.today()
     and cardinality(q.answered) >= cardinality(q.question_ids)) into done;
   return json_build_object(
