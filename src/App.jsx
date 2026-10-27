@@ -100,7 +100,7 @@ function Login({ onToken }) {
   )
   return (
     <div className="page" style={{ paddingTop: 70, textAlign: 'center' }}>
-      <i className="ti ti-flask-2 acc" style={{ fontSize: 40 }} />
+      <img src="/icons/logo.svg" alt="" width="96" height="96" className="pop" style={{ display: 'block', margin: '0 auto 10px' }} />
       <h1 style={{ fontSize: 32 }}>Daraja</h1>
       <div className="sub">Ton code à {len} chiffres</div>
       <div className="dots">{[...Array(len)].map((_, i) => <span key={i} className={i < pin.length ? 'f' : ''} />)}</div>
