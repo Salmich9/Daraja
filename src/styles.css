@@ -200,3 +200,11 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 .duelcard.hot { border: 2px solid var(--acc); animation: pulse 1.6s ease-in-out infinite; }
 .previewbar { position: sticky; top: 0; z-index: 6; display:flex; align-items:center; gap: 8px; padding: 8px 16px; background: var(--acc); color: var(--btxt); font-weight: 600; font-size: 13px; }
 .previewbar .mini { margin-left: auto; background: var(--btxt); color: var(--acc); }
+.duelhead { display:flex; align-items:center; justify-content:space-between; text-align:center; margin-bottom: 6px; }
+.duelhead .av { margin: 0 auto 4px; }
+.countdown { font: 700 96px Inter, sans-serif; color: var(--acc); margin: 50px 0 10px; }
+.waitdot, .online { display:inline-block; width:9px; height:9px; border-radius:50%; background: var(--acc); margin-right:6px; animation: pulse 1s ease-in-out infinite; vertical-align: middle; }
+.online { background: var(--good); }
+.opt:disabled, .tfb:disabled { opacity: .85; cursor: default; }
+.seg button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.newpin { font: 700 40px Inter, sans-serif; letter-spacing: 6px; color: var(--acc); margin: 18px 0; }

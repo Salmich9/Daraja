@@ -68,30 +68,42 @@ function Toast({ msg }) { return msg ? <div className="toast">{msg}</div> : null
 
 function Login({ onToken }) {
   const [pin, setPin] = useState('')
+  const [len, setLen] = useState(6)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [fresh, setFresh] = useState(null)
   const press = async d => {
     if (busy) return
     setErr('')
-    const p = (pin + d).slice(0, 4)
+    const p = (pin + d).slice(0, len)
     setPin(p)
-    if (p.length === 4) {
+    if (p.length === len) {
       setBusy(true)
       try {
         const r = await rpc('daraja_login', { p_pin: p })
-        if (r?.token) onToken(r.token)
+        if (r?.token && r.new_pin) setFresh(r)
+        else if (r?.token) onToken(r.token)
         else if (r?.locked) { setErr('Trop d\'essais, réessaie dans 10 min'); setPin('') }
-        else { setErr('Code incorrect'); setPin('') }
-      } catch { setErr('Connexion impossible'); setPin('') }
+        else { setErr('Code incorrect'); setPin(''); buzz(120) }
+      } catch { setErr('Connexion impossible, vérifie le réseau'); setPin('') }
       setBusy(false)
     }
   }
+  if (fresh) return (
+    <div className="page" style={{ paddingTop: 70, textAlign: 'center' }}>
+      <i className="ti ti-key acc" style={{ fontSize: 44 }} />
+      <h1>Ton nouveau code</h1>
+      <div className="sub">Les codes passent à 6 chiffres. Note-le bien : l'ancien ne marche plus.</div>
+      <div className="newpin pop">{fresh.new_pin.replace(/(\d{3})(\d{3})/, '$1 $2')}</div>
+      <button className="btn" onClick={() => onToken(fresh.token)}>C'est noté</button>
+    </div>
+  )
   return (
     <div className="page" style={{ paddingTop: 70, textAlign: 'center' }}>
       <i className="ti ti-flask-2 acc" style={{ fontSize: 40 }} />
       <h1 style={{ fontSize: 32 }}>Daraja</h1>
-      <div className="sub">Ton code à 4 chiffres</div>
-      <div className="dots">{[0, 1, 2, 3].map(i => <span key={i} className={i < pin.length ? 'f' : ''} />)}</div>
+      <div className="sub">Ton code à {len} chiffres</div>
+      <div className="dots">{[...Array(len)].map((_, i) => <span key={i} className={i < pin.length ? 'f' : ''} />)}</div>
       <div className="err">{err}</div>
       <div className="pad">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => <button key={d} onClick={() => press(String(d))}>{d}</button>)}
@@ -99,6 +111,9 @@ function Login({ onToken }) {
         <button onClick={() => press('0')}>0</button>
         <button aria-label="Effacer" onClick={() => setPin(pin.slice(0, -1))} style={{ border: 0, background: 'none' }}><i className="ti ti-backspace" /></button>
       </div>
+      <button className="mini ghost" style={{ marginTop: 22, border: 0, color: 'var(--muted)' }} onClick={() => { setLen(len === 6 ? 4 : 6); setPin(''); setErr('') }}>
+        {len === 6 ? 'J\'ai encore un ancien code à 4 chiffres' : 'J\'ai un code à 6 chiffres'}
+      </button>
     </div>
   )
 }
@@ -186,7 +201,7 @@ function GiftProgress({ r, pts, onClick }) {
   )
 }
 
-function Home({ token, me, venue, go, toast }) {
+function Home({ token, me, venue, go, toast, duels, openDuel }) {
   const [rewards, setRewards] = useState([])
   useEffect(() => { rpc('daraja_rewards', { p_token: token, p_venue: venue }).then(setRewards).catch(() => {}) }, [token, venue])
   const lv = level(me.earned)
@@ -224,7 +239,7 @@ function Home({ token, me, venue, go, toast }) {
           ? <button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Défi relevé, à demain</button>
           : <button className="btn pulse" onClick={() => go('quiz')}>Jouer <i className="ti ti-player-play" /></button>}
       </div>
-      {me.role === 'staff' && <DuelCard token={token} go={go} />}
+      {me.role === 'staff' && <DuelCard duels={duels} go={go} open={openDuel} />}
       <GiftProgress r={nextGift(rewards, me.points)} pts={me.points} onClick={() => go('shop')} />
       {me.role === 'staff' && <MissionCard token={token} />}
       {me.role === 'staff' && <DrawCard token={token} me={me} venue={venue} />}
@@ -287,7 +302,6 @@ function MatchGame({ q, onAnswer, res }) {
 
 const QMODES = {
   daily: { load: t => rpc('daraja_quiz', { p_token: t }), start: (t, q) => rpc('daraja_q_start', { p_token: t, p_question: q }), answer: (t, q, c, a) => rpc('daraja_answer_v2', { p_token: t, p_question: q, p_choice: c, p_answer: a }) },
-  duel: { load: (t, x) => rpc('daraja_duel_get', { p_token: t, p_duel: x.duel }), start: (t, q, x) => rpc('daraja_duel_start', { p_token: t, p_duel: x.duel, p_question: q }), answer: (t, q, c, a, x) => rpc('daraja_duel_answer', { p_token: t, p_duel: x.duel, p_question: q, p_choice: c, p_answer: a }) },
   test: { load: (t, x) => rpc('daraja_test_quiz', { p_token: t, p_venue: x.venue, p_post: x.post, p_kind: x.kind || null }), start: async () => ({ elapsed: 0 }), answer: (t, q, c, a) => rpc('daraja_test_answer', { p_token: t, p_question: q, p_choice: c, p_answer: a }) },
 }
 const imgSrc = n => '/img/' + n + '.svg'
@@ -353,7 +367,7 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
   }, [q?.id])
   useEffect(() => { if (data && i >= qs.length && qs.length && score >= 4) setTimeout(() => burst(60), 200) }, [i, data])
 
-  if (err) return <div className="page"><div className="err">{err}</div></div>
+  if (err) return <div className="page" style={{ textAlign: 'center', paddingTop: 60 }}><div className="err">{err}</div><button className="btn" style={{ marginTop: 14 }} onClick={() => { setErr(''); setRes(null); setPick(null); setRound(r => r + 1) }}>Recharger</button><button className="btn ghost" style={{ marginTop: 10 }} onClick={done}>Retour</button></div>
   if (!data) return <div className="page sub">Le barman prépare tes questions…</div>
   if (!qs.length) return <div className="page"><h1>Défi</h1><div className="sub">Pas encore de questions.</div><button className="btn ghost" style={{ marginTop: 16 }} onClick={done}>Retour</button></div>
 
@@ -365,7 +379,6 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
         <div className="acc" style={{ fontSize: 20, fontWeight: 600, margin: '6px 0' }}>+{pts + bonus} points</div>
         {bonus > 0 && <div className="sub">dont +3 de présence{bonus > 3 ? ' et +' + (bonus - 3) + ' de série' : ''} · +1 ticket</div>}
       </>}
-      {mode === 'duel' && <div className="sub" style={{ margin: '6px 0' }}>Résultat dès que ton adversaire a joué</div>}
       {mode === 'test' && <div className="sub" style={{ margin: '6px 0' }}>Mode test : rien n'est enregistré</div>}
       <div className="sub" style={{ margin: '8px 0 22px' }}>{score === qs.length ? 'Sans faute. Respect.' : score >= 3 ? 'Belle soirée en vue !' : 'Demain, on remet ça. Chaque erreur t\'apprend quelque chose.'}</div>
       {mode === 'test' && <button className="btn" style={{ marginBottom: 10 }} onClick={() => setRound(round + 1)}>Encore un quiz test</button>}
@@ -399,7 +412,7 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
   return (
     <div className="page">
       <div className="row between sub" style={{ marginBottom: 8 }}>
-        <span>{mode === 'duel' ? 'Duel' : mode === 'test' ? 'Test' : 'Manche'} {i + 1}/{qs.length} · {q.theme}</span>
+        <span>{mode === 'test' ? 'Test' : 'Manche'} {i + 1}/{qs.length} · {q.theme}</span>
         {combo >= 2 ? <span className="combo pop"><i className="ti ti-bolt" /> Combo x{combo}</span> : <LevelBadge level={q.level} />}
       </div>
       {ready ? <Timer key={q.id} q={q} deadline={deadline} onEnd={timeout} stopped={!!res} /> : <div className="timer"><div className="tbar" /></div>}
@@ -775,7 +788,7 @@ function Admin({ token, me, venue, toast }) {
         </div>
       ))}
       </>}
-      {pts && <StaffSheet token={token} s={pts} mission={missions[pts.family]} close={() => setPts(null)} act={act} toast={toast} reload={load} />}
+      {pts && <StaffSheet token={token} me={me} s={pts} mission={missions[pts.family]} close={() => setPts(null)} act={act} toast={toast} reload={load} />}
       {add && <AddStaff token={token} me={me} venue={venue} close={() => setAdd(false)} done={() => { setAdd(false); load(); toast('Équipier ajouté') }} />}
     </div>
   )
@@ -970,7 +983,10 @@ function PostSelect({ token, value, onChange }) {
   )
 }
 
-function StaffSheet({ token, s, mission, close, act, toast, reload }) {
+function StaffSheet({ token, me, s, mission, close, act, toast, reload }) {
+  const [newPin, setNewPin] = useState(null)
+  const self = s.id === me.id
+  const resetPin = async () => { try { const r = await rpc('daraja_admin_reset_pin', { p_token: token, p_staff: s.id }); if (r.ok) setNewPin(r) } catch { toast('Impossible pour ce compte') } }
   const [post, setPost] = useState(s.post || '')
   const [phone, setPhone] = useState(s.phone || '')
   const [bd, setBd] = useState(s.birthday ? s.birthday.split('-') : ['', ''])
@@ -1004,6 +1020,9 @@ function StaffSheet({ token, s, mission, close, act, toast, reload }) {
           {s.mission_done ? <div className="acc"><i className="ti ti-check" /> Validée · +10</div>
             : <button className="mini" onClick={() => { act('daraja_admin_validate_mission', { p_staff: s.id }, 'Mission validée · +10'); close() }}>Valider la mission · +10</button>}
         </div>}
+        {!self && (s.role !== 'admin' || me.role === 'super') && <button className="btn ghost" style={{ marginTop: 10 }} onClick={resetPin}><i className="ti ti-key" /> Code oublié : en générer un nouveau</button>}
+        {newPin && <div className="sheet center" onClick={() => setNewPin(null)}><div className="lvup" onClick={e => e.stopPropagation()}><PinShow who={s.name} pin={newPin.pin} phone={newPin.phone} close={() => setNewPin(null)} /></div></div>}
+        {!self && <>
         <div className="sec">Bonus</div>
         <div className="grid2" style={{ marginBottom: 10 }}>
           {opts.map(o => <button key={o[1]} className={'opt ' + (pick === o ? 'sel' : '')} style={{ margin: 0, textAlign: 'center' }} onClick={() => setPick(o)}>
@@ -1013,7 +1032,8 @@ function StaffSheet({ token, s, mission, close, act, toast, reload }) {
           <input placeholder="Motif (facultatif)" value={note} onChange={e => setNote(e.target.value)} />
           <button className="btn" onClick={() => { act('daraja_admin_points', { p_staff: s.id, p_kind: 'bonus', p_amount: pick[0], p_note: note || pick[1] }, '+' + pick[0] + ' pts · ' + s.name); close() }}>Donner +{pick[0]}</button>
         </>}
-        <div className="sub" style={{ marginTop: 10 }}>Pour une faute, passe par l'onglet Conduite</div>
+        </>}
+        <div className="sub" style={{ marginTop: 10 }}>{self ? 'Les bonus pour toi-même sont donnés par la direction' : 'Pour une faute, passe par l\'onglet Conduite'}</div>
       </div>
     </div>
   )
@@ -1021,27 +1041,26 @@ function StaffSheet({ token, s, mission, close, act, toast, reload }) {
 
 function AddStaff({ token, me, venue, close, done }) {
   const [name, setName] = useState('')
-  const [pin, setPin] = useState('')
   const [role, setRole] = useState('staff')
   const [post, setPost] = useState('')
+  const [made, setMade] = useState(null)
   const [phone, setPhone] = useState('')
   const [err, setErr] = useState('')
   const save = async () => {
     if (!name.trim()) { setErr('Entre un prénom'); return }
-    if (!/^\d{4}$/.test(pin)) { setErr('Le code doit faire 4 chiffres'); return }
     try {
-      const r = await rpc('daraja_admin_add_staff2', { p_token: token, p_name: name, p_pin: pin, p_role: role, p_venue: venue || me.venue, p_post: post || null, p_phone: phone })
-      if (r.ok) done()
-      else setErr(r.error === 'taken' ? 'Code déjà pris, choisis-en un autre' : r.error === 'phone' ? 'Numéro invalide' : 'Vérifie les champs')
+      const r = await rpc('daraja_admin_add_staff2', { p_token: token, p_name: name, p_pin: '', p_role: role, p_venue: venue || me.venue, p_post: post || null, p_phone: phone })
+      if (r.ok) setMade({ ...r, name: name.trim() })
+      else setErr(r.error === 'phone' ? 'Numéro invalide' : 'Vérifie les champs')
     } catch { setErr('Erreur, réessaie') }
   }
   return (
     <div className="sheet" onClick={close}>
       <div onClick={e => e.stopPropagation()} style={{ maxHeight: '88dvh', overflowY: 'auto' }}>
+        {made ? <PinShow who={made.name} pin={made.pin} phone={made.phone} close={done} /> : <>
         <h1>Nouvel équipier</h1>
         <div className="sub" style={{ marginBottom: 14 }}>{me.venue_name}</div>
         <input placeholder="Prénom et nom" value={name} onChange={e => { setName(e.target.value); setErr('') }} />
-        <input placeholder="Code à 4 chiffres" inputMode="numeric" maxLength={4} value={pin} onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setErr('') }} />
         <PostSelect token={token} value={post} onChange={setPost} />
         <input placeholder="WhatsApp (facultatif)" inputMode="tel" value={phone} onChange={e => setPhone(e.target.value)} />
         {me.role === 'super' && <div className="seg">
@@ -1050,7 +1069,23 @@ function AddStaff({ token, me, venue, close, done }) {
         </div>}
         <div className="err">{err}</div>
         <button className="btn" onClick={save}>Ajouter</button>
+        <div className="sub" style={{ marginTop: 8, textAlign: 'center' }}>Le code à 6 chiffres est créé automatiquement</div>
+        </>}
       </div>
+    </div>
+  )
+}
+
+function PinShow({ who, pin, phone, close }) {
+  const nice = pin.replace(/(\d{3})(\d{3})/, '$1 $2')
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <i className="ti ti-key acc" style={{ fontSize: 40 }} />
+      <h1>Code de {first(who)}</h1>
+      <div className="newpin pop">{nice}</div>
+      <div className="sub" style={{ marginBottom: 14 }}>Affiché une seule fois. Transmets-le en main propre ou sur WhatsApp.</div>
+      {phone && <a className="btn wa" style={{ marginBottom: 10 }} href={waLink(phone, `Bienvenue sur Daraja ${first(who)} ! Ton code personnel : ${nice}. Ne le partage avec personne. Lien : ${location.origin}`)} target="_blank" rel="noreferrer"><i className="ti ti-brand-whatsapp" /> Envoyer sur WhatsApp</a>}
+      <button className="btn ghost" onClick={close}>Terminé</button>
     </div>
   )
 }
@@ -1310,7 +1345,7 @@ const DRAW_LOTS = [
 ]
 function DrawAdmin({ token, me, venue, toast }) {
   const [info, setInfo] = useState(null)
-  const [m, setM] = useState(new Date().getDate() <= 10 ? -1 : 0)
+  const m = -1
   const [prize, setPrize] = useState('')
   const [res, setRes] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -1323,15 +1358,11 @@ function DrawAdmin({ token, me, venue, toast }) {
     try {
       const r = await rpc('daraja_admin_draw', { p_token: token, p_venue: venue, p_month: iso(md), p_prize: prize })
       if (r.ok) { setRes({ ...r, prize }); setTimeout(() => burst(90), 300) } else toast('Aucun ticket ce mois-ci')
-    } catch (e) { toast(String(e?.message || '').includes('already') ? 'Déjà tiré pour ce mois' : 'Erreur') }
+    } catch (e) { toast(String(e?.message || '').includes('already') ? 'Déjà tiré pour ce mois' : String(e?.message || '').includes('month_not_over') ? 'Le mois n\'est pas terminé' : 'Erreur') }
     setBusy(false)
   }
   return (
     <>
-      <div className="seg" style={{ marginTop: 10 }}>
-        <button className={m === -1 ? 'on' : ''} onClick={() => setM(-1)}>Mois dernier</button>
-        <button className={m === 0 ? 'on' : ''} onClick={() => setM(0)}>Ce mois</button>
-      </div>
       <div className="sub" style={{ marginBottom: 8, textTransform: 'capitalize' }}>Tirage de {label}</div>
       <input placeholder="Le lot du mois" value={prize} onChange={e => setPrize(e.target.value)} />
       {DRAW_LOTS.map(([g, l]) => <div key={g}><div className="sub" style={{ margin: '6px 0 4px' }}>{g}</div>
@@ -1476,69 +1507,224 @@ function BirthdayCard({ token, me, venue }) {
   )
 }
 
-function DuelCard({ token, go }) {
-  const [list, setList] = useState(null)
-  useEffect(() => { rpc('daraja_duels', { p_token: token }).then(setList).catch(() => setList([])) }, [token])
-  const todo = (list || []).filter(d => d.todo)
+function DuelCard({ duels, go, open }) {
+  const list = duels || []
+  const inc = list.find(d => d.status === 'pending' && !d.mine)
+  const live = list.find(d => d.status === 'ready' || d.status === 'live')
+  const t = live ? (live.status === 'live' ? 'Ton duel contre ' + live.other + ' est en cours' : live.other + ' est prêt, rejoins le duel') : inc ? inc.other + ' te défie !' : 'Défie un collègue'
   return (
-    <div className={'card duelcard rise' + (todo.length ? ' hot' : '')} onClick={() => go('duels')} style={{ cursor: 'pointer' }}>
+    <div className={'card duelcard rise' + (inc || live ? ' hot' : '')} onClick={() => (live || inc) ? open((live || inc).id) : go('duels')} style={{ cursor: 'pointer' }}>
       <div className="row" style={{ gap: 12 }}>
         <i className="ti ti-swords" style={{ fontSize: 30 }} />
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700 }}>{todo.length ? (todo[0].mine ? 'Termine ton duel contre ' + todo[0].other : todo[0].other + ' te défie !') : 'Défie un collègue'}</div>
-          <div className="sub">Mêmes 5 questions · le gagnant prend +20 pts</div>
+          <div style={{ fontWeight: 700 }}>{t}</div>
+          <div className="sub">Duel en direct · 5 questions · +20 au gagnant</div>
         </div>
-        {todo.length > 0 && <span className="tag" style={{ position: 'static' }}>{todo.length}</span>}
         <i className="ti ti-chevron-right" />
       </div>
     </div>
   )
 }
 
-function Duels({ token, me, venue, toast, play }) {
-  const [list, setList] = useState(null)
+const DSTATUS = { pending: 'En attente de réponse', ready: 'Prêt : rejoins la salle', live: 'En cours', declined: 'Refusé', expired: 'Expiré', cancelled: 'Annulé', done: '' }
+function Duels({ token, venue, toast, duels, reload, open }) {
   const [pickOpen, setPickOpen] = useState(false)
   const [mates, setMates] = useState([])
-  const load = useCallback(() => rpc('daraja_duels', { p_token: token }).then(setList).catch(() => setList([])), [token])
-  useEffect(() => { load() }, [load])
+  useEffect(() => { reload() }, [])
   useEffect(() => { rpc('daraja_eotm', { p_token: token, p_venue: venue }).then(e => setMates(e.candidates || [])).catch(() => {}) }, [token, venue])
   const challenge = async id => {
     try {
       const r = await rpc('daraja_duel_new', { p_token: token, p_opponent: id })
-      if (r.ok) { setPickOpen(false); play(r.id) }
-      else toast({ limit: '3 duels lancés par jour maximum', open: 'Un duel est déjà en cours avec cette personne', role: 'Réservé aux équipiers' }[r.error] || 'Impossible')
+      if (r.ok) { setPickOpen(false); toast('Défi envoyé ⚔️'); open(r.id) }
+      else toast({ limit: '3 défis lancés par jour maximum', open: 'Un duel est déjà en cours avec cette personne', pair: 'Un seul duel par jour avec la même personne', role: 'Réservé aux équipiers', questions: 'Pas assez de questions actives' }[r.error] || 'Impossible')
     } catch { toast('Erreur') }
   }
-  const st = d => d.status === 'expired' ? 'Expiré' : d.status === 'done' ? (d.won === true ? 'Gagné · +20' : d.won === false ? 'Perdu' : 'Égalité · +10') : d.todo ? 'À toi de jouer' : 'En attente de ' + d.other
+  const respond = async (id, ok) => {
+    try { const r = await rpc('daraja_duel_respond', { p_token: token, p_duel: id, p_accept: ok }); if (r.ok && ok) open(id); else { toast(ok ? 'Défi expiré' : 'Défi refusé'); reload() } } catch { toast('Erreur') }
+  }
+  const list = duels || []
   return (
     <div className="page">
       <div className="row between" style={{ position: 'relative' }}>
         <h1>Duels</h1>
-        <Info text="Tu choisis un collègue : vous répondez aux 5 mêmes questions, chacun de son côté, avec le chrono. Le plus de bonnes réponses gagne +20 pts. En cas d'égalité, le plus rapide gagne. Égalité parfaite : +10 chacun. 3 duels lancés par jour maximum, 48 h pour répondre. Touche pour fermer." />
+        <Info text="Tu envoies un défi. Ton collègue a 24 h pour accepter. Ensuite, vous vous retrouvez dans la salle et le duel démarre en direct : mêmes questions au même moment, 6 secondes chacune. Le plus de bonnes réponses gagne +20 pts ; à égalité, le plus rapide. 3 défis lancés par jour maximum. Touche pour fermer." />
       </div>
       <button className="btn pulse" style={{ margin: '12px 0 6px' }} onClick={() => setPickOpen(true)}><i className="ti ti-swords" /> Défier un collègue</button>
-      {!list ? <div className="sub">Chargement…</div> : !list.length ? <div className="sub" style={{ marginTop: 12 }}>Aucun duel pour l'instant. Lance le premier !</div> :
+      {!duels ? <div className="sub">Chargement…</div> : !list.length ? <div className="sub" style={{ marginTop: 12 }}>Aucun duel pour l'instant. Lance le premier !</div> :
         list.map(d => (
-          <div key={d.id} className={'lb' + (d.todo ? ' me' : '')} style={{ cursor: d.todo ? 'pointer' : 'default' }} onClick={() => d.todo && play(d.id)}>
+          <div key={d.id} className={'lb' + (d.todo ? ' me' : '')}>
             <Avatar value={d.other_avatar} name={d.other} />
-            <div style={{ flex: 1 }}>
-              <div>{d.mine ? 'Toi vs ' : ''}{d.other}{!d.mine ? ' vs toi' : ''}</div>
-              <div className="sub" style={{ color: d.won === true ? 'var(--good)' : d.todo ? 'var(--acc)' : undefined }}>{st(d)}</div>
+            <div style={{ flex: 1, minWidth: 0, cursor: d.todo || d.status === 'pending' ? 'pointer' : 'default' }} onClick={() => ['pending', 'ready', 'live'].includes(d.status) && open(d.id)}>
+              <div>{d.mine ? 'Toi vs ' + d.other : d.other + ' vs toi'}</div>
+              <div className="sub" style={{ color: d.won === true ? 'var(--good)' : d.todo ? 'var(--acc)' : undefined }}>
+                {d.status === 'done' ? (d.won === true ? 'Gagné · +20' : d.won === false ? 'Perdu' : d.my_score + d.other_score ? 'Égalité · +10' : 'Égalité') : d.status === 'pending' && !d.mine ? 'Te défie !' : DSTATUS[d.status]}
+              </div>
             </div>
-            {d.status === 'done' && <b>{d.my_score} – {d.other_score}</b>}
-            {d.todo && <i className="ti ti-player-play acc" />}
+            {d.status === 'pending' && !d.mine ? <>
+              <button className="mini" onClick={() => respond(d.id, true)}>Accepter</button>
+              <button className="mini ghost" aria-label="Refuser" onClick={() => respond(d.id, false)}><i className="ti ti-x" /></button>
+            </> : d.status === 'done' ? <b>{d.my_score} – {d.other_score}</b>
+              : ['ready', 'live'].includes(d.status) ? <button className="mini" onClick={() => open(d.id)}>Rejoindre</button> : null}
           </div>
         ))}
       {pickOpen && <div className="sheet" onClick={() => setPickOpen(false)}>
         <div onClick={e => e.stopPropagation()} style={{ maxHeight: '85dvh', overflowY: 'auto' }}>
           <h1>Qui veux-tu défier ?</h1>
-          <div className="sub" style={{ marginBottom: 14 }}>Tu joues tout de suite, ton collègue a 48 h</div>
+          <div className="sub" style={{ marginBottom: 14 }}>Il reçoit ta demande dans l'appli et a 24 h pour accepter</div>
           <div className="avgrid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
             {mates.map(c => <div key={c.id} className="avpick" style={{ borderRadius: 16, padding: 6, textAlign: 'center' }} onClick={() => challenge(c.id)}>
               <Avatar value={c.avatar} name={c.display} size={58} /><div style={{ fontSize: 12, marginTop: 4 }}>{c.display}</div></div>)}
           </div>
         </div>
       </div>}
+    </div>
+  )
+}
+
+function DuelInvite({ d, token, close, open, toast }) {
+  const respond = async ok => {
+    try { const r = await rpc('daraja_duel_respond', { p_token: token, p_duel: d.id, p_accept: ok }); close(); if (r.ok && ok) open(d.id); else if (!r.ok) toast('Défi expiré') } catch { toast('Erreur') }
+  }
+  const ready = d.status === 'ready' || d.status === 'live'
+  return (
+    <div className="sheet center" onClick={close}>
+      <div className="lvup pop" onClick={e => e.stopPropagation()}>
+        <i className="ti ti-swords acc" style={{ fontSize: 44 }} />
+        <div style={{ margin: '10px 0', display: 'flex', justifyContent: 'center' }}><Avatar value={d.other_avatar} name={d.other} size={64} /></div>
+        <h1 style={{ fontSize: 24 }}>{ready ? d.other + ' est prêt !' : d.other + ' te défie !'}</h1>
+        <div className="sub" style={{ marginBottom: 16 }}>{ready ? 'Rejoins la salle : le duel démarre dès que vous êtes deux' : 'Duel en direct · 5 questions · +20 au gagnant'}</div>
+        {ready ? <button className="btn" onClick={() => { close(); open(d.id) }}>Rejoindre</button> : <>
+          <button className="btn" onClick={() => respond(true)}>Accepter</button>
+          <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => respond(false)}>Refuser</button>
+        </>}
+        <button className="btn ghost" style={{ marginTop: 8, border: 0 }} onClick={close}>Plus tard</button>
+      </div>
+    </div>
+  )
+}
+
+function LiveDuel({ token, id, back, toast, refresh }) {
+  const [st, setSt] = useState(null)
+  const [mine, setMine] = useState({})
+  const [, tick] = useState(0)
+  const off = React.useRef(0)
+  const celebrated = React.useRef(false)
+  const load = useCallback(() => rpc('daraja_duel_state', { p_token: token, p_duel: id }).then(s => { off.current = s.now - Date.now() / 1000; setSt(s) }).catch(() => {}), [token, id])
+  useEffect(() => {
+    load()
+    const a = setInterval(load, 1000), b = setInterval(() => tick(x => x + 1), 200)
+    return () => { clearInterval(a); clearInterval(b) }
+  }, [load])
+  useEffect(() => { if (st?.status === 'done' && !celebrated.current) { celebrated.current = true; if (st.winner) burst(90); refresh() } }, [st?.status])
+  if (!st) return <div className="page sub">Connexion au duel…</div>
+  const now = Date.now() / 1000 + off.current
+  const Head = () => (
+    <div className="duelhead">
+      <div><Avatar value={st.me.avatar} name={st.me.display} size={42} me /><div className="sub">Toi</div></div>
+      <b className="big acc">{st.my_score}<span className="sub" style={{ fontSize: 22 }}> – </span>{st.their_score}</b>
+      <div><Avatar value={st.other.avatar} name={st.other.display} size={42} /><div className="sub">{st.other.display}</div></div>
+    </div>
+  )
+  const cancel = async () => { try { await rpc('daraja_duel_cancel', { p_token: token, p_duel: id }); back() } catch { toast('Erreur') } }
+  const respond = async ok => { try { await rpc('daraja_duel_respond', { p_token: token, p_duel: id, p_accept: ok }); ok ? load() : back() } catch { toast('Erreur') } }
+
+  if (['declined', 'expired', 'cancelled'].includes(st.status)) return (
+    <div className="page" style={{ textAlign: 'center', paddingTop: 70 }}>
+      <i className="ti ti-mood-sad acc" style={{ fontSize: 56 }} />
+      <h1>{{ declined: 'Défi refusé', expired: 'Défi expiré', cancelled: 'Duel annulé' }[st.status]}</h1>
+      <button className="btn" style={{ marginTop: 20 }} onClick={back}>Retour</button>
+    </div>
+  )
+  if (st.status === 'pending') return (
+    <div className="page" style={{ textAlign: 'center', paddingTop: 50 }}>
+      <Head />
+      {st.mine ? <>
+        <div className="sub" style={{ margin: '24px 0' }}><span className="waitdot" /> Défi envoyé à {st.other.display}. Reste ici : le duel démarre dès qu'il accepte et vous êtes deux.</div>
+        <button className="btn ghost" onClick={back}>Plus tard</button>
+        <button className="btn ghost" style={{ marginTop: 8, border: 0, color: 'var(--muted)' }} onClick={cancel}>Annuler le défi</button>
+      </> : <>
+        <h1 style={{ margin: '24px 0 16px' }}>{st.other.display} te défie !</h1>
+        <button className="btn" onClick={() => respond(true)}>Accepter</button>
+        <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => respond(false)}>Refuser</button>
+      </>}
+    </div>
+  )
+  if (st.status === 'ready') return (
+    <div className="page" style={{ textAlign: 'center', paddingTop: 50 }}>
+      <Head />
+      <h1 style={{ marginTop: 24 }}>Salle d'attente</h1>
+      <div className="sub" style={{ margin: '10px 0 24px' }}>{st.other.online ? <><span className="online" /> {st.other.display} est là, ça démarre…</> : <><span className="waitdot" /> En attente de {st.other.display}. Le duel démarre dès que vous êtes deux.</>}</div>
+      <button className="btn ghost" onClick={back}>Plus tard</button>
+      <button className="btn ghost" style={{ marginTop: 8, border: 0, color: 'var(--muted)' }} onClick={cancel}>Annuler le duel</button>
+    </div>
+  )
+  if (st.status === 'done') {
+    const w = st.winner
+    return (
+      <div className="page" style={{ textAlign: 'center', paddingTop: 50 }}>
+        <Head />
+        <i className={'ti ' + (w === true ? 'ti-trophy' : w === false ? 'ti-mood-smile' : 'ti-scale') + ' acc pop'} style={{ fontSize: 64, display: 'block', marginTop: 20 }} />
+        <h1 style={{ fontSize: 30 }}>{w === true ? 'Victoire !' : w === false ? 'Défaite' : 'Égalité'}</h1>
+        <div className="acc" style={{ fontWeight: 600, marginBottom: 20 }}>{w === true ? '+20 points' : w === false ? 'La revanche t\'attend' : st.my_score > 0 ? '+10 points chacun' : 'Aucun point'}</div>
+        {(st.questions || []).map((q, k) => { const a = (st.answers || [])[k] || {}; return (
+          <div key={q.id} className="lb" style={{ fontSize: 13, textAlign: 'left' }}>
+            <i className={'ti ti-' + (a.me?.ok ? 'circle-check' : 'circle-x')} style={{ color: a.me?.ok ? 'var(--good)' : 'var(--bad)', fontSize: 18 }} />
+            <span style={{ flex: 1 }}>{q.question}</span>
+            <i className={'ti ti-' + (a.them?.ok ? 'circle-check' : 'circle-x')} style={{ color: a.them?.ok ? 'var(--good)' : 'var(--bad)', fontSize: 18 }} />
+          </div>) })}
+        <button className="btn" style={{ marginTop: 20 }} onClick={back}>Retour aux duels</button>
+      </div>
+    )
+  }
+  // live
+  const slots = st.slots || []
+  if (!slots.length || now < slots[0]) {
+    const c = Math.max(1, Math.ceil((slots[0] || now) - now))
+    return <div className="page" style={{ textAlign: 'center', paddingTop: 50 }}><Head /><div className="countdown pop" key={c}>{c}</div><div className="sub">Prépare-toi !</div></div>
+  }
+  let idx = 0
+  slots.forEach((s, k) => { if (now >= s) idx = k })
+  const q = (st.questions || [])[idx]
+  const lim = (st.limits || [])[idx] || 6
+  const end = slots[idx] + lim
+  const ans = mine[idx] || (st.answers || [])[idx]
+  const server = (st.answers || [])[idx] || {}
+  const myRes = mine[idx] || (server.me ? { correct: server.me.ok, answer_idx: server.answer_idx, explanation: server.explanation, solution: server.solution } : null)
+  const answering = now < end && !myRes
+  const play = async (k, a) => {
+    if (mine[idx]) return
+    setMine(m => ({ ...m, [idx]: { pending: true } }))
+    try {
+      const r = await rpc('daraja_duel_play', { p_token: token, p_duel: id, p_idx: idx, p_choice: k ?? -1, p_answer: a ?? null })
+      if (r.ok) { setMine(m => ({ ...m, [idx]: r })); if (r.correct) { burst(25); buzz(20) } else buzz(120); load() }
+      else setMine(m => ({ ...m, [idx]: { correct: false, late: true } }))
+    } catch { setMine(m => { const n = { ...m }; delete n[idx]; return n }) }
+  }
+  const nextIn = Math.max(0, Math.ceil((slots[idx + 1] || (end + 4)) - now))
+  const cls = k => !myRes || myRes.pending ? '' : k === (myRes.answer_idx ?? server.answer_idx) ? 'ok' : ''
+  return (
+    <div className="page">
+      <Head />
+      <div className="sub" style={{ textAlign: 'center', margin: '6px 0 10px' }}>Manche {idx + 1}/{slots.length}{q ? ' · ' + q.theme : ''}</div>
+      {!q ? <div className="sub" style={{ textAlign: 'center' }}>…</div> : <>
+        {answering ? <Timer key={'t' + idx} q={{ limit: lim }} deadline={(end - off.current) * 1000} onEnd={() => {}} stopped={false} /> : <div className="timer"><div className="tbar" /></div>}
+        {q.kind === 'image' && <div className="card qimg"><img src={imgSrc(q.payload?.img)} alt="" width="130" height="130" /></div>}
+        {q.kind === 'scene' ? <div className="bubble-in">{q.question}</div> : <div style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.35, marginBottom: 12 }}>{q.question}</div>}
+        {q.kind === 'order' ? <OrderGame key={'o' + idx} q={q} res={myRes || (!answering ? {} : null)} onAnswer={play} />
+          : q.kind === 'match' ? <MatchGame key={'m' + idx} q={q} res={myRes || (!answering ? {} : null)} onAnswer={play} />
+          : q.kind === 'tf' ? <div className="row" style={{ gap: 10, marginTop: 10 }}>
+              <button className={'btn tfb no ' + cls(1)} disabled={!answering} onClick={() => play(1)}><i className="ti ti-x" /> Faux</button>
+              <button className={'btn tfb yes ' + cls(0)} disabled={!answering} onClick={() => play(0)}><i className="ti ti-check" /> Vrai</button></div>
+          : (q.options || []).map((o, k) => <button key={k} className={'opt ' + cls(k)} disabled={!answering} onClick={() => play(k)}>{o}</button>)}
+        {!answering && <div className="card rise" style={{ fontSize: 14, marginTop: 10 }}>
+          <div className="row between" style={{ marginBottom: 6 }}>
+            <span><b style={{ color: myRes?.correct ? 'var(--good)' : 'var(--bad)' }}>{myRes?.pending ? '…' : myRes?.correct ? 'Toi : bonne réponse' : myRes ? 'Toi : raté' : 'Toi : temps écoulé'}</b></span>
+            <span className="sub">{server.them ? (server.them.ok ? st.other.display + ' ✓' : st.other.display + ' ✗') : now < end ? st.other.display + ' réfléchit…' : st.other.display + ' ⏱'}</span>
+          </div>
+          {(myRes?.explanation || server.explanation) && <div className="sub">{myRes?.explanation || server.explanation}</div>}
+          <div className="sub" style={{ marginTop: 6 }}>{idx + 1 < slots.length ? 'Manche suivante dans ' + nextIn + ' s' : 'Résultat dans ' + nextIn + ' s'}</div>
+        </div>}
+      </>}
     </div>
   )
 }
@@ -1604,8 +1790,10 @@ function TestMode({ token, me, close, startTest, preview }) {
 
 export default function App() {
   const [token, setToken] = useState(store.get(TK))
-  const [venue, setVenue] = useState(store.get(VK))
+  const [venueRaw, setVenue] = useState(store.get(VK))
+  const [net, setNet] = useState(false)
   let [me, setMe] = useState(null)
+  const venue = me?.role === 'super' ? venueRaw : null
   const [tab, setTab] = useState('home')
   const [msg, setMsg] = useState('')
   const [splash, setSplash] = useState(false)
@@ -1613,12 +1801,26 @@ export default function App() {
   const [play, setPlay] = useState({ mode: 'daily', ctx: {} })
   const [testOpen, setTestOpen] = useState(false)
   const [preview, setPreview] = useState(null)
+  const [duels, setDuels] = useState(null)
+  const [duelId, setDuelId] = useState(null)
+  const [invite, setInvite] = useState(null)
+  const seenInv = React.useRef(new Set())
+  const loadDuels = useCallback(() => { if (token && me?.role === 'staff') rpc('daraja_duels', { p_token: token }).then(setDuels).catch(() => {}) }, [token, me?.role])
+  useEffect(() => {
+    if (!me || me.role !== 'staff') return
+    loadDuels(); const t = setInterval(loadDuels, 12000)
+    return () => clearInterval(t)
+  }, [loadDuels, me?.role])
+  useEffect(() => {
+    const d = (duels || []).find(x => ((x.status === 'pending' && !x.mine) || x.status === 'ready') && !seenInv.current.has(x.id + x.status))
+    if (d) { seenInv.current.add(d.id + d.status); setInvite(d); buzz(80) }
+  }, [duels])
   const toast = m => { setMsg(m); setTimeout(() => setMsg(''), 2200) }
   const todayKey = new Date().toLocaleDateString('fr-CA')
 
   const refresh = useCallback(() => {
     if (!token) return
-    rpc('daraja_me', { p_token: token, p_venue: venue }).then(setMe).catch(() => { store.set(TK, null); setToken(null); setMe(null) })
+    rpc('daraja_me', { p_token: token, p_venue: venue }).then(m => { setNet(false); setMe(m) }).catch(e => { if (String(e?.message || '').includes('session')) { store.set(TK, null); store.set(VK, null); setToken(null); setMe(null) } else setNet(true) })
   }, [token, venue])
   useEffect(() => { refresh() }, [refresh])
   useEffect(() => {
@@ -1635,18 +1837,19 @@ export default function App() {
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme === 't-zz' ? '#FFF1DE' : '#0F3B33')
   }, [theme])
 
-  const login = t => { store.set(TK, t); setToken(t) }
-  const logout = () => { store.set(TK, null); setToken(null); setMe(null); setTab('home') }
+  const login = t => { store.set(VK, null); setVenue(null); store.set(TK, t); setToken(t) }
+  const logout = () => { rpc('daraja_logout', { p_token: token }).catch(() => {}); store.set(TK, null); store.set(VK, null); setVenue(null); setToken(null); setMe(null); setTab('home') }
   const switchVenue = v => { store.set(VK, v); setVenue(v) }
   const go = t => { if (t === 'quiz') setPlay({ mode: 'daily', ctx: {} }); setTab(t); window.scrollTo(0, 0); if (t !== 'quiz') refresh() }
-  const playDuel = id => { setPlay({ mode: 'duel', ctx: { duel: id } }); setTab('quiz'); window.scrollTo(0, 0) }
+  const openDuel = id => { setInvite(null); setDuelId(id); setTab('live'); window.scrollTo(0, 0) }
   const startTest = ctx => { setTestOpen(false); setPlay({ mode: 'test', ctx }); setTab('quiz'); window.scrollTo(0, 0) }
 
   if (!token) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><Login onToken={login} /></div>
-  if (!me) return <div className={'app ' + theme}><div className="page sub">Chargement…</div></div>
+  if (!me) return <div className={'app ' + theme}><div className="page" style={{ textAlign: 'center', paddingTop: 80 }}>{net ? <><i className="ti ti-wifi-off acc" style={{ fontSize: 40 }} /><div className="sub" style={{ margin: '12px 0 18px' }}>Pas de connexion</div><button className="btn" onClick={refresh}>Réessayer</button></> : <span className="sub">Chargement…</span>}</div></div>
   if (splash) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><div id="fx" /><QuoteSplash token={token} me={me} close={() => { store.set('daraja_quote_day', todayKey); setSplash(false) }} /></div>
 
   const real = me
+  const duelTodo = (duels || []).filter(d => (d.status === 'pending' && !d.mine) || d.status === 'ready' || d.status === 'live')
   if (preview) me = { ...me, role: 'staff' }
   const isAdmin = me.role !== 'staff'
   const tabs = [['home', 'home'], ['board', 'trophy'], ['stories', 'book-2'], ['shop', 'gift'], ['profile', 'user'], ...(isAdmin ? [['admin', 'settings']] : [])]
@@ -1672,11 +1875,13 @@ export default function App() {
         </div>
       )}
       {preview && <div className="previewbar"><i className="ti ti-eye" /> Aperçu équipier · {preview}<button className="mini" onClick={() => { setPreview(null); setTab('profile') }}>Quitter</button></div>}
-      {tab === 'home' && <Home token={token} me={me} venue={venue} go={go} toast={toast} />}
+      {tab === 'home' && <Home token={token} me={me} venue={venue} go={go} toast={toast} duels={duels} openDuel={openDuel} />}
+      {tab === 'live' && duelId && <LiveDuel key={duelId} token={token} id={duelId} back={() => { loadDuels(); go('duels') }} toast={toast} refresh={refresh} />}
+      {invite && tab !== 'live' && tab !== 'quiz' && <DuelInvite d={invite} token={token} close={() => setInvite(null)} open={openDuel} toast={toast} />}
       {tab === 'quiz' && (preview && play.mode === 'daily'
         ? <Quiz key="pv" token={token} me={me} mode="test" ctx={{ post: preview, venue: me.venue }} done={() => go('home')} />
-        : <Quiz key={play.mode + (play.ctx.duel || '')} token={token} me={me} mode={play.mode} ctx={play.ctx} done={() => go(play.mode === 'duel' ? 'duels' : play.mode === 'test' ? 'profile' : 'home')} />)}
-      {tab === 'duels' && <Duels token={token} me={me} venue={venue} toast={toast} play={id => preview ? toast('Pas de duel en aperçu') : playDuel(id)} />}
+        : <Quiz key={play.mode + (play.ctx.duel || '')} token={token} me={me} mode={play.mode} ctx={play.ctx} done={() => go(play.mode === 'test' ? 'profile' : 'home')} />)}
+      {tab === 'duels' && <Duels token={token} venue={venue} toast={toast} duels={preview ? [] : duels} reload={loadDuels} open={id => preview ? toast('Pas de duel en aperçu') : openDuel(id)} />}
       {tab === 'rules' && <Rules token={token} back={() => go('profile')} />}
       {testOpen && <TestMode token={token} me={real} close={() => setTestOpen(false)} startTest={startTest} preview={p => { setTestOpen(false); setPreview(p); go('home') }} />}
       {tab === 'board' && <Board token={token} me={me} venue={venue} />}
@@ -1685,7 +1890,7 @@ export default function App() {
       {tab === 'profile' && <Profile token={token} me={preview ? real : me} logout={logout} toast={toast} refresh={refresh} go={go} openTest={() => setTestOpen(true)} />}
       {tab === 'admin' && isAdmin && <Admin token={token} me={me} venue={venue} toast={toast} />}
       <nav className="nav">
-        {tabs.map(([k, ic]) => <button key={k} aria-label={k} className={tab === k || (['quiz', 'duels'].includes(tab) && k === 'home') || (tab === 'rules' && k === 'profile') ? 'on' : ''} onClick={() => go(k)}><i className={'ti ti-' + ic} />{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && me.direction_todo > 0)) && <span className="dot" />}</button>)}
+        {tabs.map(([k, ic]) => <button key={k} aria-label={k} className={tab === k || (['quiz', 'duels', 'live'].includes(tab) && k === 'home') || (tab === 'rules' && k === 'profile') ? 'on' : ''} onClick={() => go(k)}><i className={'ti ti-' + ic} />{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && me.direction_todo > 0) || (k === 'home' && duelTodo.length > 0)) && <span className="dot" />}</button>)}
       </nav>
     </div>
   )
