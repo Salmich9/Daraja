@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { RV, ROLES, sfx, burst, buzz, flyPoints, imgSrc, rpc, waLink } from '../lib'
 import { LevelBadge } from '../ui'
+import { Chest } from './Chest'
 
 function OrderGame({ q, onAnswer, res }) {
   const [picked, setPicked] = useState([])
@@ -126,7 +127,8 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
       <h1 className="u-fs-34">{score}/{qs.length}</h1>
       {mode === 'daily' && <>
         <div className="acc u-fs-20 u-fw-600 u-m-6px-0" >+{pts + bonus} pièces</div>
-        {bonus > 0 && <div className="sub">dont +3 de présence{bonus > 3 ? ' et +' + (bonus - 3) + ' de série' : ''} · +1 ticket</div>}
+        {bonus > 0 && <div className="sub">dont +{RV.presence} de présence{bonus > RV.presence ? ' et +' + (bonus - RV.presence) + ' de série' : ''} · +1 ticket</div>}
+        {me?.role === 'staff' && <Chest token={token} />}
       </>}
       {mode === 'test' && <div className="sub u-m-6px-0" >Mode test : rien n'est enregistré</div>}
       <div className="sub u-m-8px-0-22px" >{score === qs.length ? 'Sans faute. Respect.' : score >= 3 ? 'Belle soirée en vue !' : 'Demain, on remet ça. Chaque erreur t\'apprend quelque chose.'}</div>

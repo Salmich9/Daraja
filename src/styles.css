@@ -283,3 +283,19 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 .admgrp button { position: relative; font-weight: 600; }
 .cnt { display:inline-block; margin-left: 6px; vertical-align: 1px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--bad); color: #fff; font: 700 11px/18px Inter, sans-serif; }
 .netbar { position: sticky; top: 0; z-index: 8; margin: -4px -16px 10px; padding: 9px 16px; background: #B4532A; color: #fff; font: 600 13px Inter, sans-serif; display:flex; align-items:center; gap: 8px; animation: rise .3s ease both; }
+/* Coffre surprise */
+.chest { margin: 16px auto 18px; max-width: 320px; padding: 16px; border-radius: 22px; background: var(--card); border: 2px solid color-mix(in srgb, var(--acc) 50%, transparent); display:flex; flex-direction:column; align-items:center; gap: 8px; cursor: pointer; }
+.chest.closed .chestsvg { animation: chestwait 2.2s ease-in-out infinite; }
+.chest.shaking .chestsvg { animation: chestshake .18s linear infinite; }
+.chestsvg { width: 132px; height: 120px; overflow: visible; }
+.chestsvg .lid { transform-origin: 18px 54px; transition: transform .45s cubic-bezier(.3,1.6,.5,1); }
+.chestsvg.open .lid { transform: rotate(-38deg) translate(-6px, -10px); }
+.chestsvg .rays rect { fill: var(--glow, #F2C230); opacity: .55; animation: rays 1.2s ease-out both; }
+.chestsvg.open { filter: drop-shadow(0 0 18px var(--glow, #F2C230)); }
+.chesttxt { display:flex; flex-direction:column; align-items:center; gap: 3px; text-align:center; }
+.chesttxt b { font-size: 18px; }
+.chestgain { font: 800 26px Inter, sans-serif; }
+.rarity { color: #12302A; font: 800 11px Inter, sans-serif; letter-spacing: .6px; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
+@keyframes chestwait { 0%, 70%, 100% { transform: none; } 78% { transform: rotate(-4deg) translateY(-3px); } 86% { transform: rotate(4deg) translateY(-3px); } }
+@keyframes chestshake { 0% { transform: rotate(-6deg); } 50% { transform: rotate(6deg) translateY(-2px); } 100% { transform: rotate(-6deg); } }
+@keyframes rays { from { opacity: 0; } to { opacity: .55; } }

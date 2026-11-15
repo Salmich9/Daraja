@@ -112,7 +112,7 @@ export default function App() {
       {preview && <div className="previewbar"><i className="ti ti-eye" /> Aperçu équipier · {preview}<button className="mini" onClick={() => { setPreview(null); setTab('profile') }}>Quitter</button></div>}
       {offline && <div className="netbar"><i className="ti ti-wifi-off" /> Pas de connexion · on réessaie…</div>}
       <React.Fragment key={epoch}>
-      {tab === 'home' && <Home token={token} me={me} venue={venue} go={go} toast={toast} duels={duels} openDuel={openDuel} />}
+      {tab === 'home' && <Home token={token} me={me} venue={venue} go={go} toast={toast} duels={duels} openDuel={openDuel} refresh={refresh} />}
       {tab === 'live' && duelId && <LiveDuel key={duelId} token={token} id={duelId} back={() => { loadDuels(); go('duels') }} toast={toast} refresh={refresh} open={id => { loadDuels(); openDuel(id) }} />}
       {invite && tab !== 'live' && tab !== 'quiz' && <DuelInvite d={invite} token={token} close={() => setInvite(null)} open={openDuel} toast={toast} />}
       {tab === 'quiz' && (preview && play.mode === 'daily'

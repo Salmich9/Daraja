@@ -2,8 +2,10 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { RV, burst, buzz, first, fmt, level, nextGift, rpc, waLink } from '../lib'
 import { Avatar, GiftProgress, Info } from '../ui'
 import { DuelCard } from './Duels'
+import { Chest } from './Chest'
 
-function Home({ token, me, venue, go, toast, duels, openDuel }) {
+function Home({ token, me, venue, go, toast, duels, openDuel, refresh }) {
+  const [chestOpen, setChestOpen] = useState(false)
   const [rewards, setRewards] = useState([])
   useEffect(() => { rpc('daraja_rewards', { p_token: token, p_venue: venue }).then(setRewards).catch(() => {}) }, [token, venue])
   const lv = level(me.earned)
@@ -42,7 +44,8 @@ function Home({ token, me, venue, go, toast, duels, openDuel }) {
           <span className="row sub u-gap-5" >{[1, 1, 2, 2, 3].map((l, i) => <span key={i} className={'ddot l' + l} />)}&nbsp;jusqu'à +90</span>
         </div>
         {me.quiz_done
-          ? <button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Voir mon score</button>
+          ? me.chest === 'ready' ? <button className="btn pulse big" onClick={() => setChestOpen(true)}><i className="ti ti-sparkles" /> Ouvrir mon coffre</button>
+            : <button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Voir mon score</button>
           : <button className="btn pulse big" onClick={() => go('quiz')}>Jouer <i className="ti ti-player-play" /></button>}
       </div>
       {me.role === 'staff' && <DuelCard duels={duels} go={go} open={openDuel} />}
@@ -56,6 +59,12 @@ function Home({ token, me, venue, go, toast, duels, openDuel }) {
         <div className="u-flex-1"><div className="u-fw-600">L'histoire du jour</div><div className="sub">Partis de zéro, arrivés au sommet</div></div>
         <i className="ti ti-chevron-right sub" />
       </div>
+      {chestOpen && <div className="sheet center" onClick={() => { setChestOpen(false); refresh && refresh() }}>
+        <div className="u-ta-center" onClick={e => e.stopPropagation()}>
+          <Chest token={token} />
+          <button className="btn ghost u-mt-16" onClick={() => { setChestOpen(false); refresh && refresh() }}>Fermer</button>
+        </div>
+      </div>}
     </div>
   )
 }
