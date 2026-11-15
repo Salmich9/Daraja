@@ -1467,6 +1467,8 @@ begin
     'streak', daraja.live_streak(s), 'flame', daraja.flame_state(s),
     'next_bonus', daraja.rv('streak_step') * least(daraja.live_streak(s) + 1, daraja.rv('streak_days')), 'rules', (select json_object_agg(key, val) from daraja.rule_values),
     'quiz_done', done,
+    'week', (select json_agg(exists(select 1 from daraja.quiz_sessions q where q.staff_id = s.id and q.day = daraja.today() - g
+      and cardinality(q.answered) >= cardinality(q.question_ids)) order by g desc) from generate_series(0, 6) g),
     'tickets', daraja.tickets(s.id, daraja.today()),
     'eotm', (select count(*) from daraja.eotm where winner = s.id), 'birthday', s.birthday, 'avis', (select count(*) from daraja.point_events where staff_id = s.id and kind = 'avis' and status = 'ok'),
     'perfect', (select count(*) from daraja.quiz_sessions where staff_id = s.id and correct >= 5),

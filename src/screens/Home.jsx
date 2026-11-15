@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { RV, burst, buzz, first, fmt, level, nextGift, rpc, waLink } from '../lib'
-import { Avatar, GiftProgress, Info, LevelRing } from '../ui'
+import { Avatar, GiftProgress, Info } from '../ui'
 import { DuelCard } from './Duels'
 
 function Home({ token, me, venue, go, toast, duels, openDuel }) {
@@ -9,43 +9,48 @@ function Home({ token, me, venue, go, toast, duels, openDuel }) {
   const lv = level(me.earned)
   return (
     <div className="page">
-      <div className="row between" style={{ marginBottom: 16 }}>
+      <div className="row between" style={{ marginBottom: 14 }}>
         <div className="row" style={{ gap: 10, cursor: 'pointer' }} onClick={() => go('profile')}>
           <Avatar value={me.avatar} name={me.display} size={46} me />
           <div><div className="sub">{me.venue_name}</div><h1 style={{ margin: 0 }}>Salut {me.display.split(' ')[0]}</h1></div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <i className={'ti ti-flame flame ' + (['out', 'new'].includes(me.flame) ? 'off' : me.flame)} />
-          <div className="sub">{me.streak} jour{me.streak > 1 ? 's' : ''}</div>
-        </div>
+        <button className="ptspill" onClick={() => go('profile')}><span className="lvchip">N{lv.n}</span><b>{fmt(me.points)}</b><small>pts</small></button>
       </div>
-      {me.flame === 'danger' && <div className="card danger rise"><b><i className="ti ti-flame" /> Flamme en danger</b><div className="sub">Tu n'as pas joué hier. Joue aujourd'hui pour sauver tes {me.streak} jours.</div></div>}
-      {me.flame === 'out' && <div className="card rise" style={{ border: '1px solid var(--line)' }}><b><i className="ti ti-snowflake" style={{ color: '#85B7EB' }} /> Flamme éteinte</b><div className="sub">Rallume-la aujourd'hui : chaque jour de série rapporte un bonus qui grandit.</div></div>}
-      <BirthdayCard token={token} me={me} venue={venue} />
-      <div className="card row" style={{ gap: 14, cursor: 'pointer' }} onClick={() => go('profile')}>
-        <LevelRing earned={me.earned} />
-        <div>
-          <div className="big acc" style={{ fontSize: 28 }}>{fmt(me.points)}</div>
-          <div className="sub">{lv.name}{me.role === 'staff' ? ' · ' + (me.rank === 1 ? '1er' : me.rank + 'e') + ' du mois' : ''}</div>
-        </div>
-      </div>
-      <div className="card" style={{ position: 'relative' }}>
+      <div className={'card hero' + (me.flame === 'danger' && !me.quiz_done ? ' danger' : '')} style={{ position: 'relative' }}>
         <div className="row between">
-          <div><div style={{ fontSize: 17, fontWeight: 600 }}>Défi du jour</div><div className="sub">5 manches · jusqu'à +90 pts{!me.quiz_done && me.next_bonus > 5 ? ' · bonus série +' + me.next_bonus : ''}</div></div>
+          <div className="row" style={{ gap: 10 }}>
+            <i className={'ti ti-flame flame big ' + (['out', 'new'].includes(me.flame) ? 'off' : me.flame)} />
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>{me.streak > 0 && me.flame !== 'out' ? me.streak + ' jour' + (me.streak > 1 ? 's' : '') + ' de série' : 'Lance ta série'}</div>
+              <div className="sub">{me.quiz_done ? 'Défi relevé, à demain' : me.flame === 'danger' ? 'Joue aujourd\'hui pour la sauver' : me.flame === 'out' ? 'Rallume la flamme aujourd\'hui' : me.next_bonus > RV.streak_step ? 'Bonus série +' + me.next_bonus + ' pts' : 'Chaque jour joué rapporte un bonus'}</div>
+            </div>
+          </div>
           <Info text={`Chaque jour : vrai ou faux, scènes client, anglais, associations… 2 manches faciles, 2 confirmées, 1 experte. Chaque jour de série ajoute +${RV.streak_step} pts de bonus (jusqu'à +${RV.streak_step * RV.streak_days}). Un jour manqué : la flamme est en danger. Deux jours : elle s'éteint. Touche pour fermer.`} />
         </div>
-        <div className="row" style={{ gap: 6, margin: '12px 0 14px' }}>
-          {[1, 1, 2, 2, 3].map((l, i) => <span key={i} className={'ddot l' + l} />)}
+        <div className="week">
+          {(me.week || []).map((d, k) => {
+            const day = new Date(Date.now() - (6 - k) * 864e5)
+            const today = k === 6
+            return <div key={k} className={'wd' + (d ? ' on' : '') + (today ? ' today' : '')}>
+              <span>{'DLMMJVS'[day.getDay()]}</span>
+              <i className={'ti ' + (d ? 'ti-flame' : today ? 'ti-player-play' : 'ti-minus')} />
+            </div>
+          })}
+        </div>
+        <div className="row between" style={{ margin: '4px 0 12px' }}>
+          <span style={{ fontWeight: 600 }}>Défi du jour</span>
+          <span className="row sub" style={{ gap: 5 }}>{[1, 1, 2, 2, 3].map((l, i) => <span key={i} className={'ddot l' + l} />)}&nbsp;jusqu'à +90 pts</span>
         </div>
         {me.quiz_done
-          ? <button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Défi relevé, à demain</button>
-          : <button className="btn pulse" onClick={() => go('quiz')}>Jouer <i className="ti ti-player-play" /></button>}
+          ? <button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Voir mon score</button>
+          : <button className="btn pulse big" onClick={() => go('quiz')}>Jouer <i className="ti ti-player-play" /></button>}
       </div>
       {me.role === 'staff' && <DuelCard duels={duels} go={go} open={openDuel} />}
       <GiftProgress r={nextGift(rewards, me.points)} pts={me.points} onClick={() => go('shop')} />
       {me.role === 'staff' && <MissionCard token={token} />}
       {me.role === 'staff' && <DrawCard token={token} me={me} venue={venue} />}
       <EotmCard token={token} me={me} venue={venue} toast={toast} />
+      <BirthdayCard token={token} me={me} venue={venue} />
       <div className="card row" style={{ gap: 12, cursor: 'pointer' }} onClick={() => go('stories')}>
         <i className="ti ti-book-2 acc" style={{ fontSize: 28 }} />
         <div style={{ flex: 1 }}><div style={{ fontWeight: 600 }}>L'histoire du jour</div><div className="sub">Partis de zéro, arrivés au sommet</div></div>

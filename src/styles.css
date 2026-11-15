@@ -223,3 +223,17 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 .fb.win .fbbtn { background: var(--good); color: var(--bg); } .fb.lose .fbbtn { background: var(--bad); color: #fff; }
 @keyframes fbup { from { transform: translateY(100%); } to { transform: none; } }
 @keyframes fbpop { from { transform: scale(0); } to { transform: scale(1); } }
+/* Accueil : carte héros (série + défi du jour) */
+.ptspill { display:flex; align-items:center; gap:7px; background: var(--card); border: 1px solid var(--line); color: var(--fg); border-radius: 999px; padding: 6px 12px 6px 6px; font: 600 16px Inter, sans-serif; cursor:pointer; }
+.ptspill small { font-size: 12px; color: var(--muted); font-weight: 500; }
+.lvchip { background: var(--acc); color: var(--btxt); border-radius: 999px; padding: 3px 8px; font-size: 12px; font-weight: 800; }
+.card.hero { border: 2px solid color-mix(in srgb, var(--acc) 55%, transparent); padding: 16px; background: linear-gradient(160deg, color-mix(in srgb, var(--acc) 14%, var(--card)), var(--card) 60%); }
+.flame.big { font-size: 40px; }
+.week { display:grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 14px 0 10px; }
+.wd { display:flex; flex-direction:column; align-items:center; gap:4px; font-size: 11px; color: var(--muted); }
+.wd i { width: 34px; height: 34px; border-radius: 50%; display:grid; place-items:center; font-size: 17px; background: color-mix(in srgb, var(--fg) 7%, transparent); color: var(--muted); }
+.wd.on i { background: #E8833A; color: #fff; }
+.wd.today span { color: var(--fg); font-weight: 700; }
+.wd.today:not(.on) i { border: 2px dashed var(--acc); color: var(--acc); background: transparent; }
+.btn.big { padding: 17px; font-size: 18px; font-weight: 800; letter-spacing: .3px; }
+.card.hero.danger { border-color: #E8833A; background: linear-gradient(160deg, color-mix(in srgb, #E8833A 22%, var(--card)), var(--card) 60%); }
