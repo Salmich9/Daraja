@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { ROLES, burst, buzz, flyPoints, imgSrc, rpc, waLink } from '../lib'
+import { RV, ROLES, burst, buzz, flyPoints, imgSrc, rpc, waLink } from '../lib'
 import { LevelBadge } from '../ui'
 
 function OrderGame({ q, onAnswer, res }) {
@@ -157,7 +157,7 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
   const ready = deadline != null
 
   return (
-    <div className="page">
+    <div className="page" style={res ? { paddingBottom: 260 } : null}>
       <div className="row between sub" style={{ marginBottom: 8 }}>
         <span>{mode === 'test' ? 'Test' : 'Manche'} {i + 1}/{qs.length} · {q.theme}</span>
         {combo >= 2 ? <span className="combo pop"><i className="ti ti-bolt" /> Combo x{combo}</span> : <LevelBadge level={q.level} />}
@@ -215,13 +215,21 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
         </>}
       </div>}
 
-      {res && <div className="rise">
-        <div className="card" style={{ fontSize: 14, lineHeight: 1.45, marginTop: 12 }}>
-          <b style={{ color: res.correct ? 'var(--good)' : 'var(--bad)' }}>{res.correct ? 'Bien joué !' + (mode === 'daily' ? ' +' + (res.points || 10) : '') : res.timeout || pick === -1 ? '⏱ Temps écoulé ! Retiens bien :' : 'Raté, mais retiens bien :'}</b>
-          {res.explanation ? ' ' + res.explanation : ''}
+      {res && (() => {
+        const late = !res.correct && (res.timeout || pick === -1)
+        const good = kind === 'tf' ? ['Vrai', 'Faux'][res.answer_idx] : q.options?.[res.answer_idx]
+        const showGood = !res.correct && good != null && kind !== 'order' && kind !== 'match'
+        return <div className={'fb ' + (res.correct ? 'win' : 'lose')}>
+          <div className="fbhead">
+            <span className="fbic"><i className={'ti ' + (res.correct ? 'ti-check' : late ? 'ti-stopwatch' : 'ti-x')} /></span>
+            <b>{res.correct ? 'Bien joué !' : late ? 'Temps écoulé !' : 'Raté !'}</b>
+            {res.correct && mode === 'daily' && <span className="fbpts">+{res.points || RV.answer}</span>}
+          </div>
+          {showGood && <div className="fbgood">Bonne réponse : <b>{good}</b></div>}
+          {res.explanation && <div className="fbtxt">{res.explanation}</div>}
+          <button className="btn fbbtn" onClick={next}>{i + 1 < qs.length ? 'Continuer' : 'Voir mon score'}</button>
         </div>
-        <button className="btn" onClick={next}>{i + 1 < qs.length ? 'Manche suivante' : 'Voir mon score'}</button>
-      </div>}
+      })()}
     </div>
   )
 }
