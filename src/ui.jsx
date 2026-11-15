@@ -1,22 +1,18 @@
 import React, { useEffect, useState } from 'react'
-import { FAM, LINE, LV, first, fmt, initials, level, rpc, waLink } from './lib'
+import { avFile, FAM, LINE, LV, first, fmt, initials, level, rpc, waLink } from './lib'
 
 function LevelBadge({ level }) {
   const [name, cls] = LV[level] || LV[1]
   return <span className={'lv ' + cls}><span className="lvdots">{[1, 2, 3].map(n => <i key={n} className={n <= level ? 'on' : ''} />)}</span>{name} · +{10 * (level || 1)}</span>
 }
 
-let avMod = null
-
-const avReady = import('./avatars.js').then(m => { avMod = m; return m })
-
 function Avatar({ value, name, size = 34, me: isMe }) {
-  const [, force] = useState(0)
-  useEffect(() => { if (!avMod && value) avReady.then(() => force(x => x + 1)) }, [value])
-  const svg = avMod ? avMod.render(value) : null
+  const [broken, setBroken] = useState(false)
+  useEffect(() => setBroken(false), [value])
+  const ok = value && /^[a-z-]+:[A-Za-z0-9-]+$/.test(value) && !broken
   return (
     <div className={'av' + (isMe ? ' meav' : '')} style={{ width: size, height: size, fontSize: Math.round(size / 2.6) }}>
-      {svg ? <span className="avsvg" dangerouslySetInnerHTML={{ __html: svg }} /> : initials(name || '?')}
+      {ok ? <img className="avsvg" src={avFile(value)} alt="" width={size} height={size} loading="lazy" decoding="async" onError={() => setBroken(true)} /> : initials(name || '?')}
     </div>
   )
 }
@@ -98,4 +94,4 @@ function PinShow({ who, pin, phone, close }) {
   )
 }
 
-export { LevelBadge, avMod, avReady, Avatar, Info, Toast, LevelRing, GiftProgress, Pill, postsCache, usePosts, PostSelect, PinShow }
+export { LevelBadge, Avatar, Info, Toast, LevelRing, GiftProgress, Pill, postsCache, usePosts, PostSelect, PinShow }

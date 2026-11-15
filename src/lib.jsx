@@ -1,6 +1,7 @@
 import React from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js'
+import { AV_SEEDS, AV_STYLES, avFile } from './avatar-list.js'
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } })
 
@@ -38,9 +39,7 @@ const fmt = n => (n ?? 0).toLocaleString('fr-FR')
 
 const LV = { 1: ['Facile', 'lv1'], 2: ['Confirmé', 'lv2'], 3: ['Expert', 'lv3'] }
 
-const AV_SEEDS = ['Shaker', 'Glacon', 'Citron', 'Olive', 'Safran', 'Zama', 'Momo', 'Tonic', 'Mojito', 'Negroni', 'Spritz', 'Martini', 'Paprika', 'Cumin', 'Tajine', 'Couscous', 'Mezcal', 'Bitter', 'Sirop', 'Menthe']
 
-const AV_STYLES = ['fun-emoji', 'bottts', 'big-smile', 'croodles', 'thumbs', 'adventurer', 'pixel-art', 'avataaars']
 
 const AV_LIB = AV_STYLES.flatMap(st => AV_SEEDS.map(sd => st + ':' + sd))
 
@@ -97,4 +96,4 @@ const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0
 
 const monday = (off = 0) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 7 * off); return d }
 
-export { sb, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }
+export { avFile, sb, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }

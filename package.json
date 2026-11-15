@@ -9,18 +9,10 @@
     "preview": "vite preview",
     "test:db": "node scripts/test-db.mjs",
     "check": "eslint --ext .js,.jsx src",
-    "test": "npm run check && npm run test:db && npm run build"
+    "test": "npm run check && npm run test:db && npm run build",
+    "avatars": "node scripts/build-avatars.mjs"
   },
   "dependencies": {
-    "@dicebear/adventurer": "^9.4.2",
-    "@dicebear/avataaars": "^9.4.2",
-    "@dicebear/big-smile": "^9.4.2",
-    "@dicebear/bottts": "^9.4.2",
-    "@dicebear/core": "^9.4.3",
-    "@dicebear/croodles": "^9.4.2",
-    "@dicebear/fun-emoji": "^9.4.2",
-    "@dicebear/pixel-art": "^9.4.2",
-    "@dicebear/thumbs": "^9.4.2",
     "@supabase/supabase-js": "^2.45.0",
     "@tabler/icons-webfont": "^3.19.0",
     "react": "^18.3.1",
@@ -31,6 +23,15 @@
     "@vitejs/plugin-react": "^4.3.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.1",
-    "vite": "^5.4.0"
+    "vite": "^5.4.0",
+    "@dicebear/adventurer": "^9.4.2",
+    "@dicebear/avataaars": "^9.4.2",
+    "@dicebear/big-smile": "^9.4.2",
+    "@dicebear/bottts": "^9.4.2",
+    "@dicebear/core": "^9.4.3",
+    "@dicebear/croodles": "^9.4.2",
+    "@dicebear/fun-emoji": "^9.4.2",
+    "@dicebear/pixel-art": "^9.4.2",
+    "@dicebear/thumbs": "^9.4.2"
   }
 }

@@ -15,6 +15,6 @@ export function render(v) {
   if (cache[v]) return cache[v]
   const [st, seed] = v.split(':')
   if (!STYLES[st]) return null
-  cache[v] = createAvatar(STYLES[st], { seed, backgroundColor: ['ffd166', 'ffadad', 'a0e7e5', 'b4f8c8', 'fbe7c6', 'cdb4db', 'ffc8dd', 'bde0fe'], backgroundType: ['solid'], randomizeIds: true }).toString()
+  cache[v] = createAvatar(STYLES[st], { seed, backgroundColor: ['ffd166', 'ffadad', 'a0e7e5', 'b4f8c8', 'fbe7c6', 'cdb4db', 'ffc8dd', 'bde0fe'], backgroundType: ['solid'], randomizeIds: false }).toString()
   return cache[v]
 }
