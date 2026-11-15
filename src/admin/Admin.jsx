@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { ROLES, fmt, rpc } from '../lib'
+import { RV, ROLES, fmt, rpc } from '../lib'
 import { Avatar, PinShow, PostSelect } from '../ui'
 import { Conduct } from './Conduct'
 import { Reports } from './Reports'
@@ -41,7 +41,7 @@ function Admin({ token, me, venue, toast }) {
       {d.reviews.map(r => (
         <div key={r.id} className="lb">
           <div style={{ flex: 1, minWidth: 0 }}><div>{r.name}</div><div className="sub" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.note}</div></div>
-          <button className="mini" onClick={() => act('daraja_admin_review', { p_event: r.id, p_ok: true }, '+100 pts validés')}>+100</button>
+          <button className="mini" onClick={() => act('daraja_admin_review', { p_event: r.id, p_ok: true }, '+' + RV.review + ' pts validés')}>+{RV.review}</button>
           <button className="mini ghost" aria-label="Refuser" onClick={() => act('daraja_admin_review', { p_event: r.id, p_ok: false }, 'Refusé')}><i className="ti ti-x" /></button>
         </div>
       ))}
@@ -139,8 +139,8 @@ function StaffSheet({ token, me, s, mission, close, act, toast, reload }) {
         {mission && <div className={'card mission' + (s.mission_done ? ' done' : '')} style={{ marginTop: 14 }}>
           <div className="sub">Mission de la semaine</div>
           <div style={{ fontWeight: 600, margin: '4px 0 10px' }}>{mission}</div>
-          {s.mission_done ? <div className="acc"><i className="ti ti-check" /> Validée · +10</div>
-            : <button className="mini" onClick={() => { act('daraja_admin_validate_mission', { p_staff: s.id }, 'Mission validée · +10'); close() }}>Valider la mission · +10</button>}
+          {s.mission_done ? <div className="acc"><i className="ti ti-check" /> Validée · +{RV.mission}</div>
+            : <button className="mini" onClick={() => { act('daraja_admin_validate_mission', { p_staff: s.id }, 'Mission validée · +' + RV.mission); close() }}>Valider la mission · +{RV.mission}</button>}
         </div>}
         {!self && (s.role !== 'admin' || me.role === 'super') && <button className="btn ghost" style={{ marginTop: 10 }} onClick={resetPin}><i className="ti ti-key" /> Code oublié : en générer un nouveau</button>}
         {newPin && <div className="sheet center" onClick={() => setNewPin(null)}><div className="lvup" onClick={e => e.stopPropagation()}><PinShow who={s.name} pin={newPin.pin} phone={newPin.phone} close={() => setNewPin(null)} /></div></div>}

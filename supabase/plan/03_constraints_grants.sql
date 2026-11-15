@@ -26,6 +26,7 @@ alter table daraja.quiz_sessions add constraint quiz_sessions_pkey PRIMARY KEY (
 alter table daraja.quiz_settings add constraint quiz_settings_pkey PRIMARY KEY (venue, family, key);
 alter table daraja.quotes add constraint quotes_pkey PRIMARY KEY (id);
 alter table daraja.rewards add constraint rewards_pkey PRIMARY KEY (id);
+alter table daraja.rule_values add constraint rule_values_pkey PRIMARY KEY (key);
 alter table daraja.sessions add constraint sessions_pkey PRIMARY KEY (token);
 alter table daraja.staff add constraint staff_birthday_valid CHECK (((birthday IS NULL) OR daraja.bday_valid(birthday)));
 alter table daraja.staff add constraint staff_pkey PRIMARY KEY (id);

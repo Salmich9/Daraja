@@ -225,6 +225,12 @@ create table if not exists daraja.rewards (
 );
 alter table daraja.rewards enable row level security;
 
+create table if not exists daraja.rule_values (
+  key text not null,
+  val integer not null
+);
+alter table daraja.rule_values enable row level security;
+
 create table if not exists daraja.sessions (
   token text not null,
   staff_id uuid,

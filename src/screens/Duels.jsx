@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { burst, buzz, imgSrc, rpc } from '../lib'
+import { RV, burst, buzz, imgSrc, rpc } from '../lib'
 import { Avatar, Info } from '../ui'
 import { MatchGame, OrderGame, Timer } from './Quiz'
 
@@ -14,7 +14,7 @@ function DuelCard({ duels, go, open }) {
         <i className="ti ti-swords" style={{ fontSize: 30 }} />
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700 }}>{t}</div>
-          <div className="sub">Duel en direct · 5 questions · +20 au gagnant</div>
+          <div className="sub">Duel en direct · 5 questions · +{RV.duel_win} au gagnant</div>
         </div>
         <i className="ti ti-chevron-right" />
       </div>
@@ -44,7 +44,7 @@ function Duels({ token, venue, toast, duels, reload, open }) {
     <div className="page">
       <div className="row between" style={{ position: 'relative' }}>
         <h1>Duels</h1>
-        <Info text="Tu envoies un défi. Ton collègue a 24 h pour accepter. Ensuite, vous vous retrouvez dans la salle et le duel démarre en direct : mêmes questions au même moment, 6 secondes chacune. Le plus de bonnes réponses gagne +20 pts ; à égalité, le plus rapide. 3 défis lancés par jour maximum. Touche pour fermer." />
+        <Info text={`Tu envoies un défi. Ton collègue a 24 h pour accepter. Ensuite, vous vous retrouvez dans la salle et le duel démarre en direct : mêmes questions au même moment, ${RV.time} secondes chacune. Le plus de bonnes réponses gagne +${RV.duel_win} pts ; à égalité, le plus rapide. 3 défis lancés par jour maximum. Touche pour fermer.`} />
       </div>
       <button className="btn pulse" style={{ margin: '12px 0 6px' }} onClick={() => setPickOpen(true)}><i className="ti ti-swords" /> Défier un collègue</button>
       {!duels ? <div className="sub">Chargement…</div> : !list.length ? <div className="sub" style={{ marginTop: 12 }}>Aucun duel pour l'instant. Lance le premier !</div> :
@@ -54,7 +54,7 @@ function Duels({ token, venue, toast, duels, reload, open }) {
             <div style={{ flex: 1, minWidth: 0, cursor: d.todo || d.status === 'pending' ? 'pointer' : 'default' }} onClick={() => ['pending', 'ready', 'live'].includes(d.status) && open(d.id)}>
               <div>{d.mine ? 'Toi vs ' + d.other : d.other + ' vs toi'}</div>
               <div className="sub" style={{ color: d.won === true ? 'var(--good)' : d.todo ? 'var(--acc)' : undefined }}>
-                {d.status === 'done' ? (d.won === true ? 'Gagné · +20' : d.won === false ? 'Perdu' : d.my_score + d.other_score ? 'Égalité · +10' : 'Égalité') : d.status === 'pending' && !d.mine ? 'Te défie !' : DSTATUS[d.status]}
+                {d.status === 'done' ? (d.won === true ? 'Gagné · +' + RV.duel_win : d.won === false ? 'Perdu' : d.my_score + d.other_score ? 'Égalité · +' + RV.duel_tie : 'Égalité') : d.status === 'pending' && !d.mine ? 'Te défie !' : DSTATUS[d.status]}
               </div>
             </div>
             {d.status === 'pending' && !d.mine ? <>
@@ -89,7 +89,7 @@ function DuelInvite({ d, token, close, open, toast }) {
         <i className="ti ti-swords acc" style={{ fontSize: 44 }} />
         <div style={{ margin: '10px 0', display: 'flex', justifyContent: 'center' }}><Avatar value={d.other_avatar} name={d.other} size={64} /></div>
         <h1 style={{ fontSize: 24 }}>{ready ? d.other + ' est prêt !' : d.other + ' te défie !'}</h1>
-        <div className="sub" style={{ marginBottom: 16 }}>{ready ? 'Rejoins la salle : le duel démarre dès que vous êtes deux' : 'Duel en direct · 5 questions · +20 au gagnant'}</div>
+        <div className="sub" style={{ marginBottom: 16 }}>{ready ? 'Rejoins la salle : le duel démarre dès que vous êtes deux' : 'Duel en direct · 5 questions · +' + RV.duel_win + ' au gagnant'}</div>
         {ready ? <button className="btn" onClick={() => { close(); open(d.id) }}>Rejoindre</button> : <>
           <button className="btn" onClick={() => respond(true)}>Accepter</button>
           <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => respond(false)}>Refuser</button>
@@ -162,7 +162,7 @@ function LiveDuel({ token, id, back, toast, refresh }) {
         <Head />
         <i className={'ti ' + (w === true ? 'ti-trophy' : w === false ? 'ti-mood-smile' : 'ti-scale') + ' acc pop'} style={{ fontSize: 64, display: 'block', marginTop: 20 }} />
         <h1 style={{ fontSize: 30 }}>{w === true ? 'Victoire !' : w === false ? 'Défaite' : 'Égalité'}</h1>
-        <div className="acc" style={{ fontWeight: 600, marginBottom: 20 }}>{w === true ? '+20 points' : w === false ? 'La revanche t\'attend' : st.my_score > 0 ? '+10 points chacun' : 'Aucun point'}</div>
+        <div className="acc" style={{ fontWeight: 600, marginBottom: 20 }}>{w === true ? '+' + RV.duel_win + ' points' : w === false ? 'La revanche t\'attend' : st.my_score > 0 ? '+' + RV.duel_tie + ' points chacun' : 'Aucun point'}</div>
         {(st.questions || []).map((q, k) => { const a = (st.answers || [])[k] || {}; return (
           <div key={q.id} className="lb" style={{ fontSize: 13, textAlign: 'left' }}>
             <i className={'ti ti-' + (a.me?.ok ? 'circle-check' : 'circle-x')} style={{ color: a.me?.ok ? 'var(--good)' : 'var(--bad)', fontSize: 18 }} />

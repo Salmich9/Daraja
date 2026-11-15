@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { burst, buzz, first, fmt, level, nextGift, rpc, waLink } from '../lib'
+import { RV, burst, buzz, first, fmt, level, nextGift, rpc, waLink } from '../lib'
 import { Avatar, GiftProgress, Info, LevelRing } from '../ui'
 import { DuelCard } from './Duels'
 
@@ -32,7 +32,7 @@ function Home({ token, me, venue, go, toast, duels, openDuel }) {
       <div className="card" style={{ position: 'relative' }}>
         <div className="row between">
           <div><div style={{ fontSize: 17, fontWeight: 600 }}>Défi du jour</div><div className="sub">5 manches · jusqu'à +90 pts{!me.quiz_done && me.next_bonus > 5 ? ' · bonus série +' + me.next_bonus : ''}</div></div>
-          <Info text="Chaque jour : vrai ou faux, scènes client, anglais, associations… 2 manches faciles, 2 confirmées, 1 experte. Chaque jour de série ajoute +5 pts de bonus (jusqu'à +100). Un jour manqué : la flamme est en danger. Deux jours : elle s'éteint. Touche pour fermer." />
+          <Info text={`Chaque jour : vrai ou faux, scènes client, anglais, associations… 2 manches faciles, 2 confirmées, 1 experte. Chaque jour de série ajoute +${RV.streak_step} pts de bonus (jusqu'à +${RV.streak_step * RV.streak_days}). Un jour manqué : la flamme est en danger. Deux jours : elle s'éteint. Touche pour fermer.`} />
         </div>
         <div className="row" style={{ gap: 6, margin: '12px 0 14px' }}>
           {[1, 1, 2, 2, 3].map((l, i) => <span key={i} className={'ddot l' + l} />)}
@@ -62,7 +62,7 @@ function MissionCard({ token }) {
   return (
     <div className={'card mission rise' + (m.done ? ' done' : '')} style={{ position: 'relative' }}>
       <div className="row between">
-        <span className="sub"><i className="ti ti-target-arrow acc" /> Mission terrain · +10</span>
+        <span className="sub"><i className="ti ti-target-arrow acc" /> Mission terrain · +{RV.mission}</span>
         <Info text="Une mission par semaine, à réaliser pendant le service. Ton manager la valide quand il t'a vu la faire. Touche pour fermer." />
       </div>
       <div style={{ fontWeight: 600, margin: '6px 0 4px', lineHeight: 1.35 }}>{m.title}</div>
@@ -104,7 +104,7 @@ function EotmCard({ token, me, venue, toast }) {
     <div className="card eotm rise" style={{ position: 'relative' }}>
       <div className="row between">
         <span className="sub"><i className="ti ti-crown acc" /> Employé du mois</span>
-        <Info text="Chaque mois, vote en secret pour le collègue qui t'a le plus impressionné. Le gagnant reçoit +100 pts et le badge, annoncé le 1er du mois. Tu peux changer ton vote jusqu'à la fin du mois. Touche pour fermer." />
+        <Info text={`Chaque mois, vote en secret pour le collègue qui t'a le plus impressionné. Le gagnant reçoit +${RV.eotm} pts et le badge, annoncé le 1er du mois. Tu peux changer ton vote jusqu'à la fin du mois. Touche pour fermer.`} />
       </div>
       {e.last && <div className="row" style={{ gap: 10, margin: '8px 0' }}>
         <Avatar value={e.last.avatar} name={e.last.display} size={44} />

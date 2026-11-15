@@ -35,8 +35,8 @@ def lit(v):
     if isinstance(v, (dict, list)): v = json.dumps(v, ensure_ascii=False)
     return "'" + str(v).replace("'", "''") + "'"
 out = [H, "-- Données de référence (contenu du jeu). Les données des équipiers ne sont pas incluses."]
-for tbl in ['venues', 'posts', 'conduct_rules', 'missions', 'quotes', 'rewards', 'quiz_settings', 'questions']:
-    rows = d['data'][tbl] or []
+for tbl in ['venues', 'posts', 'conduct_rules', 'missions', 'quotes', 'rewards', 'quiz_settings', 'questions', 'rule_values']:
+    rows = d['data'].get(tbl) or []
     if not rows: continue
     cols = list(rows[0].keys())
     vals = ",\n".join("(" + ", ".join(lit(r[c]) for c in cols) + ")" for r in rows)

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { AV_LIB, AV_STYLES, LINE, dshort, fmt, level, rpc } from '../lib'
+import { RV, AV_LIB, AV_STYLES, LINE, dshort, fmt, level, rpc } from '../lib'
 import { Avatar, Info, Pill, PostSelect } from '../ui'
 
 function ProfileEdit({ token, me, close, done }) {
@@ -89,7 +89,7 @@ function Profile({ token, me, logout, toast, refresh, go, openTest }) {
       {avis && <div className="sheet" onClick={() => setAvis(false)}>
         <div onClick={e => e.stopPropagation()}>
           <h1>Avis client</h1>
-          <div className="sub" style={{ marginBottom: 12 }}>+100 pts après validation du manager</div>
+          <div className="sub" style={{ marginBottom: 12 }}>+{RV.review} pts après validation du manager</div>
           <textarea rows={3} placeholder="Lien Google ou Tripadvisor" value={note} onChange={e => { setNote(e.target.value); setErr('') }} />
           <div className="err">{err}</div>
           <button className="btn" onClick={send}>Envoyer</button>
@@ -107,7 +107,7 @@ function MyConduct({ token, toast, refresh }) {
   const ack = async id => { try { await rpc('daraja_conduct_ack', { p_token: token, p_record: id }); toast('Pris en compte'); load(); refresh() } catch { toast('Erreur') } }
   return (
     <>
-      <div className="sec" style={{ position: 'relative' }}>Ma conduite <Info text="Visible par toi et ta direction seulement, jamais au classement. Chaque mois sans grise ni rouge te rapporte +100 points." /></div>
+      <div className="sec" style={{ position: 'relative' }}>Ma conduite <Info text={`Visible par toi et ta direction seulement, jamais au classement. Chaque mois sans grise ni rouge te rapporte +${RV.clean_month} points.`} /></div>
       <div className="card" style={{ textAlign: 'center' }}>
         <div className="sub">Jours sans faute</div>
         <div className="big acc">{c.days_clean}</div>
@@ -129,18 +129,18 @@ function MyConduct({ token, toast, refresh }) {
   )
 }
 
-const EARN = [
-  ['circle-check', 'Bonne réponse', '+10 / +20 / +30 selon le niveau'],
-  ['calendar-check', 'Défi terminé, même avec des erreurs', '+3 et 1 ticket'],
-  ['flame', 'Jours de suite (série)', '+5 par jour, jusqu\'à +100'],
-  ['target-arrow', 'Mission terrain validée', '+10'],
-  ['star', 'Avis client qui te cite', '+100'],
-  ['clock-check', 'Semaine à l\'heure (moins de 10 min de retard)', '+25 et 2 tickets'],
-  ['trending-up', 'Tu progresses d\'un mois sur l\'autre', '+50'],
-  ['shield-check', 'Mois sans ligne grise ni rouge', '+100'],
-  ['crown', 'Employé du mois', '+100'],
-  ['cake', 'Ton anniversaire', '+50'],
-  ['swords', 'Duel gagné', '+20 (égalité : +10)'],
+const EARN = () => [
+  ['circle-check', 'Bonne réponse', `+${RV.answer} / +${RV.answer * 2} / +${RV.answer * 3} selon le niveau`],
+  ['calendar-check', 'Défi terminé, même avec des erreurs', `+${RV.presence} et 1 ticket`],
+  ['flame', 'Jours de suite (série)', `+${RV.streak_step} par jour, jusqu'à +${RV.streak_step * RV.streak_days}`],
+  ['target-arrow', 'Mission terrain validée', `+${RV.mission}`],
+  ['star', 'Avis client qui te cite', `+${RV.review}`],
+  ['clock-check', `Semaine à l'heure (moins de ${RV.punct_max_late} min de retard)`, `+${RV.punct} et ${RV.punct_tickets} tickets`],
+  ['trending-up', 'Tu progresses d\'un mois sur l\'autre', `+${RV.progress}`],
+  ['shield-check', 'Mois sans ligne grise ni rouge', `+${RV.clean_month}`],
+  ['crown', 'Employé du mois', `+${RV.eotm}`],
+  ['cake', 'Ton anniversaire', `+${RV.birthday}`],
+  ['swords', 'Duel gagné', `+${RV.duel_win} (égalité : +${RV.duel_tie})`],
 ]
 
 function Rules({ token, back }) {
@@ -153,14 +153,14 @@ function Rules({ token, back }) {
       <h1 style={{ marginTop: 12 }}><i className="ti ti-book acc" /> Règles du jeu</h1>
       <div className="sub">Le référentiel officiel. Il est le même pour tout le monde.</div>
       <div className="sec"><i className="ti ti-plus acc" /> Gagner des points</div>
-      {EARN.map(([ic, l, v]) => <div key={l} className="lb"><i className={'ti ti-' + ic + ' acc'} style={{ fontSize: 20 }} /><span style={{ flex: 1, fontSize: 14 }}>{l}</span><b style={{ fontSize: 13, color: 'var(--good)', textAlign: 'right' }}>{v}</b></div>)}
+      {EARN().map(([ic, l, v]) => <div key={l} className="lb"><i className={'ti ti-' + ic + ' acc'} style={{ fontSize: 20 }} /><span style={{ flex: 1, fontSize: 14 }}>{l}</span><b style={{ fontSize: 13, color: 'var(--good)', textAlign: 'right' }}>{v}</b></div>)}
       <div className="sec"><i className="ti ti-stopwatch acc" /> Le chrono</div>
-      <div className="card" style={{ fontSize: 14, lineHeight: 1.5 }}>6 secondes par question, 15 secondes pour remettre des mots dans l'ordre ou faire des associations. Temps écoulé = réponse fausse, sans malus.</div>
+      <div className="card" style={{ fontSize: 14, lineHeight: 1.5 }}>{RV.time} secondes par question, {RV.time_long} secondes pour remettre des mots dans l'ordre ou faire des associations. Temps écoulé = réponse fausse, sans malus.</div>
       <div className="sec"><i className="ti ti-gift acc" /> Cadeaux et tirage</div>
       <div className="card" style={{ fontSize: 14, lineHeight: 1.5 }}>Les cadeaux s'échangent contre tes points. Certains demandent des conditions (bonne conduite, ponctualité, assiduité) : elles sont affichées sur chaque cadeau. Tirage au sort chaque mois : plus tu as de tickets, plus tu as de chances. Une ligne grise ou rouge dans le mois exclut du tirage. Une faute grave bloque la boutique pendant un an.</div>
       <div className="sec"><i className="ti ti-minus" style={{ color: 'var(--bad)' }} /> Perdre des points : la charte</div>
       <div className="seg">{['blanche', 'grise', 'rouge'].map(l => <button key={l} className={line === l ? 'on' : ''} onClick={() => setLine(l)}>{LINE[l][0]}</button>)}</div>
-      <div className="sub" style={{ marginBottom: 8 }}>{{ blanche: 'Ligne blanche : −20 pts. Répétée, elle devient grise.', grise: 'Ligne grise : −100 pts. Répétée, elle devient rouge.', rouge: 'Ligne rouge : −300 pts. Faute grave : −1 000 pts.' }[line]}</div>
+      <div className="sub" style={{ marginBottom: 8 }}>{{ blanche: `Ligne blanche : −${RV.malus_blanche} pts. Répétée, elle devient grise.`, grise: `Ligne grise : −${RV.malus_grise} pts. Répétée, elle devient rouge.`, rouge: `Ligne rouge : −${RV.malus_rouge} pts. Faute grave : −${fmt(RV.malus_grave)} pts.` }[line]}</div>
       {!rules ? <div className="sub">Chargement…</div> : rules.filter(r => r.line === line).map((r, k) => (
         <div key={k} className="card" style={{ padding: 12 }}>
           <div className="row between"><span className="sub">{r.domain}</span><b style={{ color: 'var(--bad)', fontSize: 13 }}>−{r.malus}</b></div>

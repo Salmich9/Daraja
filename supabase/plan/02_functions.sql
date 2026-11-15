@@ -93,7 +93,7 @@ begin
        and not exists (select 1 from daraja.conduct_records where staff_id = p_staff and line in ('grise','rouge')
             and (occurred_at at time zone 'Africa/Casablanca')::date >= m
             and (occurred_at at time zone 'Africa/Casablanca')::date < (m + interval '1 month')::date) then
-      insert into daraja.point_events(staff_id, kind, amount, note) values (p_staff, 'bonus', 100, tag);
+      insert into daraja.point_events(staff_id, kind, amount, note) values (p_staff, 'bonus', daraja.rv('clean_month'), tag);
     end if;
     m := (m + interval '1 month')::date;
   end loop;
@@ -152,7 +152,7 @@ begin
     end if;
   end if;
 
-  malus := case when r.grave then 1000 when eff = 'rouge' then 300 when eff = 'grise' then 100 else 20 end;
+  malus := case when r.grave then daraja.rv('malus_grave') when eff = 'rouge' then daraja.rv('malus_rouge') when eff = 'grise' then daraja.rv('malus_grise') else daraja.rv('malus_blanche') end;
   return json_build_object('rule_id', r.id, 'base_line', r.line, 'line', eff, 'occurrence', occ, 'sanction', sanc,
     'escalation', esc, 'malus', malus, 'grave', r.grave, 'behavior', r.behavior, 'domain', r.domain,
     'direction', (r.direction_only or eff = 'rouge'));
@@ -198,11 +198,11 @@ begin
   update daraja.duels set status = 'done', winner = w, done_at = now() where id = d.id;
   if w is not null then
     if (select count(*) from daraja.point_events where staff_id = w and note = 'Duel gagné'
-        and (created_at at time zone 'Africa/Casablanca')::date = daraja.today()) < 3 then
-      insert into daraja.point_events(staff_id, kind, amount, note) values (w, 'bonus', 20, 'Duel gagné');
+        and (created_at at time zone 'Africa/Casablanca')::date = daraja.today()) < daraja.rv('duel_cap') then
+      insert into daraja.point_events(staff_id, kind, amount, note) values (w, 'bonus', daraja.rv('duel_win'), 'Duel gagné');
     end if;
   elsif cs > 0 then
-    insert into daraja.point_events(staff_id, kind, amount, note) values (d.challenger, 'bonus', 10, 'Duel nul'), (d.opponent, 'bonus', 10, 'Duel nul');
+    insert into daraja.point_events(staff_id, kind, amount, note) values (d.challenger, 'bonus', daraja.rv('duel_tie'), 'Duel nul'), (d.opponent, 'bonus', daraja.rv('duel_tie'), 'Duel nul');
   end if;
 end $function$;
 
@@ -265,7 +265,7 @@ begin
   select candidate, count(*) n into w from daraja.votes where venue = p_venue and month = m
     group by candidate order by count(*) desc, max(at) asc limit 1;
   insert into daraja.eotm(venue, month, winner, votes) values (p_venue, m, w.candidate, w.n);
-  insert into daraja.point_events(staff_id, kind, amount, note) values (w.candidate, 'bonus', 100, 'Employé du mois ' || m);
+  insert into daraja.point_events(staff_id, kind, amount, note) values (w.candidate, 'bonus', daraja.rv('eotm'), 'Employé du mois ' || m);
 end $function$;
 
 CREATE OR REPLACE FUNCTION daraja.family(s daraja.staff)
@@ -386,7 +386,7 @@ begin
   select avg(correct::int) * 100, count(*) into a0, n0 from daraja.answers where staff_id = p_staff
     and (at at time zone 'Africa/Casablanca')::date >= (m - interval '1 month')::date and (at at time zone 'Africa/Casablanca')::date < m;
   if n1 >= 20 and n0 >= 20 and a1 >= a0 + 5 then
-    insert into daraja.point_events(staff_id, kind, amount, note) values (p_staff, 'bonus', 50, tag);
+    insert into daraja.point_events(staff_id, kind, amount, note) values (p_staff, 'bonus', daraja.rv('progress'), tag);
   end if;
 end $function$;
 
@@ -420,10 +420,10 @@ AS $function$
 CREATE OR REPLACE FUNCTION daraja.q_limit(k text)
  RETURNS integer
  LANGUAGE sql
- IMMUTABLE
+ STABLE
  SET search_path TO 'daraja', 'extensions', 'public'
 AS $function$
-  select case when k in ('order','match') then 15 else 6 end $function$;
+  select case when k in ('order','match') then daraja.rv('time_long') else daraja.rv('time') end $function$;
 
 CREATE OR REPLACE FUNCTION daraja.reward_check(p_staff uuid, c jsonb)
  RETURNS jsonb
@@ -459,6 +459,15 @@ begin
   return out;
 end $function$;
 
+CREATE OR REPLACE FUNCTION daraja.rv(k text)
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+  select val from daraja.rule_values where key = k
+$function$;
+
 CREATE OR REPLACE FUNCTION daraja.sanction_rank(t text)
  RETURNS integer
  LANGUAGE sql
@@ -489,7 +498,7 @@ CREATE OR REPLACE FUNCTION daraja.tickets(p_staff uuid, p_month date)
 AS $function$
   select (select count(*) from daraja.quiz_sessions q where q.staff_id = p_staff
             and date_trunc('month', q.day) = date_trunc('month', p_month) and cardinality(q.answered) >= cardinality(q.question_ids))::int
-       + 2 * (select count(*) from daraja.point_events e where e.staff_id = p_staff and e.kind = 'bonus'
+       + daraja.rv('punct_tickets') * (select count(*) from daraja.point_events e where e.staff_id = p_staff and e.kind = 'bonus'
             and e.note ~ '^Ponctualité semaine [0-9]{4}-[0-9]{2}-[0-9]{2}$'
             and substr(e.note, 21, 7) = to_char(p_month, 'YYYY-MM'))::int
 $function$;
@@ -636,10 +645,10 @@ begin
       and exists (select 1 from daraja.attendance a where a.staff_id = st.id and a.day between p_week and p_week + 6 and a.status = 'present')
       and not exists (select 1 from daraja.attendance a where a.staff_id = st.id and a.day between p_week and p_week + 6 and a.status = 'absent')
       and (select coalesce(sum(case when not a.late_ok then a.late_min else 0 end),0) from daraja.attendance a
-           where a.staff_id = st.id and a.day between p_week and p_week + 6) < 10
+           where a.staff_id = st.id and a.day between p_week and p_week + 6) < daraja.rv('punct_max_late')
       and not exists (select 1 from daraja.point_events e where e.staff_id = st.id and e.note = tag)
   loop
-    insert into daraja.point_events(staff_id, kind, amount, note, by_staff) values (o.id, 'bonus', 25, tag, s.id);
+    insert into daraja.point_events(staff_id, kind, amount, note, by_staff) values (o.id, 'bonus', daraja.rv('punct'), tag, s.id);
     n := n + 1; names := names || o.dn;
   end loop;
   return json_build_object('ok', true, 'n', n, 'names', names);
@@ -891,7 +900,7 @@ begin
     on conflict do nothing;
   get diagnostics n = row_count;
   if n > 0 then
-    insert into daraja.point_events(staff_id, kind, amount, note, by_staff) values (p_staff, 'bonus', 10, 'Mission · ' || m.title, s.id);
+    insert into daraja.point_events(staff_id, kind, amount, note, by_staff) values (p_staff, 'bonus', daraja.rv('mission'), 'Mission · ' || m.title, s.id);
   end if;
   return json_build_object('ok', true);
 end $function$;
@@ -916,15 +925,15 @@ begin
     update daraja.quiz_sessions set answered = answered || p_question, correct = correct + (case when ok then 1 else 0 end)
       where staff_id = s.id and day = qs.day returning * into qs;
     if ok then
-      insert into daraja.point_events(staff_id, kind, amount, note) values (s.id, 'quiz', 10 * q.level, q.theme);
+      insert into daraja.point_events(staff_id, kind, amount, note) values (s.id, 'quiz', daraja.rv('answer') * q.level, q.theme);
     end if;
     if cardinality(qs.answered) >= cardinality(qs.question_ids) and coalesce(s.last_quiz_day, date '2000-01-01') < daraja.today() then
       ns := case when s.last_quiz_day >= daraja.today() - 2 then s.streak + 1 else 1 end;
       update daraja.staff set streak = ns, last_quiz_day = daraja.today() where id = s.id;
-      pres := 3;
+      pres := daraja.rv('presence');
       insert into daraja.point_events(staff_id, kind, amount, note) values (s.id, 'bonus', pres, 'Présence');
       if ns >= 2 then
-        sb := 5 * least(ns, 20);
+        sb := daraja.rv('streak_step') * least(ns, daraja.rv('streak_days'));
         insert into daraja.point_events(staff_id, kind, amount, note) values (s.id, 'bonus', sb, 'Série jour ' || ns);
       end if;
     end if;
@@ -934,7 +943,7 @@ begin
     where staff_id = s.id and kind = 'quiz' and (created_at at time zone 'Africa/Casablanca')::date = daraja.today();
   return json_build_object('correct', ok, 'timeout', late, 'answer_idx', q.answer_idx, 'explanation', q.explanation,
     'solution', case when q.kind = 'order' then q.payload->'answer' else null end,
-    'finished', finished, 'score', qs.correct, 'points', 10 * q.level, 'today_points', today_pts, 'streak_bonus', sb, 'presence', pres);
+    'finished', finished, 'score', qs.correct, 'points', daraja.rv('answer') * q.level, 'today_points', today_pts, 'streak_bonus', sb, 'presence', pres);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_avatars_taken(p_token text)
@@ -961,7 +970,7 @@ begin
   v := case when s.role = 'super' then coalesce(p_venue, s.venue, 'baro') else s.venue end;
   for rr in select id from daraja.staff where venue = v and active and daraja.bday_on(birthday, t) loop
     if not exists (select 1 from daraja.point_events where staff_id = rr.id and note = 'Anniversaire ' || to_char(t, 'YYYY')) then
-      insert into daraja.point_events(staff_id, kind, amount, note) values (rr.id, 'bonus', 50, 'Anniversaire ' || to_char(t, 'YYYY'));
+      insert into daraja.point_events(staff_id, kind, amount, note) values (rr.id, 'bonus', daraja.rv('birthday'), 'Anniversaire ' || to_char(t, 'YYYY'));
     end if;
   end loop;
   return (select coalesce(json_agg(x order by x.in_days, x.display), '[]'::json) from (
@@ -1439,7 +1448,7 @@ begin
     'points', daraja.balance(s.id), 'earned', daraja.earned(s.id), 'month', daraja.month_points(s.id),
     'rank', rk,
     'streak', daraja.live_streak(s), 'flame', daraja.flame_state(s),
-    'next_bonus', 5 * least(daraja.live_streak(s) + 1, 20),
+    'next_bonus', daraja.rv('streak_step') * least(daraja.live_streak(s) + 1, daraja.rv('streak_days')), 'rules', (select json_object_agg(key, val) from daraja.rule_values),
     'quiz_done', done,
     'tickets', daraja.tickets(s.id, daraja.today()),
     'eotm', (select count(*) from daraja.eotm where winner = s.id), 'birthday', s.birthday, 'avis', (select count(*) from daraja.point_events where staff_id = s.id and kind = 'avis' and status = 'ok'),
@@ -1617,7 +1626,7 @@ AS $function$
 declare s daraja.staff;
 begin
   s := daraja.who(p_token);
-  insert into daraja.point_events(staff_id, kind, amount, note, status) values (s.id, 'avis', 100, left(p_note, 200), 'pending');
+  insert into daraja.point_events(staff_id, kind, amount, note, status) values (s.id, 'avis', daraja.rv('review'), left(p_note, 200), 'pending');
   return json_build_object('ok', true);
 end $function$;
 
@@ -1646,7 +1655,7 @@ begin
   perform daraja.who(p_token);
   return (select coalesce(json_agg(json_build_object('line', line, 'domain', domain, 'behavior', behavior, 'sanction', base_sanction,
       'recid1', recid1, 'recid2', recid2, 'grave', grave,
-      'malus', case when grave then 1000 when line = 'rouge' then 300 when line = 'grise' then 100 else 20 end) order by sort), '[]'::json)
+      'malus', case when grave then daraja.rv('malus_grave') when line = 'rouge' then daraja.rv('malus_rouge') when line = 'grise' then daraja.rv('malus_grise') else daraja.rv('malus_blanche') end) order by sort), '[]'::json)
     from daraja.conduct_rules where active);
 end $function$;
 
@@ -1714,7 +1723,7 @@ begin
   select * into q from daraja.questions where id = p_question;
   ok := daraja.grade(q, p_choice, p_answer);
   return json_build_object('correct', ok, 'answer_idx', q.answer_idx, 'explanation', q.explanation,
-    'solution', case when q.kind = 'order' then q.payload->'answer' else null end, 'points', 10 * q.level);
+    'solution', case when q.kind = 'order' then q.payload->'answer' else null end, 'points', daraja.rv('answer') * q.level);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_test_quiz(p_token text, p_venue text, p_post text, p_kind text DEFAULT NULL::text)

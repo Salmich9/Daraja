@@ -529,6 +529,31 @@ insert into daraja.questions (id, venue, theme, question, options, answer_idx, e
 ('d4a4bd6c-c411-4a3b-b926-b486f819f961', null, 'Plus ou moins', 'Quelle bouteille est la plus chère ?', '["Chassagne-Montrachet", "Pommard 1er Cru"]', 1, 'Pommard 2 600 DH, Chassagne-Montrachet 2 500 DH.', true, 3, 'price', null, 'vins'),
 ('fde5393e-c73e-4077-97cb-9564820209c7', 'zz', 'Vins', 'Le Petit Chablis de la carte est un vin blanc issu de quel cépage ?', '["Pinot Grigio", "Chardonnay", "Viognier", "Sauvignon blanc"]', 1, 'Comme tous les Chablis : 100 % Chardonnay.', true, 3, 'qcm', null, 'vins')
 on conflict do nothing;
+
+insert into daraja.rule_values (key, val) values
+('answer', 10),
+('birthday', 50),
+('clean_month', 100),
+('duel_cap', 3),
+('duel_tie', 10),
+('duel_win', 20),
+('eotm', 100),
+('malus_blanche', 20),
+('malus_grave', 1000),
+('malus_grise', 100),
+('malus_rouge', 300),
+('mission', 10),
+('presence', 3),
+('progress', 50),
+('punct', 25),
+('punct_max_late', 10),
+('punct_tickets', 2),
+('review', 100),
+('streak_days', 20),
+('streak_step', 5),
+('time', 6),
+('time_long', 15)
+on conflict do nothing;
 select setval('daraja.conduct_rules_id_seq', (select coalesce(max(id),1) from daraja.conduct_rules));
 select setval('daraja.missions_id_seq', (select coalesce(max(id),1) from daraja.missions));
 select setval('daraja.quotes_id_seq', (select coalesce(max(id),1) from daraja.quotes));

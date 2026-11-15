@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { TK, VK, burst, buzz, level, rpc, store } from './lib'
+import { RV, TK, VK, burst, buzz, level, rpc, store } from './lib'
 import { Toast } from './ui'
 import { Login, QuoteSplash } from './screens/Login'
 import { Home } from './screens/Home'
@@ -43,7 +43,7 @@ export default function App() {
 
   const refresh = useCallback(() => {
     if (!token) return
-    rpc('daraja_me', { p_token: token, p_venue: venue }).then(m => { setNet(false); setMe(m) }).catch(e => { if (String(e?.message || '').includes('session')) { store.set(TK, null); store.set(VK, null); setToken(null); setMe(null) } else setNet(true) })
+    rpc('daraja_me', { p_token: token, p_venue: venue }).then(m => { setNet(false); Object.assign(RV, m.rules); setMe(m) }).catch(e => { if (String(e?.message || '').includes('session')) { store.set(TK, null); store.set(VK, null); setToken(null); setMe(null) } else setNet(true) })
   }, [token, venue])
   useEffect(() => { refresh() }, [refresh])
   useEffect(() => {

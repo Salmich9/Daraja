@@ -19,5 +19,6 @@ select json_build_object(
    'quotes', (select json_agg(t order by id) from daraja.quotes t),
    'rewards', (select json_agg(t order by cost) from daraja.rewards t),
    'quiz_settings', (select json_agg(t) from daraja.quiz_settings t),
-   'questions', (select json_agg(t order by cat, level, id) from daraja.questions t))
+   'questions', (select json_agg(t order by cat, level, id) from daraja.questions t),
+   'rule_values', (select json_agg(t order by key) from daraja.rule_values t))
 )::text;

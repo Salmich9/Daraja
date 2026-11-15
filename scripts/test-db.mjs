@@ -14,6 +14,11 @@ for (const f of ['01_tables.sql','02_functions.sql','03_constraints_grants.sql',
   try { await db.exec(fs.readFileSync(`${dir}/${f}`, 'utf8')); console.log('OK  ', f) }
   catch (e) { console.log('FAIL', f, e.message); process.exit(1) }
 }
+// PENDING=fichier.sql : applique une migration pas encore en prod, pour la tester avant
+if (process.env.PENDING) {
+  try { await db.exec(fs.readFileSync(process.env.PENDING, 'utf8')); console.log('OK   migration', path.basename(process.env.PENDING)) }
+  catch (e) { console.log('FAIL migration', e.message); process.exit(1) }
+}
 const c = await db.query(`select (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='daraja' or (n.nspname='public' and p.proname like 'daraja%')) fns,
   (select count(*) from pg_tables where schemaname='daraja') tables, (select count(*) from daraja.questions) questions`)
 console.log(c.rows[0])
