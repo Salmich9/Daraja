@@ -125,7 +125,8 @@ create table if not exists daraja.eotm (
 alter table daraja.eotm enable row level security;
 
 create table if not exists daraja.login_fails (
-  at timestamp with time zone default now()
+  at timestamp with time zone default now(),
+  device text
 );
 alter table daraja.login_fails enable row level security;
 

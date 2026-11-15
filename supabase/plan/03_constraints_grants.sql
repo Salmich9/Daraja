@@ -80,6 +80,7 @@ CREATE INDEX IF NOT EXISTS draws_winner_idx ON daraja.draws USING btree (winner)
 CREATE INDEX IF NOT EXISTS duels_ch_idx ON daraja.duels USING btree (challenger, status);
 CREATE INDEX IF NOT EXISTS duels_opp_idx ON daraja.duels USING btree (opponent, status);
 CREATE INDEX IF NOT EXISTS eotm_winner_idx ON daraja.eotm USING btree (winner);
+CREATE INDEX IF NOT EXISTS login_fails_device_idx ON daraja.login_fails USING btree (device, at);
 CREATE INDEX IF NOT EXISTS mission_done_validated_by_idx ON daraja.mission_done USING btree (validated_by);
 CREATE INDEX IF NOT EXISTS mission_done_mission_idx ON daraja.mission_done USING btree (mission_id);
 CREATE INDEX IF NOT EXISTS point_events_staff_idx ON daraja.point_events USING btree (staff_id, created_at);
@@ -143,7 +144,7 @@ grant execute on function public.daraja_duels(text) to anon;
 grant execute on function public.daraja_eotm(text,text) to anon;
 grant execute on function public.daraja_leaderboard2(text,text,text) to anon;
 grant execute on function public.daraja_log_error(text,text,text,text,text) to anon;
-grant execute on function public.daraja_login(text) to anon;
+grant execute on function public.daraja_login(text,text) to anon;
 grant execute on function public.daraja_logout(text) to anon;
 grant execute on function public.daraja_me(text,text) to anon;
 grant execute on function public.daraja_mission(text) to anon;

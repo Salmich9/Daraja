@@ -4,6 +4,15 @@ import { AV_SEEDS, AV_STYLES, avFile } from './avatar-list.js'
 
 const TK = 'daraja_token', VK = 'daraja_venue'
 
+// Identifiant de ce téléphone (aléatoire, gardé sur l'appareil) : sert à ne bloquer que lui après trop de codes faux
+function deviceId() {
+  try {
+    let d = localStorage.getItem('daraja_dev')
+    if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem('daraja_dev', d) }
+    return d
+  } catch { return null }
+}
+
 const store = {
   get: k => { try { return localStorage.getItem(k) } catch { return null } },
   set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v) } catch {} },
@@ -158,4 +167,4 @@ const monday = (off = 0) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.s
 // Règles du jeu : remplies par le serveur avec le profil (daraja_me.rules), seule source des chiffres affichés
 const RV = {}
 
-export { useOffline, listen, sfx, soundOn, setSound, RV, reportError, avFile, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }
+export { deviceId, useOffline, listen, sfx, soundOn, setSound, RV, reportError, avFile, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }

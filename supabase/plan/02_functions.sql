@@ -1421,23 +1421,26 @@ begin
 exception when others then return;
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.daraja_login(p_pin text)
+CREATE OR REPLACE FUNCTION public.daraja_login(p_pin text, p_device text DEFAULT NULL::text)
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'daraja', 'extensions', 'public'
 AS $function$
-declare s daraja.staff; t text; np text;
+declare s daraja.staff; t text; np text; dev text := left(coalesce(nullif(trim(p_device), ''), 'inconnu'), 64);
 begin
-  if (select count(*) from daraja.login_fails where at > now() - interval '10 minutes') >= 30 then
-    return json_build_object('locked', true);
+  if (select count(*) from daraja.login_fails where device = dev and at > now() - interval '10 minutes') >= 10 then
+    return json_build_object('locked', true, 'scope', 'device');
+  end if;
+  if (select count(*) from daraja.login_fails where at > now() - interval '10 minutes') >= 300 then
+    return json_build_object('locked', true, 'scope', 'all');
   end if;
   if coalesce(p_pin, '') !~ '^([0-9]{4}|[0-9]{6})$' then
-    insert into daraja.login_fails default values; return null;
+    insert into daraja.login_fails(device) values (dev); return null;
   end if;
   select * into s from daraja.staff where active and pin_len = length(p_pin) and pin_hash like '$2%' and pin_hash = crypt(p_pin, pin_hash) limit 1;
   if s.id is null then
-    insert into daraja.login_fails default values;
+    insert into daraja.login_fails(device) values (dev);
     return null;
   end if;
   if s.pin_len = 4 then

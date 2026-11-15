@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { buzz, rpc } from '../lib'
+import { buzz, deviceId, rpc } from '../lib'
 
 function Login({ onToken }) {
   const [pin, setPin] = useState('')
@@ -15,10 +15,10 @@ function Login({ onToken }) {
     if (p.length === len) {
       setBusy(true)
       try {
-        const r = await rpc('daraja_login', { p_pin: p })
+        const r = await rpc('daraja_login', { p_pin: p, p_device: deviceId() })
         if (r?.token && r.new_pin) setFresh(r)
         else if (r?.token) onToken(r.token)
-        else if (r?.locked) { setErr('Trop d\'essais, réessaie dans 10 min'); setPin('') }
+        else if (r?.locked) { setErr(r.scope === 'all' ? 'Connexions suspendues quelques minutes, réessaie bientôt' : 'Trop d\'essais sur ce téléphone, réessaie dans 10 min'); setPin('') }
         else { setErr('Code incorrect'); setPin(''); buzz(120) }
       } catch { setErr('Connexion impossible, vérifie le réseau'); setPin('') }
       setBusy(false)
