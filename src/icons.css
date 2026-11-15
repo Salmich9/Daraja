@@ -3,6 +3,7 @@
 .ti{font-family:"tabler-icons" !important;speak:none;font-style:normal;font-weight:normal;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .ti-360:before{content:"\f62f"}
 .ti-ad:before{content:"\ea02"}
+.ti-adjustments:before{content:"\ea03"}
 .ti-ai:before{content:"\fee7"}
 .ti-album:before{content:"\f022"}
 .ti-alt:before{content:"\fc54"}
@@ -34,11 +35,13 @@
 .ti-calendar-check:before{content:"\f824"}
 .ti-cancel:before{content:"\ff11"}
 .ti-car:before{content:"\ebbb"}
+.ti-cards:before{content:"\f510"}
 .ti-cash:before{content:"\ea55"}
 .ti-cat:before{content:"\f65b"}
 .ti-ce:before{content:"\ed75"}
 .ti-cell:before{content:"\f05f"}
 .ti-certificate:before{content:"\ed76"}
+.ti-chart-bar:before{content:"\ea59"}
 .ti-check:before{content:"\ea5e"}
 .ti-checks:before{content:"\ebaa"}
 .ti-chef-hat:before{content:"\f21d"}

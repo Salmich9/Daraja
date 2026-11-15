@@ -285,3 +285,7 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 .stin h2 { font-size: 30px; line-height: 1.2; margin: 14px 0 10px; }
 .sthint { margin-top: 28px; }
 .stlesson { font: 600 21px/1.5 Inter, sans-serif; margin-top: 12px; }
+/* Admin : 3 groupes puis pages */
+.admgrp { margin-top: 12px; }
+.admgrp button { position: relative; font-weight: 600; }
+.cnt { display:inline-block; margin-left: 6px; vertical-align: 1px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--bad); color: #fff; font: 700 11px/18px Inter, sans-serif; }

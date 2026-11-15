@@ -18,8 +18,13 @@ function Admin({ token, me, venue, toast }) {
   useEffect(() => { rpc('daraja_admin_missions', { p_token: token, p_venue: venue }).then(setMissions).catch(() => {}) }, [token, venue])
   const act = async (fn, args, msg) => { try { await rpc(fn, { p_token: token, ...args }); toast(msg); load() } catch { toast('Erreur') } }
   if (!d) return <div className="page sub">Chargement…</div>
-  const T = [['team', 'Équipe'], ['report', 'Rapports'], ['att', 'Pointage'], ['conduct', 'Conduite' + (me.direction_todo ? ' · ' + me.direction_todo : '')],
-    ['quiz', 'Questions'], ['draw', 'Tirage'], ...(me.role === 'super' ? [['gifts', 'Cadeaux'], ['errors', 'Erreurs' + (me.errors_24h ? ' · ' + me.errors_24h : '')]] : [])]
+  // Pages rangées en 3 groupes : on choisit le groupe, puis la page
+  const T = [['team', 'Équipe', 'eq'], ['att', 'Pointage', 'eq'], ['conduct', 'Conduite' + (me.direction_todo ? ' · ' + me.direction_todo : ''), 'eq'],
+    ['report', 'Rapports', 'suivi'], ...(me.role === 'super' ? [['errors', 'Erreurs' + (me.errors_24h ? ' · ' + me.errors_24h : ''), 'suivi']] : []),
+    ['quiz', 'Questions', 'reg'], ['draw', 'Tirage', 'reg'], ...(me.role === 'super' ? [['gifts', 'Cadeaux', 'reg']] : [])]
+  const G = [['eq', 'Équipe', 'ti-users', me.direction_todo || 0], ['suivi', 'Suivi', 'ti-chart-bar', me.role === 'super' ? me.errors_24h || 0 : 0], ['reg', 'Réglages', 'ti-adjustments', 0]]
+  const grp = G.find(g => g[0] === (T.find(t => t[0] === tab) || T[0])[2])
+  const sub = T.filter(t => t[2] === grp[0])
   return (
     <div className="page">
       <div className="row between" style={{ marginBottom: 6 }}>
@@ -27,7 +32,8 @@ function Admin({ token, me, venue, toast }) {
         <button className="mini" onClick={() => setAdd(true)}><i className="ti ti-user-plus" /> Équipier</button>
       </div>
       <div className="sub">{me.venue_name}</div>
-      <div className="tabs">{T.map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
+      <div className="seg admgrp">{G.map(([g, l, ic, n]) => <button key={g} className={grp[0] === g ? 'on' : ''} onClick={() => setTab(T.find(t => t[2] === g)[0])}><i className={'ti ' + ic} /> {l}{n > 0 && <span className="cnt">{n}</span>}</button>)}</div>
+      {sub.length > 1 && <div className="tabs">{sub.map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>}
       {tab === 'conduct' && <Conduct token={token} me={me} venue={venue} staff={d.staff} toast={toast} />}
       {tab === 'report' && <Reports token={token} me={me} venue={v} toast={toast} />}
       {tab === 'att' && <Attendance token={token} venue={v} toast={toast} />}

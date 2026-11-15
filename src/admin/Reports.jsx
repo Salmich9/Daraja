@@ -66,7 +66,7 @@ function Reports({ token, me, venue, toast }) {
               <Avatar value={p.avatar} name={p.display} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div>{p.display}</div>
-                <div className="sub">{p.days_played} j · {p.acc != null ? p.acc + ' %' : '–'}{p.prev_acc != null && p.acc != null ? ' (' + (p.acc >= p.prev_acc ? '+' : '') + (p.acc - p.prev_acc) + ')' : ''} · {fmt(p.pts)} pts{p.conduct ? ' · ' + p.conduct + ' faute' + (p.conduct > 1 ? 's' : '') : ''}</div>
+                <div className="sub">{p.days_played} j · {p.acc != null ? p.acc + ' %' : '–'}{p.prev_acc != null && p.acc != null ? ' (' + (p.acc >= p.prev_acc ? '+' : '') + (p.acc - p.prev_acc) + ')' : ''} · {fmt(p.pts)} pièces{p.conduct ? ' · ' + p.conduct + ' faute' + (p.conduct > 1 ? 's' : '') : ''}</div>
               </div>
               {p.phone ? <a className="mini" style={{ background: '#25D366', color: '#fff', textDecoration: 'none' }} href={waLink(p.phone, relance(p, k, perTxt))} target="_blank" rel="noreferrer"><i className="ti ti-brand-whatsapp" /></a>
                 : <span className="sub" style={{ fontSize: 11 }}>sans n°</span>}
