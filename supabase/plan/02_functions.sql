@@ -77,7 +77,8 @@ AS $function$
   when 'cocktails' then 'Cocktails et spiritueux' when 'vins' then 'Vins et accords' when 'anglais' then 'Anglais'
   when 'carte' then 'Notre carte' when 'histoire' then 'Histoire du lieu' when 'cuisine' then 'Cuisine et hygiène'
   when 'securite' then 'Sécurité' when 'caisse' then 'Caisse, achats et stock' when 'marrakech' then 'Marrakech et patrimoine'
-  when 'legendes' then 'Légendes et palmarès du F&B' else c end $function$;
+  when 'legendes' then 'Légendes et palmarès du F&B' when 'escapades' then 'Escapades autour de Marrakech'
+  when 'terroirs' then 'Vins et terroirs du Maroc' when 'artisanat' then 'Artisanat et art de vivre' when 'agenda' then 'Agenda et actualité du Maroc' else c end $function$;
 
 CREATE OR REPLACE FUNCTION daraja.conduct_bonus(p_staff uuid)
  RETURNS void
@@ -169,7 +170,7 @@ CREATE OR REPLACE FUNCTION daraja.default_enabled(p_family text, p_key text)
 AS $function$
  select case
   when p_key like 'level:%' then true
-  when p_key in ('cat:marrakech', 'cat:legendes') then true
+  when p_key in ('cat:marrakech', 'cat:legendes', 'cat:escapades', 'cat:terroirs', 'cat:artisanat', 'cat:agenda') then true
   when p_family in ('salle','bar') then p_key in ('cat:hospitalite','cat:vente','cat:cocktails','cat:vins','cat:anglais','cat:carte','cat:histoire','cat:securite')
   when p_family = 'cuisine' then p_key in ('cat:hospitalite','cat:carte','cat:histoire','cat:cuisine','cat:securite')
   when p_family = 'support' then p_key in ('cat:hospitalite','cat:histoire','cat:securite','cat:caisse','cat:anglais')
