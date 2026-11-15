@@ -29,25 +29,27 @@ const ChestArt = ({ open, glow }) => (
 function Chest({ token, onOpened }) {
   const [st, setSt] = useState('closed')
   const [res, setRes] = useState(null)
+  const [err, setErr] = useState('')
   const open = async () => {
     if (st !== 'closed') return
-    setSt('shaking'); buzz(40); sfx('tick')
+    setSt('shaking'); setErr(''); buzz(40); sfx('tick')
     try {
       const [r] = await Promise.all([rpc('daraja_chest_open', { p_token: token }), new Promise(ok => setTimeout(ok, 900))])
-      if (!r?.ok) { setSt('closed'); return }
+      if (!r?.ok) { setSt('closed'); setErr(r?.error === 'locked' ? 'Termine d\'abord le défi du jour' : 'Impossible pour l\'instant, réessaie'); return }
       setRes(r); setSt('open')
       const big = r.kind === 'legend' || r.kind === 'epic'
       burst(big ? 120 : 60); sfx(big ? 'level' : 'coin'); buzz(big ? 200 : 60)
       onOpened && onOpened(r)
-    } catch { setSt('closed') }
+    } catch { setSt('closed'); setErr('Pas de connexion, réessaie') }
   }
   const loot = res && LOOT[res.kind]
   return (
     <div className={'chest ' + st} onClick={open}>
       <ChestArt open={st === 'open'} glow={loot?.[2]} />
-      {st !== 'open' ? <div className="chesttxt"><b>Coffre surprise</b><span className="sub">{st === 'shaking' ? 'Ça bouge…' : 'Touche pour l\'ouvrir'}</span></div>
+      {st !== 'open' ? <div className="chesttxt"><b>Coffre surprise</b><span className={err ? 'err' : 'sub'}>{st === 'shaking' ? 'Ça bouge…' : err || 'Touche pour l\'ouvrir'}</span></div>
         : <div className="chesttxt pop"><span className="rarity" style={{ background: loot[2] }}>{loot[1]}</span>
-          <b>{loot[0]}</b><span className="chestgain" style={{ color: res.kind === 'common' ? 'var(--fg)' : loot[2] }}>{res.kind === 'ticket' ? '+1 ticket' : '+' + res.amount + ' pièces'}</span></div>}
+          <b>{loot[0]}</b><span className="chestgain" style={{ color: res.kind === 'common' ? 'var(--fg)' : loot[2] }}>{res.kind === 'ticket' ? '+1 ticket' : '+' + res.amount + ' pièces'}</span>
+          {res.preview && <span className="sub">Aperçu direction : rien n'est crédité</span>}</div>}
     </div>
   )
 }

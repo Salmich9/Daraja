@@ -1012,7 +1012,6 @@ AS $function$
 declare s daraja.staff; c daraja.chests; r numeric; k text; amt int := 0; acc int := 0;
 begin
   s := daraja.who(p_token);
-  if s.role <> 'staff' then return json_build_object('ok', false, 'error', 'role'); end if;
   if not exists (select 1 from daraja.quiz_sessions q where q.staff_id = s.id and q.day = daraja.today()
                  and cardinality(q.answered) >= cardinality(q.question_ids)) then
     return json_build_object('ok', false, 'error', 'locked'); end if;
@@ -1026,6 +1025,7 @@ begin
   if k is null then acc := acc + daraja.rv('chest_p_rare'); if r < acc then k := 'rare'; end if; end if;
   if k is null then k := 'common'; end if;
   amt := case k when 'legend' then daraja.rv('chest_legend') when 'epic' then daraja.rv('chest_epic') when 'rare' then daraja.rv('chest_rare') when 'common' then daraja.rv('chest_common') else 0 end;
+  if s.role <> 'staff' then return json_build_object('ok', true, 'preview', true, 'kind', k, 'amount', amt); end if;
   insert into daraja.chests(staff_id, day, kind, amount) values (s.id, daraja.today(), k, amt);
   if amt > 0 then
     insert into daraja.point_events(staff_id, kind, amount, note) values (s.id, 'bonus', amt, 'Coffre ' || k);
