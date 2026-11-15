@@ -1188,8 +1188,8 @@ begin
              and ((challenger = s.id and opponent = o.id) or (challenger = o.id and opponent = s.id))
              and created_at > now() - interval '48 hours') then
     return json_build_object('ok', false, 'error', 'open'); end if;
-  if exists (select 1 from daraja.duels where ((challenger = s.id and opponent = o.id) or (challenger = o.id and opponent = s.id))
-             and (created_at at time zone 'Africa/Casablanca')::date = daraja.today() and status not in ('declined','cancelled')) then
+  if (select count(*) from daraja.duels where ((challenger = s.id and opponent = o.id) or (challenger = o.id and opponent = s.id))
+             and (created_at at time zone 'Africa/Casablanca')::date = daraja.today() and status not in ('declined','cancelled')) >= 2 then
     return json_build_object('ok', false, 'error', 'pair'); end if;
   ids := daraja.pick_questions(s.venue, daraja.family(s), daraja.family(o));
   if ids is null or cardinality(ids) < 3 then ids := daraja.pick_questions(s.venue, daraja.family(s)); end if;
@@ -1199,6 +1199,21 @@ begin
     (select array_agg(daraja.q_limit(q.kind) order by array_position(ids, q.id)) from daraja.questions q where q.id = any(ids)))
   returning id into d;
   return json_build_object('ok', true, 'id', d);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_duel_rematch(p_token text, p_duel uuid)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; o uuid;
+begin
+  s := daraja.who(p_token);
+  select case when challenger = s.id then opponent else challenger end into o
+    from daraja.duels where id = p_duel and (challenger = s.id or opponent = s.id) and status = 'done';
+  if o is null then return json_build_object('ok', false, 'error', 'duel'); end if;
+  return public.daraja_duel_new(p_token, o);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_duel_play(p_token text, p_duel uuid, p_idx integer, p_choice integer, p_answer jsonb)

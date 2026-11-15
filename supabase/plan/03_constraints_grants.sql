@@ -121,6 +121,7 @@ grant execute on function public.daraja_contacts(text,text) to anon;
 grant execute on function public.daraja_draw_info(text,text) to anon;
 grant execute on function public.daraja_duel_cancel(text,uuid) to anon;
 grant execute on function public.daraja_duel_new(text,uuid) to anon;
+grant execute on function public.daraja_duel_rematch(text,uuid) to anon;
 grant execute on function public.daraja_duel_play(text,uuid,integer,integer,jsonb) to anon;
 grant execute on function public.daraja_duel_respond(text,uuid,boolean) to anon;
 grant execute on function public.daraja_duel_state(text,uuid) to anon;

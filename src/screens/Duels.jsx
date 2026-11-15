@@ -33,7 +33,7 @@ function Duels({ token, venue, toast, duels, reload, open }) {
     try {
       const r = await rpc('daraja_duel_new', { p_token: token, p_opponent: id })
       if (r.ok) { setPickOpen(false); toast('Défi envoyé ⚔️'); open(r.id) }
-      else toast({ limit: '3 défis lancés par jour maximum', open: 'Un duel est déjà en cours avec cette personne', pair: 'Un seul duel par jour avec la même personne', role: 'Réservé aux équipiers', questions: 'Pas assez de questions actives' }[r.error] || 'Impossible')
+      else toast({ limit: '3 défis lancés par jour maximum', open: 'Un duel est déjà en cours avec cette personne', pair: '2 duels max par jour avec la même personne', role: 'Réservé aux équipiers', questions: 'Pas assez de questions actives' }[r.error] || 'Impossible')
     } catch { toast('Erreur') }
   }
   const respond = async (id, ok) => {
@@ -100,7 +100,7 @@ function DuelInvite({ d, token, close, open, toast }) {
   )
 }
 
-function LiveDuel({ token, id, back, toast, refresh }) {
+function LiveDuel({ token, id, back, toast, refresh, open }) {
   const [st, setSt] = useState(null)
   const [mine, setMine] = useState({})
   const [, tick] = useState(0)
@@ -122,6 +122,13 @@ function LiveDuel({ token, id, back, toast, refresh }) {
       <div><Avatar value={st.other.avatar} name={st.other.display} size={42} /><div className="sub">{st.other.display}</div></div>
     </div>
   )
+  const rematch = async () => {
+    try {
+      const r = await rpc('daraja_duel_rematch', { p_token: token, p_duel: id })
+      if (r.ok) { toast('Revanche envoyée ⚔️'); open(r.id) }
+      else toast({ pair: 'Déjà 2 duels aujourd\'hui ensemble : revanche demain', limit: '3 défis lancés par jour maximum', open: 'Un duel est déjà en cours avec cette personne' }[r.error] || 'Impossible')
+    } catch { toast('Erreur') }
+  }
   const cancel = async () => { try { await rpc('daraja_duel_cancel', { p_token: token, p_duel: id }); back() } catch { toast('Erreur') } }
   const respond = async ok => { try { await rpc('daraja_duel_respond', { p_token: token, p_duel: id, p_accept: ok }); ok ? load() : back() } catch { toast('Erreur') } }
 
@@ -169,7 +176,8 @@ function LiveDuel({ token, id, back, toast, refresh }) {
             <span style={{ flex: 1 }}>{q.question}</span>
             <i className={'ti ti-' + (a.them?.ok ? 'circle-check' : 'circle-x')} style={{ color: a.them?.ok ? 'var(--good)' : 'var(--bad)', fontSize: 18 }} />
           </div>) })}
-        <button className="btn" style={{ marginTop: 20 }} onClick={back}>Retour aux duels</button>
+        <button className="btn big" style={{ marginTop: 20 }} onClick={rematch}><i className={'ti ' + (w === true ? 'ti-refresh' : 'ti-swords')} /> {w === true ? 'Rejouer contre ' : 'Revanche contre '}{st.other.display}</button>
+        <button className="btn ghost" style={{ marginTop: 10 }} onClick={back}>Retour aux duels</button>
       </div>
     )
   }

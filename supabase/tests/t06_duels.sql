@@ -26,5 +26,8 @@ do $$ declare r jsonb; d uuid; q uuid; s jsonb; begin
   assert (select count(*) from daraja.point_events where note = 'Duel gagné' and staff_id = '00000000-0000-0000-0000-0000000000b1') <= 1, 'le gain du duel tombe une seule fois';
   perform public.daraja_duel_state('t_ka', d);
   assert (select count(*) from daraja.point_events where note in ('Duel gagné','Duel nul') and staff_id in ('00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000b2')) <= 2, 'rouvrir le duel ne redonne pas de points';
-  assert public.daraja_duel_new('t_am','00000000-0000-0000-0000-0000000000b2')::jsonb->>'error' = 'pair', 'un seul duel par jour avec la même personne';
+  r := public.daraja_duel_new('t_am','00000000-0000-0000-0000-0000000000b2');
+  assert (r->>'ok')::boolean, 'une revanche le même jour est permise';
+  update daraja.duels set status = 'done' where id = (r->>'id')::uuid;
+  assert public.daraja_duel_new('t_am','00000000-0000-0000-0000-0000000000b2')::jsonb->>'error' = 'pair', 'deux duels max par jour avec la même personne';
 end $$;
