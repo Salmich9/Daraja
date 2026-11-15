@@ -77,6 +77,7 @@ export default function App() {
   const switchVenue = v => { store.set(VK, v); setVenue(v) }
   const go = t => { if (t === 'quiz') setPlay({ mode: 'daily', ctx: {} }); setTab(t); window.scrollTo(0, 0); if (t !== 'quiz') refresh() }
   const openDuel = id => { setInvite(null); setDuelId(id); setTab('live'); window.scrollTo(0, 0) }
+  const startPractice = () => { setPlay({ mode: 'practice', ctx: {} }); setTab('quiz'); window.scrollTo(0, 0) }
   const startTest = ctx => { setTestOpen(false); setPlay({ mode: 'test', ctx }); setTab('quiz'); window.scrollTo(0, 0) }
 
   if (!token) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><Login onToken={login} /></div>
@@ -112,12 +113,12 @@ export default function App() {
       {preview && <div className="previewbar"><i className="ti ti-eye" /> Aperçu équipier · {preview}<button className="mini" onClick={() => { setPreview(null); setTab('profile') }}>Quitter</button></div>}
       {offline && <div className="netbar"><i className="ti ti-wifi-off" /> Pas de connexion · on réessaie…</div>}
       <React.Fragment key={epoch}>
-      {tab === 'home' && <Home token={token} me={me} venue={venue} go={go} toast={toast} duels={duels} openDuel={openDuel} refresh={refresh} />}
+      {tab === 'home' && <Home token={token} me={me} venue={venue} go={go} toast={toast} duels={duels} openDuel={openDuel} refresh={refresh} practice={startPractice} />}
       {tab === 'live' && duelId && <LiveDuel key={duelId} token={token} id={duelId} back={() => { loadDuels(); go('duels') }} toast={toast} refresh={refresh} open={id => { loadDuels(); openDuel(id) }} />}
       {invite && tab !== 'live' && tab !== 'quiz' && <DuelInvite d={invite} token={token} close={() => setInvite(null)} open={openDuel} toast={toast} />}
       {tab === 'quiz' && (preview && play.mode === 'daily'
         ? <Quiz key="pv" token={token} me={me} mode="test" ctx={{ post: preview, venue: me.venue }} done={() => go('home')} />
-        : <Quiz key={play.mode + (play.ctx.duel || '')} token={token} me={me} mode={play.mode} ctx={play.ctx} done={() => go(play.mode === 'test' ? 'profile' : 'home')} />)}
+        : <Quiz key={play.mode + (play.ctx.duel || '')} token={token} me={me} mode={play.mode} ctx={play.ctx} practice={me.role === 'staff' ? startPractice : null} done={() => go(play.mode === 'test' ? 'profile' : 'home')} />)}
       {tab === 'duels' && <Duels token={token} venue={venue} toast={toast} duels={preview ? [] : duels} reload={loadDuels} open={id => preview ? toast('Pas de duel en aperçu') : openDuel(id)} />}
       {tab === 'rules' && <Rules token={token} back={() => go('profile')} />}
       {testOpen && <TestMode token={token} me={real} close={() => setTestOpen(false)} startTest={startTest} preview={p => { setTestOpen(false); setPreview(p); go('home') }} />}

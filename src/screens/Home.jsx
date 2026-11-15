@@ -4,7 +4,7 @@ import { Avatar, GiftProgress, Info } from '../ui'
 import { DuelCard } from './Duels'
 import { Chest } from './Chest'
 
-function Home({ token, me, venue, go, toast, duels, openDuel, refresh }) {
+function Home({ token, me, venue, go, toast, duels, openDuel, refresh, practice }) {
   const [chestOpen, setChestOpen] = useState(false)
   const [rewards, setRewards] = useState([])
   useEffect(() => { rpc('daraja_rewards', { p_token: token, p_venue: venue }).then(setRewards).catch(() => {}) }, [token, venue])
@@ -45,7 +45,7 @@ function Home({ token, me, venue, go, toast, duels, openDuel, refresh }) {
         </div>
         {me.quiz_done
           ? me.chest === 'ready' ? <button className="btn pulse big" onClick={() => setChestOpen(true)}><i className="ti ti-sparkles" /> Ouvrir mon coffre</button>
-            : <button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Voir mon score</button>
+            : <div className="row u-gap-8"><button className="btn" onClick={practice}><i className="ti ti-barbell" /> S'entraîner</button><button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Mon score</button></div>
           : <button className="btn pulse big" onClick={() => go('quiz')}>Jouer <i className="ti ti-player-play" /></button>}
       </div>
       {me.role === 'staff' && <DuelCard duels={duels} go={go} open={openDuel} />}

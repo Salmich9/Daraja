@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { avFile, FAM, LINE, LV, first, fmt, initials, level, rpc, waLink } from './lib'
+import { avFile, FAM, LINE, LV, first, fmt, initials, level, rpc, waLink, RV } from './lib'
 
-function LevelBadge({ level }) {
+function LevelBadge({ level, noPts }) {
   const [name, cls] = LV[level] || LV[1]
-  return <span className={'lv ' + cls}><span className="lvdots">{[1, 2, 3].map(n => <i key={n} className={n <= level ? 'on' : ''} />)}</span>{name} · +{10 * (level || 1)}</span>
+  return <span className={'lv ' + cls}><span className="lvdots">{[1, 2, 3].map(n => <i key={n} className={n <= level ? 'on' : ''} />)}</span>{name}{noPts ? '' : ' · +' + RV.answer * (level || 1)}</span>
 }
 
 function Avatar({ value, name, size = 34, me: isMe }) {

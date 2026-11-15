@@ -1564,6 +1564,39 @@ begin
   return (select json_agg(json_build_object('id', id, 'family', family, 'label', label) order by sort) from daraja.posts);
 end $function$;
 
+CREATE OR REPLACE FUNCTION public.daraja_practice_quiz(p_token text, p_kind text DEFAULT NULL::text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; ids uuid[];
+begin
+  s := daraja.who(p_token);
+  if s.role = 'staff' and not exists (select 1 from daraja.quiz_sessions q where q.staff_id = s.id and q.day = daraja.today()
+       and cardinality(q.answered) >= cardinality(q.question_ids)) then
+    raise exception 'locked';
+  end if;
+  ids := daraja.pick_questions(coalesce(s.venue, 'baro'), daraja.family(s), null, nullif(p_kind, ''));
+  return json_build_object('answered', '[]'::json, 'correct', 0, 'questions', coalesce(daraja.q_json(ids), '[]'::json));
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_practice_answer(p_token text, p_question uuid, p_choice integer, p_answer jsonb)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; q daraja.questions; ok boolean;
+begin
+  s := daraja.who(p_token);
+  select * into q from daraja.questions where id = p_question;
+  if q.id is null then raise exception 'question'; end if;
+  ok := daraja.grade(q, p_choice, p_answer);
+  return json_build_object('correct', ok, 'answer_idx', q.answer_idx, 'explanation', q.explanation,
+    'solution', case when q.kind = 'order' then q.payload->'answer' else null end, 'points', 0);
+end $function$;
+
 CREATE OR REPLACE FUNCTION public.daraja_q_start(p_token text, p_question uuid)
  RETURNS json
  LANGUAGE plpgsql

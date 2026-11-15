@@ -52,6 +52,7 @@ function MatchGame({ q, onAnswer, res }) {
 
 const QMODES = {
   daily: { load: t => rpc('daraja_quiz', { p_token: t }), start: (t, q) => rpc('daraja_q_start', { p_token: t, p_question: q }), answer: (t, q, c, a) => rpc('daraja_answer_v2', { p_token: t, p_question: q, p_choice: c, p_answer: a }) },
+  practice: { load: t => rpc('daraja_practice_quiz', { p_token: t }), start: async () => ({ elapsed: 0 }), answer: (t, q, c, a) => rpc('daraja_practice_answer', { p_token: t, p_question: q, p_choice: c, p_answer: a }) },
   test: { load: (t, x) => rpc('daraja_test_quiz', { p_token: t, p_venue: x.venue, p_post: x.post, p_kind: x.kind || null }), start: async () => ({ elapsed: 0 }), answer: (t, q, c, a) => rpc('daraja_test_answer', { p_token: t, p_question: q, p_choice: c, p_answer: a }) },
 }
 
@@ -81,7 +82,7 @@ function Timer({ q, deadline, onEnd, stopped }) {
   )
 }
 
-function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
+function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd, practice }) {
   const M = QMODES[mode]
   const [data, setData] = useState(null)
   const [i, setI] = useState(0)
@@ -131,9 +132,12 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
         {me?.role === 'staff' && <Chest token={token} />}
       </>}
       {mode === 'test' && <div className="sub u-m-6px-0" >Mode test : rien n'est enregistré</div>}
-      <div className="sub u-m-8px-0-22px" >{score === qs.length ? 'Sans faute. Respect.' : score >= 3 ? 'Belle soirée en vue !' : 'Demain, on remet ça. Chaque erreur t\'apprend quelque chose.'}</div>
+      {mode === 'practice' && <div className="sub u-m-6px-0" ><i className="ti ti-barbell" /> Entraînement : pas de pièces, que du savoir</div>}
+      <div className="sub u-m-8px-0-22px" >{score === qs.length ? 'Sans faute. Respect.' : mode === 'practice' ? 'Chaque erreur t\'apprend quelque chose. On remet ça ?' : score >= 3 ? 'Belle soirée en vue !' : 'Demain, on remet ça. Chaque erreur t\'apprend quelque chose.'}</div>
       {mode === 'test' && <button className="btn u-mb-10"  onClick={() => setRound(round + 1)}>Encore un quiz test</button>}
-      <button className={mode === 'test' ? 'btn ghost' : 'btn'} onClick={() => { onEnd && onEnd(); done() }}>Retour</button>
+      {mode === 'practice' && <button className="btn u-mb-10" onClick={() => setRound(round + 1)}><i className="ti ti-barbell" /> Encore un entraînement</button>}
+      {mode === 'daily' && practice && <button className="btn ghost u-mb-10" onClick={practice}><i className="ti ti-barbell" /> M'entraîner encore (illimité)</button>}
+      <button className={mode === 'test' || mode === 'practice' ? 'btn ghost' : 'btn'} onClick={() => { onEnd && onEnd(); done() }}>Retour</button>
       {mode === 'daily' && <TalkCard token={token} me={me} />}
     </div>
   )
@@ -163,8 +167,8 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
   return (
     <div className="page" style={res ? { paddingBottom: 260 } : null}>
       <div className="row between sub u-mb-8" >
-        <span>{mode === 'test' ? 'Test' : 'Manche'} {i + 1}/{qs.length} · {q.theme}</span>
-        {combo >= 2 ? <span className="combo pop"><i className="ti ti-bolt" /> Combo x{combo}</span> : <LevelBadge level={q.level} />}
+        <span>{mode === 'test' ? 'Test' : mode === 'practice' ? 'Entraînement' : 'Manche'} {i + 1}/{qs.length} · {q.theme}</span>
+        {combo >= 2 ? <span className="combo pop"><i className="ti ti-bolt" /> Combo x{combo}</span> : <LevelBadge level={q.level} noPts={mode !== 'daily'} />}
       </div>
       {ready ? <Timer key={q.id} q={q} deadline={deadline} onEnd={timeout} stopped={!!res} /> : <div className="timer"><div className="tbar" /></div>}
 

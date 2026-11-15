@@ -16,6 +16,7 @@
 .ti-badge:before{content:"\efc2"}
 .ti-badges:before{content:"\efc3"}
 .ti-ball-football:before{content:"\ee06"}
+.ti-barbell:before{content:"\eff0"}
 .ti-basket:before{content:"\ebe1"}
 .ti-bat:before{content:"\f284"}
 .ti-bath:before{content:"\ef48"}
@@ -88,6 +89,7 @@
 .ti-glass-full:before{content:"\eab7"}
 .ti-grave:before{content:"\f580"}
 .ti-heart-handshake:before{content:"\f0f3"}
+.ti-heartbeat:before{content:"\ef92"}
 .ti-home:before{content:"\eac1"}
 .ti-hourglass:before{content:"\ef93"}
 .ti-icons:before{content:"\f1d4"}
@@ -142,7 +144,6 @@
 .ti-radio:before{content:"\ef2d"}
 .ti-refresh:before{content:"\eb13"}
 .ti-reload:before{content:"\f3ae"}
-.ti-repeat:before{content:"\eb72"}
 .ti-replace:before{content:"\ebc7"}
 .ti-report:before{content:"\eece"}
 .ti-rocket:before{content:"\ec45"}
@@ -188,6 +189,7 @@
 .ti-trending-up:before{content:"\eb43"}
 .ti-triangle:before{content:"\eb44"}
 .ti-trophy:before{content:"\eb45"}
+.ti-txt:before{content:"\f3b1"}
 .ti-user:before{content:"\eb4d"}
 .ti-user-plus:before{content:"\eb4b"}
 .ti-user-star:before{content:"\f7d1"}

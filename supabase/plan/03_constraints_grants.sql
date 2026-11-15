@@ -152,6 +152,8 @@ grant execute on function public.daraja_logout(text) to anon;
 grant execute on function public.daraja_me(text,text) to anon;
 grant execute on function public.daraja_mission(text) to anon;
 grant execute on function public.daraja_posts(text) to anon;
+grant execute on function public.daraja_practice_answer(text,uuid,integer,jsonb) to anon;
+grant execute on function public.daraja_practice_quiz(text,text) to anon;
 grant execute on function public.daraja_q_start(text,uuid) to anon;
 grant execute on function public.daraja_quiz(text) to anon;
 grant execute on function public.daraja_quote(text,boolean) to anon;

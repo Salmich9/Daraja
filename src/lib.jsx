@@ -21,7 +21,7 @@ const store = {
 const MOCK = import.meta.env.VITE_MOCK === '1'
 
 // Erreurs prévues par le serveur (refus normaux) : on ne les note pas dans le journal.
-const EXPECTED = /^(session|forbidden|admin|self|staff|monday|month_not_over|week_not_over|already|amount|prize|duel|question|reward|kind|invalid|post|role|key|pin|no change)/
+const EXPECTED = /^(locked|session|forbidden|admin|self|staff|monday|month_not_over|week_not_over|already|amount|prize|duel|question|reward|kind|invalid|post|role|key|pin|no change)/
 const sent = new Map()
 let sentCount = 0
 function reportError(message, place, detail) {
