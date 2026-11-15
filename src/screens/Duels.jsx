@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { RV, burst, buzz, imgSrc, rpc } from '../lib'
+import { RV, burst, buzz, imgSrc, rpc, waLink } from '../lib'
 import { Avatar, Info } from '../ui'
 import { MatchGame, OrderGame, Timer } from './Quiz'
 
@@ -139,26 +139,43 @@ function LiveDuel({ token, id, back, toast, refresh, open }) {
       <button className="btn" style={{ marginTop: 20 }} onClick={back}>Retour</button>
     </div>
   )
+  const left = st.expires ? Math.max(0, st.expires - now) : null
+  const leftTxt = left == null ? '' : left >= 3600 ? Math.floor(left / 3600) + ' h ' + String(Math.floor(left % 3600 / 60)).padStart(2, '0') : Math.ceil(left / 60) + ' min'
+  const first = st.other.display.split(' ')[0]
+  const nudge = st.other.phone && <a className="btn wa" style={{ marginTop: 10 }} href={waLink(st.other.phone, `Salut ${first} ! Je t'attends pour un duel sur Daraja ⚔️ ${location.origin}`)} target="_blank" rel="noreferrer"><i className="ti ti-brand-whatsapp" /> Préviens {first}</a>
+  const versus = (
+    <div className="vs">
+      <div className="vsside"><Avatar value={st.me.avatar} name={st.me.display} size={84} me /><b>Toi</b><span className="sub"><span className="online" />prêt</span></div>
+      <div className="vsmid">VS</div>
+      <div className="vsside"><Avatar value={st.other.avatar} name={st.other.display} size={84} /><b>{first}</b>
+        <span className="sub">{st.other.online ? <><span className="online" />là</> : <><span className="waitdot" />{st.status === 'pending' && st.mine ? 'doit accepter' : 'pas encore là'}</>}</span></div>
+    </div>
+  )
   if (st.status === 'pending') return (
-    <div className="page" style={{ textAlign: 'center', paddingTop: 50 }}>
-      <Head />
+    <div className="page" style={{ textAlign: 'center', paddingTop: 40 }}>
+      {versus}
       {st.mine ? <>
-        <div className="sub" style={{ margin: '24px 0' }}><span className="waitdot" /> Défi envoyé à {st.other.display}. Reste ici : le duel démarre dès qu'il accepte et vous êtes deux.</div>
-        <button className="btn ghost" onClick={back}>Plus tard</button>
+        <h1 style={{ margin: '22px 0 6px' }}>Défi envoyé</h1>
+        <div className="sub" style={{ marginBottom: 6 }}>Le duel démarre dès que {first} accepte et que vous êtes là tous les deux.</div>
+        {leftTxt && <div className="expire"><i className="ti ti-hourglass" /> Expire dans {leftTxt}</div>}
+        {nudge}
+        <button className="btn ghost" style={{ marginTop: 10 }} onClick={back}>Plus tard</button>
         <button className="btn ghost" style={{ marginTop: 8, border: 0, color: 'var(--muted)' }} onClick={cancel}>Annuler le défi</button>
       </> : <>
-        <h1 style={{ margin: '24px 0 16px' }}>{st.other.display} te défie !</h1>
-        <button className="btn" onClick={() => respond(true)}>Accepter</button>
+        <h1 style={{ margin: '22px 0 16px' }}>{first} te défie !</h1>
+        <button className="btn big" onClick={() => respond(true)}>Accepter</button>
         <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => respond(false)}>Refuser</button>
       </>}
     </div>
   )
   if (st.status === 'ready') return (
-    <div className="page" style={{ textAlign: 'center', paddingTop: 50 }}>
-      <Head />
-      <h1 style={{ marginTop: 24 }}>Salle d'attente</h1>
-      <div className="sub" style={{ margin: '10px 0 24px' }}>{st.other.online ? <><span className="online" /> {st.other.display} est là, ça démarre…</> : <><span className="waitdot" /> En attente de {st.other.display}. Le duel démarre dès que vous êtes deux.</>}</div>
-      <button className="btn ghost" onClick={back}>Plus tard</button>
+    <div className="page" style={{ textAlign: 'center', paddingTop: 40 }}>
+      {versus}
+      <h1 style={{ margin: '22px 0 6px' }}>{st.other.online ? 'Ça démarre !' : 'Salle d\'attente'}</h1>
+      <div className="sub" style={{ marginBottom: 6 }}>{st.other.online ? first + ' est là. Prépare-toi…' : 'Reste ici : le duel démarre dès que ' + first + ' arrive.'}</div>
+      {!st.other.online && leftTxt && <div className="expire"><i className="ti ti-hourglass" /> Expire dans {leftTxt}</div>}
+      {!st.other.online && nudge}
+      <button className="btn ghost" style={{ marginTop: 10 }} onClick={back}>Plus tard</button>
       <button className="btn ghost" style={{ marginTop: 8, border: 0, color: 'var(--muted)' }} onClick={cancel}>Annuler le duel</button>
     </div>
   )

@@ -1310,7 +1310,9 @@ begin
     'my_score', (select count(*) from jsonb_each(mine) e where (e.value->>'ok')::boolean),
     'their_score', (select count(*) from jsonb_each(theirs) e where (e.value->>'ok')::boolean),
     'winner', case when d.winner is null then null else d.winner = s.id end,
-    'other', json_build_object('display', daraja.display_name(other), 'avatar', other.avatar,
+    'expires', case when d.status = 'pending' then extract(epoch from d.created_at + interval '24 hours')
+                    when d.status = 'ready' then extract(epoch from d.accepted_at + interval '24 hours') end,
+    'other', json_build_object('display', daraja.display_name(other), 'avatar', other.avatar, 'phone', other.phone,
       'online', oseen > clock_timestamp() - interval '8 seconds'),
     'me', json_build_object('display', daraja.display_name(s), 'avatar', s.avatar));
 end $function$;

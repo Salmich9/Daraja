@@ -26,6 +26,7 @@
 .ti-braille:before{content:"\f545"}
 .ti-brain:before{content:"\f59f"}
 .ti-brand-whatsapp:before{content:"\ec74"}
+.ti-broadcast:before{content:"\f1e9"}
 .ti-bubble:before{content:"\feba"}
 .ti-bulb:before{content:"\ea51"}
 .ti-bus:before{content:"\ebe4"}
@@ -62,6 +63,7 @@
 .ti-crown:before{content:"\ed12"}
 .ti-cup:before{content:"\ef28"}
 .ti-delta:before{content:"\f53c"}
+.ti-details:before{content:"\ee71"}
 .ti-device-mobile:before{content:"\ea8a"}
 .ti-device-mobile-message:before{content:"\ee79"}
 .ti-dice-5:before{content:"\f08f"}
@@ -84,6 +86,7 @@
 .ti-grave:before{content:"\f580"}
 .ti-heart-handshake:before{content:"\f0f3"}
 .ti-home:before{content:"\eac1"}
+.ti-hourglass:before{content:"\ef93"}
 .ti-icons:before{content:"\f1d4"}
 .ti-id:before{content:"\eac3"}
 .ti-info-circle:before{content:"\eac5"}
@@ -102,7 +105,6 @@
 .ti-map:before{content:"\eae9"}
 .ti-mars:before{content:"\ec80"}
 .ti-math:before{content:"\ebeb"}
-.ti-medal:before{content:"\ec78"}
 .ti-melon:before{content:"\fc7a"}
 .ti-menu:before{content:"\eaeb"}
 .ti-message:before{content:"\eaef"}
@@ -128,9 +130,11 @@
 .ti-plant:before{content:"\ed50"}
 .ti-player-play:before{content:"\ed46"}
 .ti-plus:before{content:"\eb0b"}
+.ti-podium:before{content:"\f1d8"}
 .ti-point:before{content:"\eb0c"}
 .ti-pointer:before{content:"\f265"}
 .ti-prison:before{content:"\ef79"}
+.ti-progress:before{content:"\fa0d"}
 .ti-quote:before{content:"\efbe"}
 .ti-radio:before{content:"\ef2d"}
 .ti-refresh:before{content:"\eb13"}
@@ -152,9 +156,9 @@
 .ti-shopping-bag:before{content:"\f5f8"}
 .ti-signature:before{content:"\eee0"}
 .ti-slice:before{content:"\ebdb"}
-.ti-snowflake:before{content:"\ec0b"}
 .ti-sparkles:before{content:"\f6d7"}
 .ti-speakerphone:before{content:"\ed61"}
+.ti-stack:before{content:"\eb2d"}
 .ti-stairs-up:before{content:"\eca5"}
 .ti-star:before{content:"\eb2e"}
 .ti-stopwatch:before{content:"\ff9b"}
@@ -172,6 +176,7 @@
 .ti-tent:before{content:"\eefb"}
 .ti-thumb-up:before{content:"\eb3c"}
 .ti-ticket:before{content:"\eb3d"}
+.ti-tie:before{content:"\f07e"}
 .ti-tir:before{content:"\ebf0"}
 .ti-tools-kitchen-2:before{content:"\eeff"}
 .ti-train:before{content:"\ed96"}
