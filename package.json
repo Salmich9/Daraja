@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run check && npm run test:db && vite build",
+    "build:only": "vite build",
     "preview": "vite preview",
     "test:db": "node scripts/test-db.mjs",
-    "check": "eslint --ext .js,.jsx src",
-    "test": "npm run check && npm run test:db && npm run build",
+    "check": "eslint --max-warnings 0 --ext .js,.jsx src",
+    "test": "npm run build",
     "avatars": "node scripts/build-avatars.mjs"
   },
   "dependencies": {
