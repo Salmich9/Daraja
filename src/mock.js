@@ -16,7 +16,7 @@ const days = (k) => { const out = []; const m = new Date(); m.setDate(m.getDate(
 export default async function mock(fn, a) {
   const v = a.p_venue || V()
   switch (fn) {
-    case 'daraja_me': return { id: 'me', name: 'Salmane Tazi', display: 'Salmane', alias: null, avatar: 'fun-emoji:Zama', role: localStorage.getItem('mock_role') || 'super', venue: v, venue_name: v === 'zz' ? 'ZamaZama' : 'Baromètre', points: 1130, earned: 1450, month: 640, rank: 2, streak: 6, flame: 'lit', next_bonus: 35, quiz_done: false, tickets: 9, avis: 1, perfect: 2, gifts: 1, exemplary: true, pending_ack: 0, direction_todo: 0 }
+    case 'daraja_me': return { id: 'me', name: 'Salmane Tazi', display: 'Salmane', alias: null, avatar: 'fun-emoji:Zama', role: localStorage.getItem('mock_role') || 'super', venue: v, venue_name: v === 'zz' ? 'ZamaZama' : 'Baromètre', points: 1130, earned: 1450, month: 640, rank: 2, streak: 6, flame: 'lit', next_bonus: 35, quiz_done: false, tickets: 9, avis: 1, perfect: 2, gifts: 1, exemplary: true, pending_ack: 0, direction_todo: 0, errors_24h: localStorage.getItem('mock_err') === 'none' ? 0 : 2 }
     case 'daraja_rewards': return rewards.filter(r => r.active)
     case 'daraja_mission': return { title: "Raconte l'histoire d'un cocktail signature à 3 tables différentes", family: 'salle', done: false, days_left: 4 }
     case 'daraja_draw_info': return { tickets: 9, days_left: 5, last: { month: '2026-09', prize: 'Dîner pour 2', winner: 'Youssef', me: false } }
@@ -51,6 +51,9 @@ export default async function mock(fn, a) {
     case 'daraja_conduct_mine': return { days_clean: 42, blanche: 1, grise: 0, rouge: 0, records: [] }
     case 'daraja_login': return { token: 'x', new_pin: '482913' }
     case 'daraja_admin_add_staff2': return { ok: true, pin: '731508', phone: '212600000009' }
+    case 'daraja_admin_errors': return localStorage.getItem('mock_err') === 'none' ? [] : [
+      { message: "Cannot read properties of undefined (reading 'map')", place: 'écran', hits: 3, people: 1, who: 'Karim', last_at: new Date(Date.now() - 42 * 60000).toISOString(), detail: 'TypeError at Register (admin/Conduct.jsx)', agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X)' },
+      { message: 'Réseau : Failed to fetch', place: 'daraja_quiz', hits: 7, people: 4, who: 'Amina, Hind, Omar, Salma', last_at: new Date(Date.now() - 5 * 3600000).toISOString(), detail: '', agent: 'Mozilla/5.0 (Linux; Android 14)' }]
     default: return { ok: true }
   }
 }

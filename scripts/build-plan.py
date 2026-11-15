@@ -1,8 +1,13 @@
 """Régénère supabase/plan/01..04 à partir du JSON renvoyé par supabase/plan/export.sql.
 Usage : python3 scripts/build-plan.py export.json"""
 import json, sys, datetime, os
-d = json.load(open(sys.argv[1]))
-if isinstance(d, str): d = json.loads(d)
+raw = open(sys.argv[1]).read()
+if raw.lstrip().startswith('{"result"'):  # sortie brute de l'outil Supabase : on extrait le JSON
+    inner = json.loads(raw)['result']; inner = inner[inner.index('[{'):inner.rindex('}]') + 2]
+    d = list(json.loads(inner)[0].values())[0]
+else:
+    d = raw
+d = json.loads(d) if isinstance(d, str) else d
 root = os.path.join(os.path.dirname(__file__), '..', 'supabase', 'plan')
 H = f"-- Généré depuis la production le {datetime.date.today()}. Ne pas modifier à la main : régénérer.\n"
 w = lambda f, s: open(os.path.join(root, f), 'w').write(s)

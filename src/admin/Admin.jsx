@@ -19,7 +19,7 @@ function Admin({ token, me, venue, toast }) {
   const act = async (fn, args, msg) => { try { await rpc(fn, { p_token: token, ...args }); toast(msg); load() } catch { toast('Erreur') } }
   if (!d) return <div className="page sub">Chargement…</div>
   const T = [['team', 'Équipe'], ['report', 'Rapports'], ['att', 'Pointage'], ['conduct', 'Conduite' + (me.direction_todo ? ' · ' + me.direction_todo : '')],
-    ['quiz', 'Questions'], ['draw', 'Tirage'], ...(me.role === 'super' ? [['gifts', 'Cadeaux']] : [])]
+    ['quiz', 'Questions'], ['draw', 'Tirage'], ...(me.role === 'super' ? [['gifts', 'Cadeaux'], ['errors', 'Erreurs' + (me.errors_24h ? ' · ' + me.errors_24h : '')]] : [])]
   return (
     <div className="page">
       <div className="row between" style={{ marginBottom: 6 }}>
@@ -34,6 +34,7 @@ function Admin({ token, me, venue, toast }) {
       {tab === 'quiz' && <QuizSettings token={token} venue={v} toast={toast} />}
       {tab === 'draw' && <DrawAdmin token={token} me={me} venue={v} toast={toast} />}
       {tab === 'gifts' && <RewardsAdmin token={token} toast={toast} />}
+      {tab === 'errors' && <ErrorsAdmin token={token} />}
       {tab === 'team' && <>
       <div className="sec"><i className="ti ti-star acc" /> Avis clients à valider</div>
       {!d.reviews.length && <div className="sub">Rien en attente</div>}
@@ -197,4 +198,27 @@ function AddStaff({ token, me, venue, close, done }) {
   )
 }
 
-export { Admin, ContactsAdmin, StaffSheet, AddStaff }
+function ErrorsAdmin({ token }) {
+  const [days, setDays] = useState(7)
+  const [list, setList] = useState(null)
+  const [open, setOpen] = useState(null)
+  useEffect(() => { setList(null); rpc('daraja_admin_errors', { p_token: token, p_days: days }).then(setList).catch(() => setList([])) }, [token, days])
+  const ago = t => { const m = Math.round((Date.now() - new Date(t)) / 60000); return m < 60 ? m + ' min' : m < 1440 ? Math.round(m / 60) + ' h' : Math.round(m / 1440) + ' j' }
+  return (
+    <>
+      <div className="seg" style={{ marginTop: 10 }}>{[[1, '24 h'], [7, '7 jours'], [30, '30 jours']].map(([d, l]) => <button key={d} className={days === d ? 'on' : ''} onClick={() => setDays(d)}>{l}</button>)}</div>
+      {!list ? <div className="sub">Chargement…</div> : !list.length ? (
+        <div className="card" style={{ textAlign: 'center', padding: 24 }}><i className="ti ti-circle-check" style={{ fontSize: 34, color: 'var(--good)' }} /><div style={{ fontWeight: 600, marginTop: 6 }}>Aucune erreur</div><div className="sub">Tout tourne bien sur les téléphones</div></div>
+      ) : list.map((e, k) => (
+        <div key={k} className="card" style={{ padding: 12, cursor: 'pointer' }} onClick={() => setOpen(open === k ? null : k)}>
+          <div className="row between"><b style={{ fontSize: 14, color: 'var(--bad)' }}>{e.hits}×</b><span className="sub">il y a {ago(e.last_at)}</span></div>
+          <div style={{ fontSize: 14, margin: '4px 0', wordBreak: 'break-word' }}>{e.message}</div>
+          <div className="sub">{e.place || '?'} · {e.people > 1 ? e.people + ' personnes' : e.who}</div>
+          {open === k && <div className="sub" style={{ marginTop: 8, fontSize: 11, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{(e.detail || '').slice(0, 600)}{'\n'}{e.agent}</div>}
+        </div>
+      ))}
+    </>
+  )
+}
+
+export { ErrorsAdmin, Admin, ContactsAdmin, StaffSheet, AddStaff }

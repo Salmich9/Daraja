@@ -8,6 +8,7 @@ create sequence if not exists daraja.quotes_id_seq;
 create sequence if not exists daraja.answers_id_seq;
 create sequence if not exists daraja.missions_id_seq;
 create sequence if not exists daraja.stories_id_seq;
+create sequence if not exists daraja.client_errors_id_seq;
 
 create table if not exists daraja.answers (
   id bigint not null default nextval('daraja.answers_id_seq'::regclass),
@@ -30,6 +31,20 @@ create table if not exists daraja.attendance (
   updated_at timestamp with time zone not null default now()
 );
 alter table daraja.attendance enable row level security;
+
+create table if not exists daraja.client_errors (
+  id bigint not null generated always as identity,
+  first_at timestamp with time zone not null default now(),
+  last_at timestamp with time zone not null default now(),
+  staff_id uuid,
+  venue text,
+  message text not null,
+  place text,
+  detail text,
+  agent text,
+  hits integer not null default 1
+);
+alter table daraja.client_errors enable row level security;
 
 create table if not exists daraja.conduct_records (
   id uuid not null default gen_random_uuid(),

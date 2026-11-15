@@ -14,10 +14,31 @@ const store = {
 
 const MOCK = import.meta.env.VITE_MOCK === '1'
 
+// Erreurs prévues par le serveur (refus normaux) : on ne les note pas dans le journal.
+const EXPECTED = /^(session|forbidden|admin|self|staff|monday|month_not_over|week_not_over|already|amount|prize|duel|question|reward|kind|invalid|post|role|key|pin|no change)/
+const sent = new Map()
+let sentCount = 0
+function reportError(message, place, detail) {
+  try {
+    const m = String(message || '?').slice(0, 300)
+    const now = Date.now()
+    if (MOCK || sentCount >= 20 || now - (sent.get(m) || 0) < 5 * 60 * 1000) return
+    sent.set(m, now); sentCount++
+    sb.rpc('daraja_log_error', { p_token: store.get(TK) || '', p_message: m, p_place: String(place || '').slice(0, 80),
+      p_detail: String(detail || '').slice(0, 1500), p_agent: navigator.userAgent.slice(0, 200) }).then(() => {}, () => {})
+  } catch {}
+}
+
 async function rpc(fn, args = {}) {
   if (MOCK) return (await import('./mock.js')).default(fn, args)
-  const { data, error } = await sb.rpc(fn, args)
-  if (error) throw error
+  let res
+  try { res = await sb.rpc(fn, args) }
+  catch (e) { reportError('Réseau : ' + (e?.message || e), fn); throw e }
+  const { data, error } = res
+  if (error) {
+    if (!EXPECTED.test(error.message || '')) reportError(error.message || 'Erreur serveur', fn, [error.code, error.details, error.hint].filter(Boolean).join(' · '))
+    throw error
+  }
   return data
 }
 
@@ -96,4 +117,4 @@ const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0
 
 const monday = (off = 0) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 7 * off); return d }
 
-export { avFile, sb, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }
+export { reportError, avFile, sb, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }

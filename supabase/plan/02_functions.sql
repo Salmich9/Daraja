@@ -709,6 +709,27 @@ begin
     'tickets', w.n, 'total', tot, 'players', players);
 end $function$;
 
+CREATE OR REPLACE FUNCTION public.daraja_admin_errors(p_token text, p_days integer DEFAULT 7)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'extensions', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'super' then raise exception 'forbidden'; end if;
+  return (select coalesce(json_agg(x order by x.last_at desc), '[]'::json) from (
+    select e.message, max(e.place) place, sum(e.hits) hits, count(distinct e.staff_id) people,
+      max(e.last_at) last_at, min(e.first_at) first_at,
+      (array_agg(e.detail order by e.last_at desc))[1] detail,
+      (array_agg(e.agent order by e.last_at desc))[1] agent,
+      string_agg(distinct coalesce(daraja.display_name(st), 'non connecté'), ', ') who
+    from daraja.client_errors e left join daraja.staff st on st.id = e.staff_id
+    where e.last_at > now() - make_interval(days => greatest(1, least(coalesce(p_days, 7), 90)))
+    group by e.message) x);
+end $function$;
+
 CREATE OR REPLACE FUNCTION public.daraja_admin_missions(p_token text, p_venue text DEFAULT NULL::text)
  RETURNS json
  LANGUAGE plpgsql
@@ -1466,6 +1487,33 @@ begin
     from daraja.staff o where o.venue = v and o.active and o.role = 'staff') x);
 end $function$;
 
+CREATE OR REPLACE FUNCTION public.daraja_log_error(p_token text, p_message text, p_place text, p_detail text, p_agent text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'extensions', 'public'
+AS $function$
+declare s daraja.staff; m text := left(coalesce(nullif(trim(p_message), ''), '?'), 300); e bigint;
+begin
+  begin
+    select st.* into s from daraja.sessions se join daraja.staff st on st.id = se.staff_id
+      where se.token = p_token and not se.revoked;
+  exception when others then s := null; end;
+  -- même erreur, même personne, dans l'heure : on compte au lieu de dupliquer
+  select id into e from daraja.client_errors
+    where md5(message) = md5(m) and staff_id is not distinct from s.id and last_at > now() - interval '1 hour'
+    order by last_at desc limit 1;
+  if e is not null then
+    update daraja.client_errors set hits = hits + 1, last_at = now() where id = e;
+    return;
+  end if;
+  -- garde-fou : 300 nouvelles lignes par heure au maximum
+  if (select count(*) from daraja.client_errors where first_at > now() - interval '1 hour') >= 300 then return; end if;
+  insert into daraja.client_errors(staff_id, venue, message, place, detail, agent)
+  values (s.id, s.venue, m, left(p_place, 80), left(p_detail, 1500), left(p_agent, 200));
+exception when others then return;
+end $function$;
+
 CREATE OR REPLACE FUNCTION public.daraja_login(p_pin text)
  RETURNS json
  LANGUAGE plpgsql
@@ -1537,6 +1585,7 @@ begin
     'exemplary', exists(select 1 from daraja.point_events where staff_id = s.id and kind = 'bonus'
         and note = 'Mois exemplaire ' || to_char(now() at time zone 'Africa/Casablanca' - interval '1 month', 'YYYY-MM')),
     'pending_ack', (select count(*) from daraja.conduct_records where staff_id = s.id and acknowledged_at is null),
+    'errors_24h', case when s.role = 'super' then (select count(*) from daraja.client_errors where last_at > now() - interval '24 hours') else 0 end,
     'direction_todo', case when s.role = 'super' then (select count(*) from daraja.conduct_records where needs_direction) else 0 end
   );
 end $function$;
