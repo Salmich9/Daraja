@@ -390,6 +390,17 @@ begin
   end if;
 end $function$;
 
+CREATE OR REPLACE FUNCTION daraja.prune()
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+  delete from daraja.login_fails where at < now() - interval '1 day';
+  delete from daraja.sessions where revoked or created_at < now() - interval '90 days';
+  delete from daraja.client_errors where last_at < now() - interval '90 days';
+$function$;
+
 CREATE OR REPLACE FUNCTION daraja.q_json(ids uuid[])
  RETURNS json
  LANGUAGE sql
@@ -541,24 +552,6 @@ begin
         'post', o.post, 'post_label', p.label, 'family', daraja.family(o), 'phone', o.phone, 'birthday', o.birthday, 'points', daraja.balance(o.id),
         'mission_done', exists(select 1 from daraja.mission_done m where m.staff_id = o.id and m.week = daraja.week_start())) order by o.name), '[]'::json)
       from daraja.staff o left join daraja.posts p on p.id = o.post where o.venue = v and o.active and o.role <> 'super'));
-end $function$;
-
-CREATE OR REPLACE FUNCTION public.daraja_admin_add_staff(p_token text, p_name text, p_pin text, p_role text, p_venue text DEFAULT NULL::text)
- RETURNS json
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'daraja', 'extensions', 'public'
-AS $function$
-declare s daraja.staff; v text;
-begin
-  s := daraja.who(p_token); v := daraja.can_admin(s, p_venue);
-  if p_pin !~ '^[0-9]{4}$' then return json_build_object('ok', false, 'error', 'pin'); end if;
-  if length(trim(coalesce(p_name,''))) = 0 then return json_build_object('ok', false, 'error', 'name'); end if;
-  if p_role not in ('staff','admin') or (p_role = 'admin' and s.role <> 'super') then raise exception 'role'; end if;
-  if exists(select 1 from daraja.staff where active and pin_hash = crypt(p_pin, pin_hash)) then
-    return json_build_object('ok', false, 'error', 'taken'); end if;
-  insert into daraja.staff(venue, name, pin_hash, role) values (v, trim(p_name), crypt(p_pin, gen_salt('bf')), p_role);
-  return json_build_object('ok', true);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_admin_add_staff2(p_token text, p_name text, p_pin text, p_role text, p_venue text, p_post text, p_phone text)
@@ -903,40 +896,6 @@ begin
   return json_build_object('ok', true);
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.daraja_answer(p_token text, p_question uuid, p_choice integer)
- RETURNS json
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'daraja', 'extensions', 'public'
-AS $function$
-declare s daraja.staff; qs daraja.quiz_sessions; q daraja.questions; ok boolean; finished boolean; today_pts int;
-begin
-  s := daraja.who(p_token);
-  select * into qs from daraja.quiz_sessions where staff_id = s.id and day = daraja.today() for update;
-  if qs.staff_id is null or not (p_question = any(qs.question_ids)) then raise exception 'question'; end if;
-  select * into q from daraja.questions where id = p_question;
-  if not (p_question = any(qs.answered)) then
-    ok := (p_choice = q.answer_idx);
-    update daraja.quiz_sessions set answered = answered || p_question, correct = correct + (case when ok then 1 else 0 end)
-      where staff_id = s.id and day = qs.day returning * into qs;
-    if ok then
-      insert into daraja.point_events(staff_id, kind, amount, note) values (s.id, 'quiz', 10 * q.level, q.theme);
-    end if;
-    if cardinality(qs.answered) >= cardinality(qs.question_ids) then
-      update daraja.staff set
-        streak = case when last_quiz_day = daraja.today() then streak
-                      when last_quiz_day = daraja.today() - 1 then streak + 1 else 1 end,
-        last_quiz_day = daraja.today()
-      where id = s.id;
-    end if;
-  end if;
-  finished := cardinality(qs.answered) >= cardinality(qs.question_ids);
-  select coalesce(sum(amount),0) into today_pts from daraja.point_events
-    where staff_id = s.id and kind = 'quiz' and (created_at at time zone 'Africa/Casablanca')::date = daraja.today();
-  return json_build_object('correct', ok, 'answer_idx', q.answer_idx, 'explanation', q.explanation,
-    'finished', finished, 'score', qs.correct, 'points', 10 * q.level, 'today_points', today_pts);
-end $function$;
-
 CREATE OR REPLACE FUNCTION public.daraja_answer_v2(p_token text, p_question uuid, p_choice integer, p_answer jsonb)
  RETURNS json
  LANGUAGE plpgsql
@@ -1168,52 +1127,6 @@ begin
       'avatar', (select avatar from daraja.staff where id = ld.winner), 'me', ld.winner = s.id) end);
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.daraja_duel_answer(p_token text, p_duel uuid, p_question uuid, p_choice integer, p_answer jsonb)
- RETURNS json
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'daraja', 'public'
-AS $function$
-declare s daraja.staff; d daraja.duels; q daraja.questions; ok boolean; t numeric; st numeric; mine jsonb; late boolean := false;
-begin
-  s := daraja.who(p_token);
-  select * into d from daraja.duels where id = p_duel and (challenger = s.id or opponent = s.id) and status = 'open' for update;
-  if d.id is null or not (p_question = any(d.question_ids)) then raise exception 'duel'; end if;
-  select * into q from daraja.questions where id = p_question;
-  mine := case when d.challenger = s.id then d.c_ans else d.o_ans end;
-  if not (mine ? p_question::text) then
-    st := (d.started->(s.id::text)->>p_question::text)::numeric;
-    t := case when st is null then daraja.q_limit(q.kind) else extract(epoch from clock_timestamp()) - st end;
-    late := t > daraja.q_limit(q.kind) + 2.5;
-    ok := not late and daraja.grade(q, p_choice, p_answer);
-    mine := mine || jsonb_build_object(p_question::text, jsonb_build_object('ok', ok, 't', least(t, daraja.q_limit(q.kind) + 2.5)));
-    if d.challenger = s.id then update daraja.duels set c_ans = mine where id = d.id returning * into d;
-    else update daraja.duels set o_ans = mine where id = d.id returning * into d; end if;
-    if (select count(*) from jsonb_object_keys(d.c_ans)) >= cardinality(d.question_ids)
-       and (select count(*) from jsonb_object_keys(d.o_ans)) >= cardinality(d.question_ids) then
-      perform daraja.duel_close(d);
-    end if;
-  else
-    ok := (mine->p_question::text->>'ok')::boolean;
-  end if;
-  return json_build_object('correct', ok, 'timeout', late, 'answer_idx', q.answer_idx, 'explanation', q.explanation,
-    'solution', case when q.kind = 'order' then q.payload->'answer' else null end, 'points', 0,
-    'score', (select count(*) from jsonb_each(mine) e where (e.value->>'ok')::boolean));
-end $function$;
-
-CREATE OR REPLACE FUNCTION public.daraja_duel_badge(p_token text)
- RETURNS integer
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'daraja', 'public'
-AS $function$
-declare s daraja.staff;
-begin
-  s := daraja.who(p_token);
-  return (select count(*) from daraja.duels where ((opponent = s.id and status = 'pending' and created_at > now() - interval '24 hours')
-    or ((challenger = s.id or opponent = s.id) and status in ('ready','live') and coalesce(accepted_at, created_at) > now() - interval '24 hours')));
-end $function$;
-
 CREATE OR REPLACE FUNCTION public.daraja_duel_cancel(p_token text, p_duel uuid)
  RETURNS json
  LANGUAGE plpgsql
@@ -1228,24 +1141,6 @@ begin
   if d.status not in ('pending','ready') then return json_build_object('ok', false, 'error', d.status); end if;
   update daraja.duels set status = 'cancelled', done_at = now() where id = d.id;
   return json_build_object('ok', true);
-end $function$;
-
-CREATE OR REPLACE FUNCTION public.daraja_duel_get(p_token text, p_duel uuid)
- RETURNS json
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'daraja', 'public'
-AS $function$
-declare s daraja.staff; d daraja.duels; mine jsonb;
-begin
-  s := daraja.who(p_token);
-  select * into d from daraja.duels where id = p_duel and (challenger = s.id or opponent = s.id);
-  if d.id is null then raise exception 'duel'; end if;
-  mine := case when d.challenger = s.id then d.c_ans else d.o_ans end;
-  return json_build_object('id', d.id, 'status', d.status, 'questions', daraja.q_json(d.question_ids),
-    'answered', (select coalesce(json_agg(k), '[]'::json) from jsonb_object_keys(mine) k),
-    'correct', (select count(*) from jsonb_each(mine) e where (e.value->>'ok')::boolean),
-    'started', coalesce(d.started->(s.id::text), '{}'::jsonb), 'now', extract(epoch from clock_timestamp()));
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_duel_new(p_token text, p_opponent uuid)
@@ -1325,24 +1220,6 @@ begin
     update daraja.duels set status = 'declined', done_at = now() where id = d.id;
   end if;
   return json_build_object('ok', true);
-end $function$;
-
-CREATE OR REPLACE FUNCTION public.daraja_duel_start(p_token text, p_duel uuid, p_question uuid)
- RETURNS json
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'daraja', 'public'
-AS $function$
-declare s daraja.staff; d daraja.duels; me text;
-begin
-  s := daraja.who(p_token); me := s.id::text;
-  select * into d from daraja.duels where id = p_duel and (challenger = s.id or opponent = s.id) and status = 'open' for update;
-  if d.id is null or not (p_question = any(d.question_ids)) then raise exception 'duel'; end if;
-  if not coalesce((d.started->me) ? p_question::text, false) then
-    update daraja.duels set started = jsonb_set(started, array[me], coalesce(started->me, '{}'::jsonb) || jsonb_build_object(p_question::text, extract(epoch from clock_timestamp())))
-      where id = d.id returning * into d;
-  end if;
-  return json_build_object('elapsed', extract(epoch from clock_timestamp()) - (d.started->me->>p_question::text)::numeric);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_duel_state(p_token text, p_duel uuid)
@@ -1446,21 +1323,6 @@ begin
       'avatar', (select avatar from daraja.staff where id = e.winner)) end);
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.daraja_leaderboard(p_token text, p_venue text DEFAULT NULL::text)
- RETURNS json
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'daraja', 'extensions', 'public'
-AS $function$
-declare s daraja.staff; v text;
-begin
-  s := daraja.who(p_token);
-  v := case when s.role = 'super' then coalesce(p_venue, s.venue, 'baro') else s.venue end;
-  return (select coalesce(json_agg(x order by x.pts desc, x.name), '[]'::json) from (
-    select o.id, daraja.display_name(o) as name, o.avatar, daraja.live_streak(o) streak, daraja.month_points(o.id) pts
-    from daraja.staff o where o.venue = v and o.active and o.role = 'staff') x);
-end $function$;
-
 CREATE OR REPLACE FUNCTION public.daraja_leaderboard2(p_token text, p_venue text DEFAULT NULL::text, p_kind text DEFAULT 'savoir'::text)
  RETURNS json
  LANGUAGE plpgsql
@@ -1537,6 +1399,7 @@ begin
     np := daraja.new_pin();
     update daraja.staff set pin_hash = crypt(np, gen_salt('bf')), pin_len = 6 where id = s.id;
   end if;
+  perform daraja.prune();
   t := encode(gen_random_bytes(24), 'hex');
   insert into daraja.sessions(token, staff_id) values (t, s.id);
   return json_build_object('token', t, 'new_pin', np);
@@ -1836,24 +1699,6 @@ begin
     'cats', (select json_agg(json_build_object('key', 'cat:' || c, 'label', daraja.cat_label(c), 'enabled', daraja.is_enabled(v, p_family, 'cat:' || c),
         'count', (select count(*) from daraja.questions q where q.active and q.cat = c and (q.venue is null or q.venue = v))) order by o)
       from unnest(array['hospitalite','vente','cocktails','vins','anglais','carte','histoire','cuisine','securite','caisse']) with ordinality t(c, o)));
-end $function$;
-
-CREATE OR REPLACE FUNCTION public.daraja_story(p_token text, p_back integer DEFAULT 0)
- RETURNS json
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'daraja', 'public'
-AS $function$
-declare n int; idx int; st daraja.stories; b int;
-begin
-  perform daraja.who(p_token);
-  select count(*) into n from daraja.stories;
-  if n = 0 then return null; end if;
-  b := greatest(0, least(coalesce(p_back, 0), 30));
-  idx := ((daraja.today() - date '2026-10-26' - b) % n + n) % n;
-  select * into st from daraja.stories order by id offset idx limit 1;
-  return json_build_object('title', st.title, 'person', st.person, 'cat', st.cat, 'body', st.body, 'lesson', st.lesson,
-    'back', b, 'num', idx + 1, 'total', n);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_test_answer(p_token text, p_question uuid, p_choice integer, p_answer jsonb)

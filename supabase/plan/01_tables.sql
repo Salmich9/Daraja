@@ -7,7 +7,6 @@ create sequence if not exists daraja.conduct_rules_id_seq;
 create sequence if not exists daraja.quotes_id_seq;
 create sequence if not exists daraja.answers_id_seq;
 create sequence if not exists daraja.missions_id_seq;
-create sequence if not exists daraja.stories_id_seq;
 create sequence if not exists daraja.client_errors_id_seq;
 
 create table if not exists daraja.answers (
@@ -105,7 +104,6 @@ create table if not exists daraja.duels (
   question_ids uuid[] not null,
   c_ans jsonb not null default '{}'::jsonb,
   o_ans jsonb not null default '{}'::jsonb,
-  started jsonb not null default '{}'::jsonb,
   status text not null default 'open'::text,
   winner uuid,
   created_at timestamp with time zone not null default now(),
@@ -253,16 +251,6 @@ create table if not exists daraja.staff (
   pin_len integer not null default 4
 );
 alter table daraja.staff enable row level security;
-
-create table if not exists daraja.stories (
-  id integer not null default nextval('daraja.stories_id_seq'::regclass),
-  cat text,
-  title text not null,
-  person text not null,
-  body text not null,
-  lesson text
-);
-alter table daraja.stories enable row level security;
 
 create table if not exists daraja.venue_contacts (
   venue text not null,
