@@ -1,5 +1,5 @@
-:root, .t-baro { --bg:#0F3B33; --fg:#F2FFF9; --card:#164B41; --acc:#F2B544; --btxt:#0F3B33; --line:#235F53; --muted:#A9CFC3; --bad:#FF7A59; --good:#7BE0B5; --b1:#1E7F68; --b2:#F2B544; --b3:#FF7A59; --nav:rgba(15,59,51,.92); }
-.t-zz { --bg:#FFF1DE; --fg:#3A1D10; --card:rgba(255,255,255,.82); --acc:#D9480F; --btxt:#FFFFFF; --line:#F1D2B6; --muted:#8A5A40; --bad:#C81E3A; --good:#1F9E85; --b1:#FF9A5A; --b2:#2BB39A; --b3:#F2C230; --nav:rgba(255,241,222,.92); }
+:root, .t-baro { --bg:#0F3B33; --fg:#F2FFF9; --card:#164B41; --acc:#F2B544; --btxt:#0F3B33; --line:#235F53; --muted:#BCDDD2; --bad:#FF7A59; --good:#7BE0B5; --b1:#1E7F68; --b2:#F2B544; --b3:#FF7A59; --nav:rgba(15,59,51,.92); }
+.t-zz { --bg:#FFF1DE; --fg:#3A1D10; --card:rgba(255,255,255,.82); --acc:#D9480F; --btxt:#FFFFFF; --line:#F1D2B6; --muted:#744630; --bad:#C81E3A; --good:#1F9E85; --b1:#FF9A5A; --b2:#2BB39A; --b3:#F2C230; --nav:rgba(255,241,222,.92); }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin:0; height:100%; touch-action: manipulation; overscroll-behavior: none; }
 body { font-family: Inter, system-ui, sans-serif; background: var(--bg); color: var(--fg); }
@@ -29,7 +29,7 @@ h1 { font-family: Fraunces, Georgia, serif; font-weight:500; font-size: 24px; ma
 .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .gift { text-align:center; margin:0; cursor:pointer; border: 1px solid transparent; }
 .gift i { font-size: 26px; }
-.gift.locked { opacity:.5; }
+.gift.locked { opacity:.78; }
 .nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; display:flex; justify-content: space-around; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); background: var(--nav); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid var(--line); z-index: 5; }
 .nav button { background:none; border:0; color: var(--muted); font-size: 24px; padding: 4px 10px; cursor:pointer; }
 .nav button.on { color: var(--acc); }
@@ -93,7 +93,7 @@ select { appearance:none; }
 .shake { animation: shake .42s; }
 .pulse { animation: pulse 1.8s ease-in-out infinite; }
 .flame { font-size: 30px; color: #E8833A; display:inline-block; animation: flick 1.2s ease-in-out infinite; }
-.flame.off { color: var(--muted); animation:none; opacity:.5; }
+.flame.off { color: var(--muted); animation:none; opacity:.75; }
 .ringbar { animation: ringin 1.2s ease-out; }
 #fx { position: fixed; inset: 0; pointer-events: none; z-index: 30; overflow: hidden; }
 .conf { position:absolute; top:-12px; width:8px; height:13px; border-radius:2px; animation: fall 1.5s ease-in forwards; }
@@ -125,7 +125,7 @@ select { appearance:none; }
 .gift { position: relative; }
 .gift.near { border: 2px solid var(--acc); animation: pulse 1.6s ease-in-out infinite; }
 .gift.ready { border: 2px solid var(--good); }
-.gift.locked { opacity: .6; }
+.gift.locked { opacity: .78; }
 .tag { position:absolute; top:-8px; right:8px; background: var(--acc); color: var(--btxt); font-size: 11px; font-weight: 700; border-radius: 10px; padding: 2px 8px; }
 .gift.ready .tag { background: var(--good); color: #fff; }
 .sheet.center { align-items: center; }
@@ -149,7 +149,7 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 
 /* fond animé */
 .blobs { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-.blobs i { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55; animation: drift 18s ease-in-out infinite alternate; }
+.blobs i { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .42; animation: drift 18s ease-in-out infinite alternate; }
 .blobs i:nth-child(1) { width: 320px; height: 320px; background: var(--b1); top: -90px; left: -80px; }
 .blobs i:nth-child(2) { width: 240px; height: 240px; background: var(--b2); top: 38%; right: -110px; opacity: .35; animation-duration: 23s; animation-delay: -6s; }
 .blobs i:nth-child(3) { width: 260px; height: 260px; background: var(--b3); bottom: -120px; left: 10%; opacity: .3; animation-duration: 27s; animation-delay: -12s; }
