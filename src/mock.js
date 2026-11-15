@@ -20,7 +20,7 @@ export default async function mock(fn, a) {
     case 'daraja_rewards': return rewards.filter(r => r.active)
     case 'daraja_mission': return { title: "Raconte l'histoire d'un cocktail signature à 3 tables différentes", family: 'salle', done: false, days_left: 4 }
     case 'daraja_draw_info': return { tickets: 9, days_left: 5, last: { month: '2026-09', prize: 'Dîner pour 2', winner: 'Youssef', me: false } }
-    case 'daraja_leaderboard2': return staff.map(s => ({ id: s.id, name: s.display, avatar: s.avatar, streak: s.streak, val: a.p_kind === 'assiduite' ? s.days_played * 3 : a.p_kind === 'progression' ? (s.days_played ? s.acc - s.prev_acc : null) : s.pts })).sort((x, y) => (y.val ?? -999) - (x.val ?? -999))
+    case 'daraja_leaderboard2': return [...staff, ...(localStorage.getItem('mock_role') === 'staff' ? [{ id: 'me', display: 'Salmane', avatar: 'fun-emoji:Zama', streak: 6, days_played: 14, acc: 70, prev_acc: 66, pts: 480 }] : [])].map(s => ({ id: s.id, name: s.display, avatar: s.avatar, streak: s.streak, val: a.p_kind === 'assiduite' ? s.days_played * 3 : a.p_kind === 'progression' ? (s.days_played ? s.acc - s.prev_acc : null) : s.pts })).sort((x, y) => (y.val ?? -999) - (x.val ?? -999))
     case 'daraja_contacts': return []
     case 'daraja_admin': return { reviews: [], gifts: [{ id: 'g1', name: 'Amina B.', note: 'Café ou boisson offerte' }], staff }
     case 'daraja_admin_missions': return { salle: "Raconte l'histoire d'un cocktail signature à 3 tables différentes", bar: 'Présente la Mixology Class à 3 clients', cuisine: 'Zéro produit sans étiquette dans ta zone toute la semaine', support: "Accueille chaque client par un bonjour et un sourire 5 soirs d'affilée" }

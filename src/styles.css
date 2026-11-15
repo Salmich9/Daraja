@@ -239,3 +239,17 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 .card.hero.danger { border-color: #E8833A; background: linear-gradient(160deg, color-mix(in srgb, #E8833A 22%, var(--card)), var(--card) 60%); }
 .coin { color: #F2B544; margin-left: 3px; }
 .t-zz .coin { color: #D9A400; }
+/* Classement : podium + ma position */
+.podium { display:grid; grid-template-columns: 1fr 1.15fr 1fr; align-items:end; gap: 8px; margin: 18px 0 14px; }
+.pod { display:flex; flex-direction:column; align-items:center; text-align:center; position:relative; animation: rise .5s ease both; }
+.pod.p1 { animation-delay: .15s; } .pod.p2 { animation-delay: .05s; } .pod.p3 { animation-delay: .25s; }
+.crown { color: #F2C230; font-size: 26px; margin-bottom: -4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+.podname { font-weight: 700; font-size: 14px; margin-top: 6px; max-width: 100%; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+.podval { font-size: 13px; font-weight: 700; color: var(--acc); margin: 2px 0 6px; }
+.podbase { width: 100%; border-radius: 12px 12px 4px 4px; display:grid; place-items:center; font: 800 22px Inter, sans-serif; color: rgba(0,0,0,.55); }
+.p1 .podbase { height: 74px; background: linear-gradient(#F7D774, #E0A92E); }
+.p2 .podbase { height: 52px; background: linear-gradient(#E4E9EC, #AEB8BF); }
+.p3 .podbase { height: 38px; background: linear-gradient(#E9B48A, #B9774A); }
+.pod.me .podname { color: var(--acc); }
+.mybar { position: fixed; left: 12px; right: 12px; margin: 0 auto; bottom: calc(64px + env(safe-area-inset-bottom)); max-width: 456px; display:flex; align-items:center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: color-mix(in srgb, var(--acc) 22%, var(--bg)); border: 2px solid var(--acc); box-shadow: 0 6px 20px rgba(0,0,0,.3); z-index: 4; }
+.myrank { font: 800 18px Inter, sans-serif; color: var(--acc); min-width: 34px; text-align:center; }
