@@ -779,6 +779,7 @@ insert into daraja.rule_values (key, val) values
 ('chest_p_rare', 28),
 ('chest_p_ticket', 10),
 ('chest_rare', 15),
+('chest_week', 2),
 ('clean_month', 100),
 ('duel_cap', 3),
 ('duel_tie', 10),
@@ -797,8 +798,8 @@ insert into daraja.rule_values (key, val) values
 ('review', 100),
 ('streak_days', 20),
 ('streak_step', 5),
-('time', 6),
-('time_long', 15)
+('time', 9),
+('time_long', 18)
 on conflict do nothing;
 select setval('daraja.conduct_rules_id_seq', (select coalesce(max(id),1) from daraja.conduct_rules));
 select setval('daraja.missions_id_seq', (select coalesce(max(id),1) from daraja.missions));

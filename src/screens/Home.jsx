@@ -5,7 +5,8 @@ import { DuelCard } from './Duels'
 import { Chest } from './Chest'
 
 function Home({ token, me, venue, go, toast, duels, openDuel, refresh, practice }) {
-  const [chestOpen, setChestOpen] = useState(false)
+  // Ouverture directe du coffre quand on revient de l'histoire du jour
+  const [chestOpen, setChestOpen] = useState(() => { try { const f = sessionStorage.getItem('daraja_open_chest'); sessionStorage.removeItem('daraja_open_chest'); return !!f && me.chest === 'ready' } catch { return false } })
   const [rewards, setRewards] = useState([])
   useEffect(() => { rpc('daraja_rewards', { p_token: token, p_venue: venue }).then(setRewards).catch(() => {}) }, [token, venue])
   const lv = level(me.earned)
@@ -45,6 +46,7 @@ function Home({ token, me, venue, go, toast, duels, openDuel, refresh, practice 
         </div>
         {me.quiz_done
           ? me.chest === 'ready' ? <button className="btn pulse big" onClick={() => setChestOpen(true)}><i className="ti ti-sparkles" /> Ouvrir mon coffre</button>
+            : me.chest === 'story' ? <button className="btn pulse big" onClick={() => go('stories')}><i className="ti ti-book-2" /> Lis l'histoire du jour <i className="ti ti-sparkles" /></button>
             : <div className="row u-gap-8"><button className="btn" onClick={practice}><i className="ti ti-barbell" /> S'entraîner</button><button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Mon score</button></div>
           : <button className="btn pulse big" onClick={() => go('quiz')}>Jouer <i className="ti ti-player-play" /></button>}
       </div>

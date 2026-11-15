@@ -118,12 +118,12 @@ export default function App() {
       {invite && tab !== 'live' && tab !== 'quiz' && <DuelInvite d={invite} token={token} close={() => setInvite(null)} open={openDuel} toast={toast} />}
       {tab === 'quiz' && (preview && play.mode === 'daily'
         ? <Quiz key="pv" token={token} me={me} mode="test" ctx={{ post: preview, venue: me.venue }} done={() => go('home')} />
-        : <Quiz key={play.mode + (play.ctx.duel || '')} token={token} me={me} mode={play.mode} ctx={play.ctx} practice={me.role === 'staff' ? startPractice : null} done={() => go(play.mode === 'test' ? 'profile' : 'home')} />)}
+        : <Quiz key={play.mode + (play.ctx.duel || '')} token={token} me={me} mode={play.mode} ctx={play.ctx} practice={me.role === 'staff' ? startPractice : null} onStory={() => go('stories')} done={() => go(play.mode === 'test' ? 'profile' : 'home')} />)}
       {tab === 'duels' && <Duels token={token} venue={venue} toast={toast} duels={preview ? [] : duels} reload={loadDuels} open={id => preview ? toast('Pas de duel en aperçu') : openDuel(id)} />}
       {tab === 'rules' && <Rules token={token} back={() => go('profile')} />}
       {testOpen && <TestMode token={token} me={real} close={() => setTestOpen(false)} startTest={startTest} preview={p => { setTestOpen(false); setPreview(p); go('home') }} />}
       {tab === 'board' && <Board token={token} me={me} venue={venue} />}
-      {tab === 'stories' && <Stories />}
+      {tab === 'stories' && <Stories token={token} me={me} go={go} refresh={refresh} />}
       {tab === 'shop' && <Shop token={token} me={me} venue={venue} refresh={refresh} toast={toast} />}
       {tab === 'profile' && <Profile token={token} me={preview ? real : me} logout={logout} toast={toast} refresh={refresh} go={go} openTest={() => setTestOpen(true)} />}
       {tab === 'admin' && isAdmin && <Admin token={token} me={me} venue={venue} toast={toast} />}

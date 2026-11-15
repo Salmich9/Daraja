@@ -269,6 +269,12 @@ create table if not exists daraja.staff (
 );
 alter table daraja.staff enable row level security;
 
+create table if not exists daraja.story_reads (
+  staff_id uuid not null,
+  day date not null
+);
+alter table daraja.story_reads enable row level security;
+
 create table if not exists daraja.venue_contacts (
   venue text not null,
   role text not null,

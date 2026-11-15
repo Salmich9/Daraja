@@ -158,6 +158,7 @@ const EARN = () => [
   ['crown', 'Employé du mois', `+${RV.eotm}`],
   ['cake', 'Ton anniversaire', `+${RV.birthday}`],
   ['swords', 'Duel gagné', `+${RV.duel_win} (égalité : +${RV.duel_tie})`],
+  ['sparkles', `Coffre surprise : défi fini + histoire du jour lue, ${RV.chest_week || 2} par semaine`, `+${RV.chest_common} à +${RV.chest_legend}, ou 1 ticket`],
 ]
 
 function Rules({ token, back }) {

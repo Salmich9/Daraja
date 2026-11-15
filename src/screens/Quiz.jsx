@@ -82,7 +82,7 @@ function Timer({ q, deadline, onEnd, stopped }) {
   )
 }
 
-function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd, practice }) {
+function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd, practice, onStory }) {
   const M = QMODES[mode]
   const [data, setData] = useState(null)
   const [i, setI] = useState(0)
@@ -129,7 +129,8 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd, practice }) {
       {mode === 'daily' && <>
         <div className="acc u-fs-20 u-fw-600 u-m-6px-0" >+{pts + bonus} pièces</div>
         {bonus > 0 && <div className="sub">dont +{RV.presence} de présence{bonus > RV.presence ? ' et +' + (bonus - RV.presence) + ' de série' : ''} · +1 ticket</div>}
-        {me?.role === 'staff' && <Chest token={token} />}
+        {me && me.chest_left > 0 && (me.story_read ? <Chest token={token} />
+          : onStory && <button className="btn pulse big u-mt-14" onClick={() => { onEnd && onEnd(); onStory() }}><i className="ti ti-book-2" /> Lis l'histoire du jour <i className="ti ti-sparkles" /></button>)}
       </>}
       {mode === 'test' && <div className="sub u-m-6px-0" >Mode test : rien n'est enregistré</div>}
       {mode === 'practice' && <div className="sub u-m-6px-0" ><i className="ti ti-barbell" /> Entraînement : pas de pièces, que du savoir</div>}

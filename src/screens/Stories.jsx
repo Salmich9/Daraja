@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { rpc } from '../lib'
 
 let storiesMod = null
 
@@ -14,12 +15,13 @@ const chunk = body => body.split(/\n+/).flatMap(p => {
 
 const SCAT = { sport: 'Sport', entrepreneur: 'Entrepreneur', restauration: 'Restauration', artiste: 'Artiste', pionnier: 'Pionnier' }
 
-function StoryCards({ s }) {
+function StoryCards({ s, onEnd }) {
   const cards = [{ cover: true }, ...chunk(s.body).map(t => ({ t })), { lesson: true }]
   const [k, setK] = useState(0)
   const x0 = useRef(null)
   const go = d => setK(v => Math.max(0, Math.min(cards.length - 1, v + d)))
   const c = cards[k]
+  useEffect(() => { if (k === cards.length - 1 && onEnd) onEnd() }, [k, cards.length, onEnd])
   return (
     <div className="stcards">
       <div className="stbars">{cards.map((_, i) => <i key={i} className={i <= k ? 'on' : ''} />)}</div>
@@ -36,9 +38,15 @@ function StoryCards({ s }) {
   )
 }
 
-function Stories() {
+function Stories({ token, me, go, refresh }) {
   const [list, setList] = useState(storiesMod)
   const [back, setBack] = useState(0)
+  const [read, setRead] = useState(!!me?.story_read)
+  // Histoire du jour lue jusqu'au bout : on l'enregistre (elle ouvre le coffre)
+  const markRead = React.useCallback(() => {
+    if (read || !token) return
+    setRead(true); rpc('daraja_story_read', { p_token: token }).then(() => refresh && refresh()).catch(() => setRead(false))
+  }, [read, token, refresh])
   useEffect(() => { if (!storiesMod) import('../stories.json').then(m => { storiesMod = m.default; setList(m.default) }) }, [])
   if (!list) return <div className="page sub">On ouvre le livre…</div>
   const n = list.length, idx = (((daysSince() - back) % n) + n) % n, s = list[idx]
@@ -48,7 +56,8 @@ function Stories() {
       <div className="row between">
         <span className="sub u-tt-capitalize" >{back === 0 ? "Aujourd'hui" : d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })}</span>
       </div>
-      <StoryCards key={idx} s={s} />
+      <StoryCards key={idx} s={s} onEnd={back === 0 ? markRead : null} />
+      {back === 0 && read && me?.chest === 'ready' && <button className="btn pulse big u-mt-14" onClick={() => { try { sessionStorage.setItem('daraja_open_chest', '1') } catch { /* rien */ } go('home') }}><i className="ti ti-sparkles" /> Ouvrir mon coffre</button>}
       <div className="row u-gap-10 u-mt-20" >
         <button className="btn ghost" disabled={back >= 30} onClick={() => { setBack(back + 1); window.scrollTo(0, 0) }}><i className="ti ti-chevron-left" /> Histoire d'hier</button>
         <button className="btn ghost" disabled={back === 0} onClick={() => { setBack(back - 1); window.scrollTo(0, 0) }}>Plus récente <i className="ti ti-chevron-right" /></button>

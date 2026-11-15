@@ -80,6 +80,21 @@ AS $function$
   when 'legendes' then 'Légendes et palmarès du F&B' when 'escapades' then 'Escapades autour de Marrakech'
   when 'terroirs' then 'Vins et terroirs du Maroc' when 'artisanat' then 'Artisanat et art de vivre' when 'agenda' then 'Agenda et actualité du Maroc' else c end $function$;
 
+CREATE OR REPLACE FUNCTION daraja.chest_state(p_staff uuid)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+  select case
+    when not exists (select 1 from daraja.quiz_sessions q where q.staff_id = p_staff and q.day = daraja.today()
+                     and cardinality(q.answered) >= cardinality(q.question_ids)) then 'locked'
+    when exists (select 1 from daraja.chests c where c.staff_id = p_staff and c.day = daraja.today()) then 'opened'
+    when (select count(*) from daraja.chests c where c.staff_id = p_staff and c.day >= daraja.week_start()) >= daraja.rv('chest_week') then 'week'
+    when not exists (select 1 from daraja.story_reads r where r.staff_id = p_staff and r.day = daraja.today()) then 'story'
+    else 'ready' end
+$function$;
+
 CREATE OR REPLACE FUNCTION daraja.conduct_bonus(p_staff uuid)
  RETURNS void
  LANGUAGE plpgsql
@@ -1026,13 +1041,12 @@ CREATE OR REPLACE FUNCTION public.daraja_chest_open(p_token text)
  SECURITY DEFINER
  SET search_path TO 'daraja', 'public'
 AS $function$
-declare s daraja.staff; c daraja.chests; r numeric; k text; amt int := 0; acc int := 0;
+declare s daraja.staff; c daraja.chests; st text; r numeric; k text; amt int := 0; acc int := 0;
 begin
   s := daraja.who(p_token);
-  if not exists (select 1 from daraja.quiz_sessions q where q.staff_id = s.id and q.day = daraja.today()
-                 and cardinality(q.answered) >= cardinality(q.question_ids)) then
-    return json_build_object('ok', false, 'error', 'locked'); end if;
   perform pg_advisory_xact_lock(hashtext('chest' || s.id));
+  st := daraja.chest_state(s.id);
+  if st in ('locked', 'story', 'week') then return json_build_object('ok', false, 'error', st); end if;
   select * into c from daraja.chests where staff_id = s.id and day = daraja.today();
   if c.staff_id is not null then return json_build_object('ok', true, 'again', true, 'kind', c.kind, 'amount', c.amount); end if;
   r := random() * 100;
@@ -1541,7 +1555,8 @@ begin
     'streak', daraja.live_streak(s), 'flame', daraja.flame_state(s),
     'next_bonus', daraja.rv('streak_step') * least(daraja.live_streak(s) + 1, daraja.rv('streak_days')), 'rules', (select json_object_agg(key, val) from daraja.rule_values),
     'quiz_done', done,
-    'chest', case when not done then 'locked' when exists (select 1 from daraja.chests c where c.staff_id = s.id and c.day = daraja.today()) then 'opened' else 'ready' end,
+    'chest', daraja.chest_state(s.id), 'chest_left', greatest(0, daraja.rv('chest_week') - (select count(*) from daraja.chests c where c.staff_id = s.id and c.day >= daraja.week_start())),
+    'story_read', exists(select 1 from daraja.story_reads r where r.staff_id = s.id and r.day = daraja.today()),
     'week', (select json_agg(exists(select 1 from daraja.quiz_sessions q where q.staff_id = s.id and q.day = daraja.today() - g
       and cardinality(q.answered) >= cardinality(q.question_ids)) order by g desc) from generate_series(0, 6) g),
     'tickets', daraja.tickets(s.id, daraja.today()),
@@ -1836,6 +1851,19 @@ begin
     'cats', (select json_agg(json_build_object('key', 'cat:' || c, 'label', daraja.cat_label(c), 'enabled', daraja.is_enabled(v, p_family, 'cat:' || c),
         'count', (select count(*) from daraja.questions q where q.active and q.cat = c and (q.venue is null or q.venue = v))) order by o)
       from unnest(array['hospitalite','vente','cocktails','vins','anglais','carte','histoire','cuisine','securite','caisse']) with ordinality t(c, o)));
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_story_read(p_token text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  insert into daraja.story_reads(staff_id, day) values (s.id, daraja.today()) on conflict do nothing;
+  return json_build_object('ok', true, 'chest', daraja.chest_state(s.id));
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_test_answer(p_token text, p_question uuid, p_choice integer, p_answer jsonb)
