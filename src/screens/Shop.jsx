@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { TIERS, burst, fmt, rpc, waLink } from '../lib'
+import { sfx, TIERS, burst, fmt, rpc, waLink } from '../lib'
 
 function Shop({ token, me, venue, refresh, toast }) {
   const [items, setItems] = useState(null)
@@ -12,7 +12,7 @@ function Shop({ token, me, venue, refresh, toast }) {
   const buy = async () => {
     try {
       const r = await rpc('daraja_redeem', { p_token: token, p_reward: sel.id })
-      if (r.ok) { setClaim(sel); burst(60); refresh(); load() }
+      if (r.ok) { setClaim(sel); burst(60); sfx('coin'); refresh(); load() }
       else toast(r.error === 'blocked' ? 'Boutique bloquée suite à une faute grave' : r.error === 'conditions' ? 'Une condition n\'est pas encore remplie' : r.error === 'stock' ? 'Plus en stock' : 'Pas assez de pièces')
     } catch { toast('Erreur, réessaie') }
     setSel(null)

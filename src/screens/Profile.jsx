@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { RV, AV_LIB, AV_STYLES, LINE, dshort, fmt, level, rpc } from '../lib'
+import { RV, sfx, soundOn, setSound, AV_LIB, AV_STYLES, LINE, dshort, fmt, level, rpc } from '../lib'
 import { Avatar, Info, Pill, PostSelect } from '../ui'
 
 function ProfileEdit({ token, me, close, done }) {
@@ -39,6 +39,7 @@ function Profile({ token, me, logout, toast, refresh, go, openTest }) {
   const lv = level(me.earned)
   const [avis, setAvis] = useState(false)
   const [bsel, setBsel] = useState(null)
+  const [snd, setSnd] = useState(soundOn())
   const [note, setNote] = useState('')
   const [err, setErr] = useState('')
   const [edit, setEdit] = useState(false)
@@ -99,6 +100,7 @@ function Profile({ token, me, logout, toast, refresh, go, openTest }) {
       <button className="btn ghost" style={{ marginTop: 24 }} onClick={() => go('rules')}><i className="ti ti-book" /> Règles du jeu</button>
       {me.role === 'super' && <button className="btn ghost" style={{ marginTop: 10 }} onClick={openTest}><i className="ti ti-flask" /> Mode test</button>}
       <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => setAvis(true)}><i className="ti ti-star" /> Un client m'a cité dans un avis</button>
+      <div className="card tog" style={{ marginTop: 10 }}><span><i className={'ti ' + (snd ? 'ti-volume' : 'ti-volume-off') + ' acc'} /> Sons du jeu</span><button className={'sw ' + (snd ? 'on' : '')} aria-label="Sons du jeu" onClick={() => { setSound(!snd); setSnd(!snd); if (!snd) setTimeout(() => sfx('good'), 50) }} /></div>
       <button className="btn ghost" style={{ marginTop: 10, color: 'var(--muted)' }} onClick={logout}><i className="ti ti-logout" /> Me déconnecter</button>
       <div className="sub" style={{ textAlign: 'center', fontSize: 11, opacity: .7, marginTop: 14 }}>Version {__VERSION__}</div>
       {avis && <div className="sheet" onClick={() => setAvis(false)}>

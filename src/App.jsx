@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { MOCK, RV, TK, VK, sb, burst, buzz, level, rpc, store } from './lib'
+import { sfx, MOCK, RV, TK, VK, sb, burst, buzz, level, rpc, store } from './lib'
 import { Toast } from './ui'
 import { Login, QuoteSplash } from './screens/Login'
 import { Home } from './screens/Home'
@@ -40,7 +40,7 @@ export default function App() {
   }, [loadDuels, me?.role, me?.rt])
   useEffect(() => {
     const d = (duels || []).find(x => ((x.status === 'pending' && !x.mine) || x.status === 'ready') && !seenInv.current.has(x.id + x.status))
-    if (d) { seenInv.current.add(d.id + d.status); setInvite(d); buzz(80) }
+    if (d) { seenInv.current.add(d.id + d.status); setInvite(d); buzz(80); sfx('duel') }
   }, [duels])
   const toast = m => { setMsg(m); setTimeout(() => setMsg(''), 2200) }
   const todayKey = new Date().toLocaleDateString('fr-CA')
@@ -54,7 +54,7 @@ export default function App() {
     if (!me) return
     if (store.get('daraja_quote_day') !== todayKey) setSplash(true)
     const n = level(me.earned).n, key = 'daraja_lv_' + me.id, prev = parseInt(store.get(key) || '0', 10)
-    if (prev && n > prev) { setLevelUp(level(me.earned)); setTimeout(() => burst(80), 150) }
+    if (prev && n > prev) { setLevelUp(level(me.earned)); setTimeout(() => { burst(80); sfx('level') }, 150) }
     store.set(key, String(n))
   }, [me?.id, me?.earned])
 

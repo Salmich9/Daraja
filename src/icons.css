@@ -161,6 +161,7 @@
 .ti-slice:before{content:"\ebdb"}
 .ti-sparkles:before{content:"\f6d7"}
 .ti-speakerphone:before{content:"\ed61"}
+.ti-square:before{content:"\eb2c"}
 .ti-stack:before{content:"\eb2d"}
 .ti-stairs-up:before{content:"\eca5"}
 .ti-star:before{content:"\eb2e"}
@@ -185,12 +186,15 @@
 .ti-train:before{content:"\ed96"}
 .ti-transform:before{content:"\f38e"}
 .ti-trending-up:before{content:"\eb43"}
+.ti-triangle:before{content:"\eb44"}
 .ti-trophy:before{content:"\eb45"}
 .ti-user:before{content:"\eb4d"}
 .ti-user-plus:before{content:"\eb4b"}
 .ti-user-star:before{content:"\f7d1"}
 .ti-users:before{content:"\ebf2"}
 .ti-venus:before{content:"\ec86"}
+.ti-volume:before{content:"\eb51"}
+.ti-volume-off:before{content:"\f1c3"}
 .ti-vs:before{content:"\fc52"}
 .ti-wifi-off:before{content:"\ecfa"}
 .ti-window:before{content:"\ef06"}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { RV, burst, buzz, imgSrc, rpc, waLink } from '../lib'
+import { RV, sfx, burst, buzz, imgSrc, rpc, waLink } from '../lib'
 import { Avatar, Info } from '../ui'
 import { MatchGame, OrderGame, Timer } from './Quiz'
 
@@ -112,7 +112,7 @@ function LiveDuel({ token, id, back, toast, refresh, open }) {
     const a = setInterval(load, 1000), b = setInterval(() => tick(x => x + 1), 200)
     return () => { clearInterval(a); clearInterval(b) }
   }, [load])
-  useEffect(() => { if (st?.status === 'done' && !celebrated.current) { celebrated.current = true; if (st.winner) burst(90); refresh() } }, [st?.status])
+  useEffect(() => { if (st?.status === 'done' && !celebrated.current) { celebrated.current = true; if (st.winner) { burst(90); sfx('win') } refresh() } if (st?.status === 'live') sfx('duel') }, [st?.status])
   if (!st) return <div className="page sub">Connexion au duel…</div>
   const now = Date.now() / 1000 + off.current
   const Head = () => (
@@ -217,7 +217,7 @@ function LiveDuel({ token, id, back, toast, refresh, open }) {
     setMine(m => ({ ...m, [idx]: { pending: true } }))
     try {
       const r = await rpc('daraja_duel_play', { p_token: token, p_duel: id, p_idx: idx, p_choice: k ?? -1, p_answer: a ?? null })
-      if (r.ok) { setMine(m => ({ ...m, [idx]: r })); if (r.correct) { burst(25); buzz(20) } else buzz(120); load() }
+      if (r.ok) { setMine(m => ({ ...m, [idx]: r })); if (r.correct) { burst(25); buzz(20); sfx('good') } else { buzz(120); sfx('bad') } load() }
       else setMine(m => ({ ...m, [idx]: { correct: false, late: true } }))
     } catch { setMine(m => { const n = { ...m }; delete n[idx]; return n }) }
   }

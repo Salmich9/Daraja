@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { RV, ROLES, burst, buzz, flyPoints, imgSrc, rpc, waLink } from '../lib'
+import { RV, ROLES, sfx, burst, buzz, flyPoints, imgSrc, rpc, waLink } from '../lib'
 import { LevelBadge } from '../ui'
 
 function OrderGame({ q, onAnswer, res }) {
@@ -70,6 +70,8 @@ function Timer({ q, deadline, onEnd, stopped }) {
   const total = (q.limit || 6) * 1000
   const pct = Math.max(0, Math.min(100, (left / total) * 100))
   const sec = Math.ceil(left / 1000)
+  const lastTick = React.useRef(null)
+  useEffect(() => { if (!stopped && sec > 0 && sec <= 3 && lastTick.current !== sec) { lastTick.current = sec; sfx('tick') } }, [sec, stopped])
   return (
     <div className={'timer' + (sec <= 2 && !stopped ? ' hot' : '')}>
       <div className="tbar"><div style={{ width: pct + '%' }} /></div>
@@ -112,7 +114,7 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
     setDeadline(null)
     M.start(token, q.id, ctx).then(r => setDeadline(Date.now() + ((q.limit || 6) - (r?.elapsed || 0)) * 1000)).catch(() => setDeadline(Date.now() + (q.limit || 6) * 1000))
   }, [q?.id])
-  useEffect(() => { if (data && i >= qs.length && qs.length && score >= 4) setTimeout(() => burst(60), 200) }, [i, data])
+  useEffect(() => { if (data && i >= qs.length && qs.length && score >= 4) setTimeout(() => { burst(60); sfx('win') }, 200) }, [i, data])
 
   if (err) return <div className="page" style={{ textAlign: 'center', paddingTop: 60 }}><div className="err">{err}</div><button className="btn" style={{ marginTop: 14 }} onClick={() => { setErr(''); setRes(null); setPick(null); setRound(r => r + 1) }}>Recharger</button><button className="btn ghost" style={{ marginTop: 10 }} onClick={done}>Retour</button></div>
   if (!data) return <div className="page sub">Le barman prépare tes questions…</div>
@@ -146,8 +148,8 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
       if (r.today_points != null) setPts(r.today_points)
       if (r.streak_bonus > 0) setTimeout(() => flyPoints('+' + r.streak_bonus + ' série'), 900)
       if (r.presence > 0 || r.streak_bonus > 0) setBonus((r.presence || 0) + (r.streak_bonus || 0))
-      if (r.correct) { const c = combo + 1; setCombo(c); burst(c >= 3 ? 50 : 28); if (mode === 'daily') flyPoints('+' + r.points); buzz(20) }
-      else { setCombo(0); setShake(true); buzz(120); setTimeout(() => setShake(false), 450) }
+      if (r.correct) { const c = combo + 1; setCombo(c); sfx(c >= 3 ? 'combo' : 'good'); burst(c >= 3 ? 50 : 28); if (mode === 'daily') flyPoints('+' + r.points); buzz(20) }
+      else { setCombo(0); setShake(true); sfx(r.timeout || k === -1 ? 'late' : 'bad'); buzz(120); setTimeout(() => setShake(false), 450) }
     } catch { setErr('Erreur réseau, réessaie') }
     busy.current = false
   }

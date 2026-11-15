@@ -94,6 +94,37 @@ function flyPoints(text) {
   setTimeout(() => d.remove(), 1300)
 }
 
+// Sons du jeu, fabriqués à la volée (aucun fichier à télécharger). Coupables dans le profil, réglage gardé sur le téléphone.
+const SK = 'daraja_sound'
+let actx = null
+const soundOn = () => { try { return localStorage.getItem(SK) !== '0' } catch { return true } }
+const setSound = on => { try { localStorage.setItem(SK, on ? '1' : '0') } catch {} }
+const TUNES = {
+  good: [[784, 0, .09], [1175, .08, .16]],
+  combo: [[784, 0, .07], [988, .06, .07], [1319, .12, .18]],
+  bad: [[196, 0, .18, 'triangle'], [147, .12, .22, 'triangle']],
+  late: [[330, 0, .12, 'triangle'], [262, .14, .2, 'triangle']],
+  tick: [[1400, 0, .04, 'square', .05]],
+  win: [[523, 0, .12], [659, .12, .12], [784, .24, .12], [1047, .36, .35], [784, .5, .08], [1047, .58, .45]],
+  level: [[392, 0, .1], [523, .1, .1], [659, .2, .1], [784, .3, .1], [1047, .4, .5]],
+  coin: [[988, 0, .06], [1319, .06, .25]],
+  duel: [[220, 0, .15, 'sawtooth', .08], [330, .16, .15, 'sawtooth', .08], [440, .32, .3, 'sawtooth', .08]],
+}
+function sfx(name) {
+  if (!soundOn() || !TUNES[name]) return
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)()
+    if (actx.state === 'suspended') actx.resume()
+    const t0 = actx.currentTime + .01
+    for (const [f, at, dur, type = 'sine', vol = .16] of TUNES[name]) {
+      const o = actx.createOscillator(), g = actx.createGain()
+      o.type = type; o.frequency.value = f
+      g.gain.setValueAtTime(0, t0 + at); g.gain.linearRampToValueAtTime(vol, t0 + at + .012); g.gain.exponentialRampToValueAtTime(.0001, t0 + at + dur)
+      o.connect(g).connect(actx.destination); o.start(t0 + at); o.stop(t0 + at + dur + .05)
+    }
+  } catch {}
+}
+
 function buzz(ms = 30) { try { navigator.vibrate && navigator.vibrate(ms) } catch {} }
 
 function nextGift(rewards, pts) {
@@ -120,4 +151,4 @@ const monday = (off = 0) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.s
 // Règles du jeu : remplies par le serveur avec le profil (daraja_me.rules), seule source des chiffres affichés
 const RV = {}
 
-export { RV, reportError, avFile, sb, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }
+export { sfx, soundOn, setSound, RV, reportError, avFile, sb, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }
