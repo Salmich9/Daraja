@@ -12,9 +12,9 @@ function OrderGame({ q, onAnswer, res }) {
   return (
     <>
       <div className="slot">{picked.map(i => <span key={i} className="wchip in" onClick={() => !res && setPicked(picked.filter(x => x !== i))}>{words[i]}</span>)}</div>
-      {res && !res.correct && res.solution && <div className="sub" style={{ marginBottom: 8 }}>Bonne phrase : <b className="acc">{res.solution.join(' ').replace(/ ([?,.!])/g, '$1')}</b></div>}
+      {res && !res.correct && res.solution && <div className="sub u-mb-8" >Bonne phrase : <b className="acc">{res.solution.join(' ').replace(/ ([?,.!])/g, '$1')}</b></div>}
       <div>{left.map(x => <span key={x.i} className="wchip" onClick={() => !res && setPicked([...picked, x.i])}>{x.w}</span>)}</div>
-      {!res && picked.length > 0 && <div className="sub" style={{ marginTop: 8 }}>Touche un mot placé pour le retirer</div>}
+      {!res && picked.length > 0 && <div className="sub u-mt-8" >Touche un mot placé pour le retirer</div>}
     </>
   )
 }
@@ -44,7 +44,7 @@ function MatchGame({ q, onAnswer, res }) {
             onClick={() => !res && L !== null && !done.includes(right[i]) && tryPair(L, right[i])}>{pairs[right[i]][1]}</span>
         </div>
       ))}
-      {!res && <div className="sub" style={{ textAlign: 'center', marginTop: 6 }}>Touche à gauche, puis sa paire à droite · {mistakes} erreur{mistakes > 1 ? 's' : ''}</div>}
+      {!res && <div className="sub u-ta-center u-mt-6" >Touche à gauche, puis sa paire à droite · {mistakes} erreur{mistakes > 1 ? 's' : ''}</div>}
     </>
   )
 }
@@ -116,21 +116,21 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
   }, [q?.id])
   useEffect(() => { if (data && i >= qs.length && qs.length && score >= 4) setTimeout(() => { burst(60); sfx('win') }, 200) }, [i, data])
 
-  if (err) return <div className="page" style={{ textAlign: 'center', paddingTop: 60 }}><div className="err">{err}</div><button className="btn" style={{ marginTop: 14 }} onClick={() => { setErr(''); setRes(null); setPick(null); setRound(r => r + 1) }}>Recharger</button><button className="btn ghost" style={{ marginTop: 10 }} onClick={done}>Retour</button></div>
+  if (err) return <div className="page u-ta-center u-pt-60" ><div className="err">{err}</div><button className="btn u-mt-14"  onClick={() => { setErr(''); setRes(null); setPick(null); setRound(r => r + 1) }}>Recharger</button><button className="btn ghost u-mt-10"  onClick={done}>Retour</button></div>
   if (!data) return <div className="page sub">Le barman prépare tes questions…</div>
-  if (!qs.length) return <div className="page"><h1>Défi</h1><div className="sub">Pas encore de questions.</div><button className="btn ghost" style={{ marginTop: 16 }} onClick={done}>Retour</button></div>
+  if (!qs.length) return <div className="page"><h1>Défi</h1><div className="sub">Pas encore de questions.</div><button className="btn ghost u-mt-16"  onClick={done}>Retour</button></div>
 
   if (i >= qs.length) return (
-    <div className="page" style={{ textAlign: 'center', paddingTop: 60 }}>
-      <i className={'ti ' + (score >= 4 ? 'ti-trophy' : score >= 2 ? 'ti-thumb-up' : 'ti-mood-smile') + ' acc pop'} style={{ fontSize: 64 }} />
-      <h1 style={{ fontSize: 34 }}>{score}/{qs.length}</h1>
+    <div className="page u-ta-center u-pt-60" >
+      <i className={('ti ' + (score >= 4 ? 'ti-trophy' : score >= 2 ? 'ti-thumb-up' : 'ti-mood-smile') + ' acc pop') + ' u-fs-64'}  />
+      <h1 className="u-fs-34">{score}/{qs.length}</h1>
       {mode === 'daily' && <>
-        <div className="acc" style={{ fontSize: 20, fontWeight: 600, margin: '6px 0' }}>+{pts + bonus} pièces</div>
+        <div className="acc u-fs-20 u-fw-600 u-m-6px-0" >+{pts + bonus} pièces</div>
         {bonus > 0 && <div className="sub">dont +3 de présence{bonus > 3 ? ' et +' + (bonus - 3) + ' de série' : ''} · +1 ticket</div>}
       </>}
-      {mode === 'test' && <div className="sub" style={{ margin: '6px 0' }}>Mode test : rien n'est enregistré</div>}
-      <div className="sub" style={{ margin: '8px 0 22px' }}>{score === qs.length ? 'Sans faute. Respect.' : score >= 3 ? 'Belle soirée en vue !' : 'Demain, on remet ça. Chaque erreur t\'apprend quelque chose.'}</div>
-      {mode === 'test' && <button className="btn" style={{ marginBottom: 10 }} onClick={() => setRound(round + 1)}>Encore un quiz test</button>}
+      {mode === 'test' && <div className="sub u-m-6px-0" >Mode test : rien n'est enregistré</div>}
+      <div className="sub u-m-8px-0-22px" >{score === qs.length ? 'Sans faute. Respect.' : score >= 3 ? 'Belle soirée en vue !' : 'Demain, on remet ça. Chaque erreur t\'apprend quelque chose.'}</div>
+      {mode === 'test' && <button className="btn u-mb-10"  onClick={() => setRound(round + 1)}>Encore un quiz test</button>}
       <button className={mode === 'test' ? 'btn ghost' : 'btn'} onClick={() => { onEnd && onEnd(); done() }}>Retour</button>
       {mode === 'daily' && <TalkCard token={token} me={me} />}
     </div>
@@ -160,20 +160,20 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
 
   return (
     <div className="page" style={res ? { paddingBottom: 260 } : null}>
-      <div className="row between sub" style={{ marginBottom: 8 }}>
+      <div className="row between sub u-mb-8" >
         <span>{mode === 'test' ? 'Test' : 'Manche'} {i + 1}/{qs.length} · {q.theme}</span>
         {combo >= 2 ? <span className="combo pop"><i className="ti ti-bolt" /> Combo x{combo}</span> : <LevelBadge level={q.level} />}
       </div>
       {ready ? <Timer key={q.id} q={q} deadline={deadline} onEnd={timeout} stopped={!!res} /> : <div className="timer"><div className="tbar" /></div>}
 
-      {!ready ? <div className="sub" style={{ textAlign: 'center', marginTop: 40 }}>Prêt ?</div> :
+      {!ready ? <div className="sub u-ta-center u-mt-40" >Prêt ?</div> :
       <div className={shake ? 'shake' : ''}>
         {kind === 'tf' && <>
           <div className="card tfcard rise">
-            <i className="ti ti-glass-cocktail acc" style={{ fontSize: 30 }} />
-            <div style={{ fontSize: 18, lineHeight: 1.45, marginTop: 10 }}>{q.question}</div>
+            <i className="ti ti-glass-cocktail acc u-fs-30"  />
+            <div className="u-fs-18 u-lh-1_45 u-mt-10">{q.question}</div>
           </div>
-          <div className="row" style={{ gap: 10 }}>
+          <div className="row u-gap-10" >
             <button className={'btn tfb no ' + optClass(1)} onClick={() => answer(1)}><i className="ti ti-x" /> Faux</button>
             <button className={'btn tfb yes ' + optClass(0)} onClick={() => answer(0)}><i className="ti ti-check" /> Vrai</button>
           </div>
@@ -181,38 +181,38 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd }) {
 
         {kind === 'image' && <>
           <div className="card qimg rise"><img src={imgSrc(q.payload?.img)} alt="" width="150" height="150" decoding="async" /></div>
-          <div style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.35, margin: '4px 0 12px' }}>{q.question}</div>
+          <div className="u-fs-18 u-fw-600 u-lh-1_35 u-m-4px-0-12px">{q.question}</div>
           {q.options.map((o, k) => <button key={k} className={'opt ' + optClass(k)} onClick={() => answer(k)}>
-            {res && k === res.answer_idx && <i className="ti ti-check" style={{ color: 'var(--good)', marginRight: 6 }} />}{o}</button>)}
+            {res && k === res.answer_idx && <i className="ti ti-check u-c-good u-mr-6"  />}{o}</button>)}
         </>}
 
         {kind === 'scene' && <>
           <div className="bubble-in rise">{q.question}</div>
-          <div className="sub" style={{ margin: '14px 0 8px' }}>Ta meilleure réplique ?</div>
+          <div className="sub u-m-14px-0-8px" >Ta meilleure réplique ?</div>
           {q.options.map((o, k) => <button key={k} className={'opt reply ' + optClass(k)} onClick={() => answer(k)}>{o}</button>)}
         </>}
 
         {kind === 'price' && <>
-          <div style={{ fontSize: 19, fontWeight: 600, marginBottom: 14 }}><i className="ti ti-scale acc" /> {q.question}</div>
+          <div className="u-fs-19 u-fw-600 u-mb-14"><i className="ti ti-scale acc" /> {q.question}</div>
           <div className="grid2">
             {q.options.map((o, k) => <button key={k} className={'opt pricecard ' + optClass(k)} onClick={() => answer(k)}>{o}</button>)}
           </div>
         </>}
 
         {kind === 'order' && <>
-          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}><i className="ti ti-language acc" /> {q.question}</div>
+          <div className="u-fs-18 u-fw-600 u-mb-12"><i className="ti ti-language acc" /> {q.question}</div>
           <OrderGame key={q.id} q={q} res={res} onAnswer={answer} />
         </>}
 
         {kind === 'match' && <>
-          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}><i className="ti ti-arrows-shuffle acc" /> {q.question}</div>
+          <div className="u-fs-18 u-fw-600 u-mb-12"><i className="ti ti-arrows-shuffle acc" /> {q.question}</div>
           <MatchGame key={q.id} q={q} res={res} onAnswer={answer} />
         </>}
 
         {kind === 'qcm' && <>
-          <div style={{ fontSize: 19, fontWeight: 600, lineHeight: 1.4, marginBottom: 18 }}>{q.question}</div>
+          <div className="u-fs-19 u-fw-600 u-lh-1_4 u-mb-18">{q.question}</div>
           {q.options.map((o, k) => <button key={k} className={'opt ' + optClass(k)} onClick={() => answer(k)}>
-            {res && k === res.answer_idx && <i className="ti ti-check" style={{ color: 'var(--good)', marginRight: 6 }} />}{o}
+            {res && k === res.answer_idx && <i className="ti ti-check u-c-good u-mr-6"  />}{o}
           </button>)}
         </>}
       </div>}
@@ -252,16 +252,16 @@ function TalkCard({ token, me }) {
   if (!contacts.length) return null
   const msg = c => `Bonjour${c.name ? ' ' + c.name.split(' ')[0] : ''}, c'est ${me.name} (${me.venue_name}). ${REASONS[why][1].charAt(0).toUpperCase() + REASONS[why][1].slice(1)}. Est-ce qu'on peut en parler quand vous avez un moment ? Merci`
   return (
-    <div className="card rise" style={{ textAlign: 'left', marginTop: 22 }}>
-      <div style={{ fontWeight: 600, marginBottom: 8 }}><i className="ti ti-message-circle acc" /> Envie d'en parler ?</div>
+    <div className="card rise u-ta-left u-mt-22" >
+      <div className="u-fw-600 u-mb-8"><i className="ti ti-message-circle acc" /> Envie d'en parler ?</div>
       <div className="chips">{REASONS.map((r, k) => <button key={k} className={'chip ' + (why === k ? 'on' : '')} onClick={() => setWhy(k)}>{r[0]}</button>)}</div>
       {ROLES.filter(([k]) => contacts.find(c => c.role === k)).map(([k, label, ic]) => {
         const c = contacts.find(x => x.role === k)
         return <a key={k} className="who" href={waLink(c.phone, msg(c))} target="_blank" rel="noreferrer">
-          <i className={'ti ti-' + ic + ' acc'} /><span style={{ flex: 1 }}>{label}{c.name ? ' · ' + c.name : ''}</span><i className="ti ti-brand-whatsapp wa-ic" />
+          <i className={'ti ti-' + ic + ' acc'} /><span className="u-flex-1">{label}{c.name ? ' · ' + c.name : ''}</span><i className="ti ti-brand-whatsapp wa-ic" />
         </a>
       })}
-      <div className="sub" style={{ marginTop: 6 }}>WhatsApp s'ouvre avec le message prêt : il reste à envoyer.</div>
+      <div className="sub u-mt-6" >WhatsApp s'ouvre avec le message prêt : il reste à envoyer.</div>
     </div>
   )
 }

@@ -6,7 +6,7 @@ function Conduct({ token, me, venue, staff, toast }) {
   const [mode, setMode] = useState('add')
   return (
     <>
-      <div className="seg" style={{ marginTop: 14 }}>
+      <div className="seg u-mt-14" >
         <button className={mode === 'add' ? 'on' : ''} onClick={() => setMode('add')}>Signaler</button>
         <button className={mode === 'reg' ? 'on' : ''} onClick={() => setMode('reg')}>Registre</button>
       </div>
@@ -56,16 +56,16 @@ function ConductAdd({ token, me, staff, toast, done }) {
       {dom && rules.filter(r => r.domain === dom).map(r => (
         <button key={r.id} className={'opt ' + (rule?.id === r.id ? 'sel' : '')} style={{ opacity: r.locked ? .45 : 1 }}
           onClick={() => { if (r.locked) { toast('Réservé à la direction'); return } setRule(r); setErr('') }}>
-          <Pill line={r.line} /> {r.locked && <i className="ti ti-lock" />} <span style={{ marginLeft: 4 }}>{r.behavior}</span>
+          <Pill line={r.line} /> {r.locked && <i className="ti ti-lock" />} <span className="u-ml-4">{r.behavior}</span>
         </button>
       ))}
       {prev && (
-        <div className="card" style={{ border: '1px solid var(--acc)' }}>
-          <div className="row between" style={{ marginBottom: 6 }}><span className="sub">Calcul automatique</span><Pill line={prev.line} /></div>
-          {prev.escalation && <div style={{ fontSize: 13, marginBottom: 4 }}>{prev.escalation}</div>}
-          <div style={{ fontSize: 14 }}>{prev.sanction}</div>
-          <div style={{ color: 'var(--bad)', fontWeight: 600, fontSize: 14, marginTop: 4 }}>Malus −{prev.malus} pièces</div>
-          {prev.line === 'rouge' && <div className="sub" style={{ marginTop: 6 }}>Rouge : rapport le jour même, entretien, notification écrite signée.</div>}
+        <div className="card u-bd-1px-solid-acc" >
+          <div className="row between u-mb-6" ><span className="sub">Calcul automatique</span><Pill line={prev.line} /></div>
+          {prev.escalation && <div className="u-fs-13 u-mb-4">{prev.escalation}</div>}
+          <div className="u-fs-14">{prev.sanction}</div>
+          <div className="u-c-bad u-fw-600 u-fs-14 u-mt-4">Malus −{prev.malus} pièces</div>
+          {prev.line === 'rouge' && <div className="sub u-mt-6" >Rouge : rapport le jour même, entretien, notification écrite signée.</div>}
         </div>
       )}
       <textarea rows={3} placeholder="Faits constatés (heure, lieu, ce qui s'est passé)" value={facts} onChange={e => { setFacts(e.target.value); setErr('') }} />
@@ -83,25 +83,25 @@ function Register({ token, me, venue, toast }) {
   useEffect(() => { load() }, [load])
   const notify = async id => { try { await rpc('daraja_conduct_notify', { p_token: token, p_record: id }); toast('Notification enregistrée'); load() } catch { toast('Erreur') } }
   if (!list) return <div className="sub">Chargement…</div>
-  if (!list.length) return <div className="sub" style={{ marginTop: 10 }}>Aucune inscription. Bonne nouvelle.</div>
+  if (!list.length) return <div className="sub u-mt-10" >Aucune inscription. Bonne nouvelle.</div>
   return list.map(r => (
-    <div key={r.id} className="lb" style={{ flexDirection: 'column', alignItems: 'stretch', cursor: 'pointer' }} onClick={() => setOpen(open === r.id ? null : r.id)}>
+    <div key={r.id} className="lb u-fd-column u-ai-stretch u-cur-pointer"  onClick={() => setOpen(open === r.id ? null : r.id)}>
       <div className="row between">
-        <span style={{ fontWeight: 600 }}>{r.staff}</span>
-        <span className="row" style={{ gap: 6 }}>
+        <span className="u-fw-600">{r.staff}</span>
+        <span className="row u-gap-6" >
           <Pill line={r.line} />
-          {r.needs_direction ? <span className="sub" style={{ color: 'var(--bad)' }}>à notifier</span>
+          {r.needs_direction ? <span className="sub u-c-bad" >à notifier</span>
             : r.ack ? <i className="ti ti-checks acc" /> : <i className="ti ti-lock sub" />}
         </span>
       </div>
-      <div className="sub" style={{ marginTop: 3 }}>{dshort(r.at)} · {r.behavior}</div>
+      <div className="sub u-mt-3" >{dshort(r.at)} · {r.behavior}</div>
       {open === r.id && (
-        <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.5 }}>
+        <div className="u-mt-8 u-fs-13 u-lh-1_5">
           <div><b>Sanction :</b> {r.sanction}{r.escalation ? ' (' + r.escalation + ')' : ''}</div>
           <div><b>Faits :</b> {r.facts}</div>
           {r.witnesses && <div><b>Témoins :</b> {r.witnesses}</div>}
           <div className="sub">Par {r.by} · −{r.malus} pièces · {r.ack ? 'lu par le salarié' : 'pas encore lu'}</div>
-          {r.line === 'rouge' && !r.notified && me.role === 'super' && <button className="mini" style={{ marginTop: 8 }} onClick={e => { e.stopPropagation(); notify(r.id) }}>Notification signée remise</button>}
+          {r.line === 'rouge' && !r.notified && me.role === 'super' && <button className="mini u-mt-8"  onClick={e => { e.stopPropagation(); notify(r.id) }}>Notification signée remise</button>}
         </div>
       )}
     </div>

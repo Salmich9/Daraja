@@ -48,7 +48,7 @@ function Reports({ token, me, venue, toast }) {
   const copy = async () => { try { await navigator.clipboard.writeText(summary()); toast('Résumé copié') } catch { toast('Copie impossible') } }
   return (
     <>
-      <div className="seg" style={{ marginTop: 10 }}>
+      <div className="seg u-mt-10" >
         {[['day', 'Jour'], ['week', 'Semaine'], ['month', 'Mois']].map(([k, l]) => <button key={k} className={per === k ? 'on' : ''} onClick={() => setPer(k)}>{l}</button>)}
       </div>
       <div className="kpis">
@@ -64,12 +64,12 @@ function Reports({ token, me, venue, toast }) {
           {list.map(p => (
             <div key={p.id} className="lb">
               <Avatar value={p.avatar} name={p.display} />
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="u-flex-1 u-min-width-0">
                 <div>{p.display}</div>
                 <div className="sub">{p.days_played} j · {p.acc != null ? p.acc + ' %' : '–'}{p.prev_acc != null && p.acc != null ? ' (' + (p.acc >= p.prev_acc ? '+' : '') + (p.acc - p.prev_acc) + ')' : ''} · {fmt(p.pts)} pièces{p.conduct ? ' · ' + p.conduct + ' faute' + (p.conduct > 1 ? 's' : '') : ''}</div>
               </div>
-              {p.phone ? <a className="mini" style={{ background: '#25D366', color: '#fff', textDecoration: 'none' }} href={waLink(p.phone, relance(p, k, perTxt))} target="_blank" rel="noreferrer"><i className="ti ti-brand-whatsapp" /></a>
-                : <span className="sub" style={{ fontSize: 11 }}>sans n°</span>}
+              {p.phone ? <a className="mini u-bg-25D366 u-c-fff u-td-none"  href={waLink(p.phone, relance(p, k, perTxt))} target="_blank" rel="noreferrer"><i className="ti ti-brand-whatsapp" /></a>
+                : <span className="sub u-fs-11" >sans n°</span>}
             </div>
           ))}
         </div>
@@ -77,12 +77,12 @@ function Reports({ token, me, venue, toast }) {
       {r.themes?.length > 0 && <>
         <div className="sec">Maîtrise par thème</div>
         {[...r.themes].sort((a, b) => b.acc - a.acc).map(t => (
-          <div key={t.cat} className="heat"><span>{t.label}</span><div className="bar"><div style={{ width: t.acc + '%', background: t.acc >= 75 ? 'var(--good)' : t.acc >= 50 ? 'var(--acc)' : 'var(--bad)' }} /></div><b style={{ width: 38, textAlign: 'right' }}>{t.acc} %</b></div>
+          <div key={t.cat} className="heat"><span>{t.label}</span><div className="bar"><div style={{ width: t.acc + '%', background: t.acc >= 75 ? 'var(--good)' : t.acc >= 50 ? 'var(--acc)' : 'var(--bad)' }} /></div><b className="u-w-38 u-ta-right">{t.acc} %</b></div>
         ))}
       </>}
       {r.traps?.length > 0 && <>
         <div className="sec">Questions pièges</div>
-        {r.traps.map((t, k) => <div key={k} className="card" style={{ fontSize: 14 }}><div>{t.question}</div><div className="sub" style={{ marginTop: 4 }}>{t.theme} · <span style={{ color: 'var(--bad)' }}>{t.err} % d'erreurs</span> sur {t.n}</div></div>)}
+        {r.traps.map((t, k) => <div key={k} className="card u-fs-14" ><div>{t.question}</div><div className="sub u-mt-4" >{t.theme} · <span className="u-c-bad">{t.err} % d'erreurs</span> sur {t.n}</div></div>)}
       </>}
     </>
   )

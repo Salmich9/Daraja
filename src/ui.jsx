@@ -22,7 +22,7 @@ function Info({ text }) {
   return (
     <>
       <button className="info" aria-label="Info" onClick={() => setOpen(o => !o)}><i className="ti ti-info-circle" /></button>
-      {open && <div className="bubble" style={{ position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 4, marginTop: 6 }} onClick={() => setOpen(false)}>{text}</div>}
+      {open && <div className="bubble u-pos-absolute u-left-0 u-right-0 u-top-100pc u-z-index-4 u-mt-6"  onClick={() => setOpen(false)}>{text}</div>}
     </>
   )
 }
@@ -52,9 +52,9 @@ function GiftProgress({ r, pts, onClick }) {
     <div className={'card gp ' + (near ? 'near' : '') + (left === 0 ? ' ready' : '')} onClick={onClick}>
       <div className="row between">
         <span><i className={'ti ti-' + r.icon + ' acc'} /> {r.name}</span>
-        <span className="acc" style={{ fontWeight: 600, fontSize: 13 }}>{left === 0 ? 'À toi !' : near ? 'Presque !' : pct + ' %'}</span>
+        <span className="acc u-fw-600 u-fs-13" >{left === 0 ? 'À toi !' : near ? 'Presque !' : pct + ' %'}</span>
       </div>
-      <div className="bar" style={{ height: 9, margin: '9px 0 6px' }}><div style={{ width: pct + '%', height: 9 }} /></div>
+      <div className="bar u-h-9 u-m-9px-0-6px" ><div style={{ width: pct + '%', height: 9 }} /></div>
       <div className="sub">{left === 0 ? 'Touche pour l\'échanger' : <>Plus que <b className="acc">{fmt(left)} pièces</b>{left <= 90 ? ' : un quiz parfait et c\'est à toi' : ''}</>}</div>
     </div>
   )
@@ -83,12 +83,12 @@ function PostSelect({ token, value, onChange }) {
 function PinShow({ who, pin, phone, close }) {
   const nice = pin.replace(/(\d{3})(\d{3})/, '$1 $2')
   return (
-    <div style={{ textAlign: 'center' }}>
-      <i className="ti ti-key acc" style={{ fontSize: 40 }} />
+    <div className="u-ta-center">
+      <i className="ti ti-key acc u-fs-40"  />
       <h1>Code de {first(who)}</h1>
       <div className="newpin pop">{nice}</div>
-      <div className="sub" style={{ marginBottom: 14 }}>Affiché une seule fois. Transmets-le en main propre ou sur WhatsApp.</div>
-      {phone && <a className="btn wa" style={{ marginBottom: 10 }} href={waLink(phone, `Bienvenue sur Daraja ${first(who)} ! Ton code personnel : ${nice}. Ne le partage avec personne. Lien : ${location.origin}`)} target="_blank" rel="noreferrer"><i className="ti ti-brand-whatsapp" /> Envoyer sur WhatsApp</a>}
+      <div className="sub u-mb-14" >Affiché une seule fois. Transmets-le en main propre ou sur WhatsApp.</div>
+      {phone && <a className="btn wa u-mb-10"  href={waLink(phone, `Bienvenue sur Daraja ${first(who)} ! Ton code personnel : ${nice}. Ne le partage avec personne. Lien : ${location.origin}`)} target="_blank" rel="noreferrer"><i className="ti ti-brand-whatsapp" /> Envoyer sur WhatsApp</a>}
       <button className="btn ghost" onClick={close}>Terminé</button>
     </div>
   )

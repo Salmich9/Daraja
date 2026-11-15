@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import './icons.css'
 import './styles.css'
+import './utils.css'
 import App from './App.jsx'
 import { reportError } from './lib'
 
@@ -15,10 +16,10 @@ class SafeScreen extends React.Component {
   render() {
     if (!this.state.broken) return this.props.children
     return (
-      <div className="app t-baro"><div className="page" style={{ textAlign: 'center', paddingTop: 90 }}>
-        <img src="/icons/logo.svg" alt="" width="84" height="84" style={{ display: 'block', margin: '0 auto 14px' }} />
+      <div className="app t-baro"><div className="page u-ta-center u-pt-90" >
+        <img src="/icons/logo.svg" alt="" width="84" height="84" className="u-d-block u-m-0-auto-14px" />
         <h1>Oups, petit souci</h1>
-        <div className="sub" style={{ margin: '8px 0 22px' }}>L'erreur a été envoyée à la direction. Recharge pour reprendre où tu en étais.</div>
+        <div className="sub u-m-8px-0-22px" >L'erreur a été envoyée à la direction. Recharge pour reprendre où tu en étais.</div>
         <button className="btn" onClick={() => location.reload()}>Recharger</button>
       </div></div>
     )

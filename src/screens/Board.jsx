@@ -18,13 +18,13 @@ function Board({ token, me, venue }) {
   const shown = (list || []).filter(p => p.val != null)
   const waiting = (list || []).filter(p => p.val == null)
   return (
-    <div className="page" style={{ paddingBottom: 170 }}>
-      <div className="row between" style={{ position: 'relative' }}>
+    <div className="page u-pb-170" >
+      <div className="row between u-pos-relative" >
         <h1>Classements</h1>
         <Info text={b[4] + ' Remise à zéro chaque 1er du mois. Touche pour fermer.'} />
       </div>
-      <div className="sub" style={{ textTransform: 'capitalize' }}>{month} · {me.venue_name}</div>
-      <div className="seg" style={{ marginTop: 12 }}>
+      <div className="sub u-tt-capitalize" >{month} · {me.venue_name}</div>
+      <div className="seg u-mt-12" >
         {BOARDS.map(([k, l, ic]) => <button key={k} className={kind === k ? 'on' : ''} onClick={() => setKind(k)}><i className={'ti ti-' + ic} /> {l}</button>)}
       </div>
       {!list ? <div className="sub">Chargement…</div> : !shown.length ? <div className="sub">Personne encore. Sois le premier.</div> : <>
@@ -39,10 +39,10 @@ function Board({ token, me, venue }) {
         </div>
         {shown.slice(3).map((p, j) => { const k = j + 3; return (
           <div key={p.id} className={'lb rise ' + (p.id === me.id ? 'me' : '')} style={{ animationDelay: j * 0.03 + 's' }}>
-            <span style={{ width: 22, fontWeight: 600 }}>{k + 1}</span>
+            <span className="u-w-22 u-fw-600">{k + 1}</span>
             <Avatar value={p.avatar} name={p.name} />
-            <span style={{ flex: 1, fontWeight: p.id === me.id ? 600 : 400 }}>{p.id === me.id ? 'Toi' : p.name}{p.streak >= 3 && <span className="sub"> <i className="ti ti-flame" style={{ color: '#E8833A' }} />{p.streak}</span>}</span>
-            <span style={{ fontWeight: 600 }}>{b[3](p.val)}</span>
+            <span style={{ flex: 1, fontWeight: p.id === me.id ? 600 : 400 }}>{p.id === me.id ? 'Toi' : p.name}{p.streak >= 3 && <span className="sub"> <i className="ti ti-flame u-c-E8833A"  />{p.streak}</span>}</span>
+            <span className="u-fw-600">{b[3](p.val)}</span>
           </div>) })}
         {(() => {
           const i = shown.findIndex(p => p.id === me.id)
@@ -50,10 +50,10 @@ function Board({ token, me, venue }) {
           const ahead = shown[i - 1], behind = shown[i + 1]
           const msg = ahead ? <>Plus que <b>{Math.max(1, ahead.val - shown[i].val + 1)}{UNIT[kind]}</b> pour dépasser {ahead.name}</>
             : behind ? <>Tu mènes avec <b>{shown[i].val - behind.val}{UNIT[kind]}</b> d'avance</> : <>Tu mènes le classement</>
-          return <div className="mybar rise"><b className="myrank">{i === 0 ? '1er' : (i + 1) + 'e'}</b><Avatar value={me.avatar} name={me.display} size={34} me /><div style={{ flex: 1 }}><div style={{ fontWeight: 700 }}>Toi · {b[3](shown[i].val)}</div><div className="sub">{msg}</div></div></div>
+          return <div className="mybar rise"><b className="myrank">{i === 0 ? '1er' : (i + 1) + 'e'}</b><Avatar value={me.avatar} name={me.display} size={34} me /><div className="u-flex-1"><div className="u-fw-700">Toi · {b[3](shown[i].val)}</div><div className="sub">{msg}</div></div></div>
         })()}
       </>}
-      {kind === 'progression' && waiting.length > 0 && <div className="sub" style={{ marginTop: 12 }}>{waiting.length} personne{waiting.length > 1 ? 's' : ''} sans assez de réponses pour comparer</div>}
+      {kind === 'progression' && waiting.length > 0 && <div className="sub u-mt-12" >{waiting.length} personne{waiting.length > 1 ? 's' : ''} sans assez de réponses pour comparer</div>}
     </div>
   )
 }

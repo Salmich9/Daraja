@@ -28,20 +28,20 @@ function Shop({ token, me, venue, refresh, toast }) {
         {near && <span className="tag">Presque !</span>}
         {ok && !unmet.length && <span className="tag">Dispo</span>}
         <i className={'ti ti-' + r.icon + ' acc'} />
-        <div style={{ fontSize: 14, margin: '6px 0', minHeight: 36 }}>{r.name}</div>
-        <div className="bar" style={{ margin: '0 0 6px' }}><div style={{ width: pct + '%' }} /></div>
-        <div className={ok || near ? 'acc' : 'sub'} style={{ fontWeight: 600, fontSize: 13 }}>{ok ? fmt(r.cost) + ' pièces' : 'encore ' + fmt(r.cost - me.points)}</div>
+        <div className="u-fs-14 u-m-6px-0 u-minh-36">{r.name}</div>
+        <div className="bar u-m-0-0-6px" ><div style={{ width: pct + '%' }} /></div>
+        <div className={(ok || near ? 'acc' : 'sub') + ' u-fw-600 u-fs-13'} >{ok ? fmt(r.cost) + ' pièces' : 'encore ' + fmt(r.cost - me.points)}</div>
         {unmet.length > 0 && <div className="lockline"><i className="ti ti-lock" /> {unmet.length} condition{unmet.length > 1 ? 's' : ''}</div>}
-        {r.stock != null && r.stock <= 3 && <div className="sub" style={{ fontSize: 11 }}>Plus que {r.stock}</div>}
+        {r.stock != null && r.stock <= 3 && <div className="sub u-fs-11" >Plus que {r.stock}</div>}
       </div>
     )
   }
   const tiers = items ? [...TIERS, [null, 'Autres']].map(([k, l]) => [l, items.filter(r => k ? r.tier === k : !TIERS.find(t => t[0] === r.tier))]).filter(([, l]) => l.length) : []
   return (
     <div className="page">
-      <div className="row between" style={{ marginBottom: 6 }}>
+      <div className="row between u-mb-6" >
         <h1>Boutique</h1>
-        <div className="acc" style={{ fontWeight: 600 }}>{fmt(me.points)} <i className="ti ti-coin coin" /></div>
+        <div className="acc u-fw-600" >{fmt(me.points)} <i className="ti ti-coin coin" /></div>
       </div>
       {!items ? <div className="sub">Chargement…</div> : tiers.map(([l, list]) => (
         <div key={l}>
@@ -50,32 +50,32 @@ function Shop({ token, me, venue, refresh, toast }) {
         </div>
       ))}
       {claim && <div className="sheet" onClick={() => setClaim(null)}>
-        <div onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
-          <i className={'ti ti-' + claim.icon + ' acc pop'} style={{ fontSize: 48 }} />
+        <div onClick={e => e.stopPropagation()} className="u-ta-center">
+          <i className={('ti ti-' + claim.icon + ' acc pop') + ' u-fs-48'}  />
           <h1>Gagné !</h1>
-          <div className="sub" style={{ marginBottom: 18 }}>{claim.name} · ton manager a été prévenu dans l'appli</div>
+          <div className="sub u-mb-18" >{claim.name} · ton manager a été prévenu dans l'appli</div>
           {mgr && <a className="btn wa" href={waLink(mgr.phone, `Bonjour${mgr.name ? ' ' + mgr.name.split(' ')[0] : ''} ! J'ai gagné le cadeau « ${claim.name} » sur Daraja (${fmt(claim.cost)} pièces). Quand est-ce que je peux le récupérer ? ${me.name}, ${me.venue_name}`)} target="_blank" rel="noreferrer"><i className="ti ti-brand-whatsapp" /> Réclamer sur WhatsApp</a>}
-          <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => setClaim(null)}>Plus tard</button>
+          <button className="btn ghost u-mt-10"  onClick={() => setClaim(null)}>Plus tard</button>
         </div>
       </div>}
       {sel && (() => {
         const unmet = (sel.checks || []).filter(c => !c.ok)
         const enough = me.points >= sel.cost
         return <div className="sheet" onClick={() => setSel(null)}>
-          <div onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
-            <i className={'ti ti-' + sel.icon + ' acc'} style={{ fontSize: 40 }} />
+          <div onClick={e => e.stopPropagation()} className="u-ta-center">
+            <i className={('ti ti-' + sel.icon + ' acc') + ' u-fs-40'}  />
             <h1>{sel.name}</h1>
-            <div className="sub" style={{ marginBottom: 10 }}>{fmt(sel.cost)} pièces · le manager te le remet</div>
+            <div className="sub u-mb-10" >{fmt(sel.cost)} pièces · le manager te le remet</div>
             {(sel.checks || []).map(c => (
               <div key={c.key} className="cond">
                 <i className={'ti ti-' + (c.ok ? 'circle-check' : 'circle-x')} style={{ color: c.ok ? 'var(--good)' : 'var(--bad)', fontSize: 18 }} />
-                <span style={{ flex: 1 }}>{c.label}{c.key === 'days' && !c.ok ? ' · ' + c.have + '/' + c.need : ''}</span>
+                <span className="u-flex-1">{c.label}{c.key === 'days' && !c.ok ? ' · ' + c.have + '/' + c.need : ''}</span>
               </div>
             ))}
-            <div style={{ height: 14 }} />
+            <div className="u-h-14" />
             {enough && !unmet.length ? <button className="btn" onClick={buy}>Échanger</button>
-              : <div className="sub" style={{ marginBottom: 6 }}>{!enough ? 'Plus que ' + fmt(sel.cost - me.points) + ' pièces' : 'Encore un petit effort sur les conditions'}</div>}
-            <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => setSel(null)}>Fermer</button>
+              : <div className="sub u-mb-6" >{!enough ? 'Plus que ' + fmt(sel.cost - me.points) + ' pièces' : 'Encore un petit effort sur les conditions'}</div>}
+            <button className="btn ghost u-mt-10"  onClick={() => setSel(null)}>Fermer</button>
           </div>
         </div>
       })()}

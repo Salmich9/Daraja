@@ -80,7 +80,7 @@ export default function App() {
   const startTest = ctx => { setTestOpen(false); setPlay({ mode: 'test', ctx }); setTab('quiz'); window.scrollTo(0, 0) }
 
   if (!token) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><Login onToken={login} /></div>
-  if (!me) return <div className={'app ' + theme}><div className="page" style={{ textAlign: 'center', paddingTop: 80 }}>{net ? <><i className="ti ti-wifi-off acc" style={{ fontSize: 40 }} /><div className="sub" style={{ margin: '12px 0 18px' }}>Pas de connexion</div><button className="btn" onClick={refresh}>Réessayer</button></> : <span className="sub">Chargement…</span>}</div></div>
+  if (!me) return <div className={'app ' + theme}><div className="page u-ta-center u-pt-80" >{net ? <><i className="ti ti-wifi-off acc u-fs-40"  /><div className="sub u-m-12px-0-18px" >Pas de connexion</div><button className="btn" onClick={refresh}>Réessayer</button></> : <span className="sub">Chargement…</span>}</div></div>
   if (splash) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><div id="fx" /><QuoteSplash token={token} me={me} close={() => { store.set('daraja_quote_day', todayKey); setSplash(false) }} /></div>
 
   const real = me
@@ -96,15 +96,15 @@ export default function App() {
       <div id="fx" />
       {levelUp && <div className="sheet center" onClick={() => setLevelUp(null)}>
         <div className="lvup pop">
-          <i className="ti ti-stairs-up acc" style={{ fontSize: 48 }} />
-          <div className="sub" style={{ marginTop: 8 }}>Tu montes d'une marche</div>
-          <h1 style={{ fontSize: 30 }}>Niveau {levelUp.n}</h1>
-          <div className="acc" style={{ fontSize: 18, fontWeight: 600 }}>{levelUp.name}</div>
-          <button className="btn" style={{ marginTop: 18 }}>Bravo à moi</button>
+          <i className="ti ti-stairs-up acc u-fs-48"  />
+          <div className="sub u-mt-8" >Tu montes d'une marche</div>
+          <h1 className="u-fs-30">Niveau {levelUp.n}</h1>
+          <div className="acc u-fs-18 u-fw-600" >{levelUp.name}</div>
+          <button className="btn u-mt-18" >Bravo à moi</button>
         </div>
       </div>}
       {real.role === 'super' && !preview && tab !== 'quiz' && (
-        <div className="seg" style={{ padding: '12px 16px 0', margin: 0 }}>
+        <div className="seg u-p-12px-16px-0 u-m-0" >
           <button className={me.venue === 'baro' ? 'on' : ''} onClick={() => switchVenue('baro')}>Baromètre</button>
           <button className={me.venue === 'zz' ? 'on' : ''} onClick={() => switchVenue('zz')}>ZamaZama</button>
         </div>

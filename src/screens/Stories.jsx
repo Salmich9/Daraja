@@ -26,12 +26,12 @@ function StoryCards({ s }) {
       <div className="stcard" onClick={e => { const r = e.currentTarget.getBoundingClientRect(); go(e.clientX - r.left < r.width / 3 ? -1 : 1) }}
         onTouchStart={e => { x0.current = e.touches[0].clientX }} onTouchEnd={e => { const dx = e.changedTouches[0].clientX - (x0.current ?? 0); if (Math.abs(dx) > 40) { e.preventDefault(); go(dx < 0 ? 1 : -1) } }}>
         <div key={k} className="stin">
-          {c.cover && <><span className="catchip">{SCAT[s.cat] || s.cat}</span><h2>{s.title}</h2><div className="acc" style={{ fontWeight: 700, fontSize: 18 }}>{s.person}</div><div className="sub sthint">Touche pour lire <i className="ti ti-chevron-right" /></div></>}
+          {c.cover && <><span className="catchip">{SCAT[s.cat] || s.cat}</span><h2>{s.title}</h2><div className="acc u-fw-700 u-fs-18" >{s.person}</div><div className="sub sthint">Touche pour lire <i className="ti ti-chevron-right" /></div></>}
           {c.t && <p>{c.t}</p>}
-          {c.lesson && <><i className="ti ti-bulb acc" style={{ fontSize: 40 }} /><div className="stlesson">{s.lesson}</div></>}
+          {c.lesson && <><i className="ti ti-bulb acc u-fs-40"  /><div className="stlesson">{s.lesson}</div></>}
         </div>
       </div>
-      <div className="row between sub" style={{ marginTop: 8 }}><span>{k + 1} / {cards.length}</span>{k < cards.length - 1 ? <span>Touche à droite pour avancer</span> : <span>Fin de l'histoire</span>}</div>
+      <div className="row between sub u-mt-8" ><span>{k + 1} / {cards.length}</span>{k < cards.length - 1 ? <span>Touche à droite pour avancer</span> : <span>Fin de l'histoire</span>}</div>
     </div>
   )
 }
@@ -46,10 +46,10 @@ function Stories() {
   return (
     <div className="page story">
       <div className="row between">
-        <span className="sub" style={{ textTransform: 'capitalize' }}>{back === 0 ? "Aujourd'hui" : d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })}</span>
+        <span className="sub u-tt-capitalize" >{back === 0 ? "Aujourd'hui" : d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })}</span>
       </div>
       <StoryCards key={idx} s={s} />
-      <div className="row" style={{ gap: 10, marginTop: 20 }}>
+      <div className="row u-gap-10 u-mt-20" >
         <button className="btn ghost" disabled={back >= 30} onClick={() => { setBack(back + 1); window.scrollTo(0, 0) }}><i className="ti ti-chevron-left" /> Histoire d'hier</button>
         <button className="btn ghost" disabled={back === 0} onClick={() => { setBack(back - 1); window.scrollTo(0, 0) }}>Plus récente <i className="ti ti-chevron-right" /></button>
       </div>
