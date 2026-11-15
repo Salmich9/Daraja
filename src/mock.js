@@ -49,6 +49,9 @@ export default async function mock(fn, a) {
     case 'daraja_answer_v2': case 'daraja_test_answer': { const m = localStorage.getItem('mock_ans') || 'win'; return { correct: m === 'win', timeout: m === 'late', answer_idx: 1, points: 10, score: m === 'win' ? 1 : 0, today_points: m === 'win' ? 10 : 0, explanation: 'Le jigger sert à doser précisément chaque alcool : même goût à chaque cocktail, et pas de perte.' } }
     case 'daraja_avatars_taken': return ['fun-emoji:Citron', 'fun-emoji:Momo', 'fun-emoji:Safran', 'fun-emoji:Mojito']
     case 'daraja_rulebook': return [{ line: 'blanche', domain: 'Ponctualité', behavior: 'Retard de moins de 15 min, premier du mois, prévenu avant', sanction: 'Recadrage oral en privé, sans trace', malus: 20 }, { line: 'blanche', domain: 'Uniforme', behavior: 'Chemise froissée, chaussures non cirées', sanction: 'Recadrage oral en privé, sans trace', malus: 20 }]
+    case 'daraja_conduct_rules': return [{ id: 1, line: 'blanche', domain: 'Ponctualité', behavior: 'Retard de moins de 15 min, premier du mois, prévenu avant', sanction: 'Recadrage oral', malus: 20 }, { id: 2, line: 'grise', domain: 'Service', behavior: 'Téléphone personnel en salle', sanction: 'Avertissement oral', malus: 100 }]
+    case 'daraja_conduct_register': return [{ id: 'c1', staff: 'Karim B.', line: 'blanche', at: new Date().toISOString(), behavior: 'Retard de moins de 15 min', sanction: 'Recadrage oral', ack: true, needs_direction: false, malus: 20, by: 'Salmane' }]
+    case 'daraja_conduct_preview': return { line: 'blanche', occurrence: 1, sanction: 'Recadrage oral', malus: 20, escalation: null, direction: false }
     case 'daraja_conduct_mine': return { days_clean: 42, blanche: 1, grise: 0, rouge: 0, records: [] }
     case 'daraja_login': return { token: 'x', new_pin: '482913' }
     case 'daraja_admin_add_staff2': return { ok: true, pin: '731508', phone: '212600000009' }
