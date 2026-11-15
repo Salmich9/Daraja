@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { avFile, FAM, LINE, LV, first, fmt, initials, level, rpc, waLink, RV } from './lib'
 
 function LevelBadge({ level, noPts }) {
@@ -17,12 +18,27 @@ function Avatar({ value, name, size = 34, me: isMe }) {
   )
 }
 
+// Bulle d'info : posée par-dessus tout l'écran (jamais coupée ni cachée sous une carte).
+// Elle s'ouvre sous le bouton, ou au-dessus s'il n'y a pas la place. Un toucher n'importe où la referme.
 function Info({ text }) {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState(null)
+  const btn = useRef(null), box = useRef(null)
+  useLayoutEffect(() => {
+    if (!open) { setPos(null); return }
+    const b = btn.current.getBoundingClientRect(), h = box.current.offsetHeight
+    const H = window.innerHeight, bottom = H - 84
+    let top = b.bottom + 8
+    if (top + h > bottom) top = b.top - 8 - h
+    setPos(Math.max(12, Math.min(top, bottom - h)))
+  }, [open, text])
   return (
     <>
-      <button className="info" aria-label="Info" onClick={() => setOpen(o => !o)}><i className="ti ti-info-circle" /></button>
-      {open && <div className="bubble u-pos-absolute u-left-0 u-right-0 u-top-100pc u-z-index-4 u-mt-6"  onClick={() => setOpen(false)}>{text}</div>}
+      <button ref={btn} className="info" aria-label="Info" onClick={() => setOpen(o => !o)}><i className="ti ti-info-circle" /></button>
+      {open && createPortal(
+        <div className="tipveil" onClick={() => setOpen(false)}>
+          <div ref={box} className="bubble tipbox" style={{ top: pos ?? -9999 }}>{text}</div>
+        </div>, document.body)}
     </>
   )
 }

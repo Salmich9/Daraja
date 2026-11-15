@@ -28,6 +28,9 @@ h1 { font-family: Fraunces, Georgia, serif; font-weight:500; font-size: 24px; ma
 .gift i { font-size: 26px; }
 .nav button.on { color: var(--acc); }
 .info { background:none; border:0; color: var(--acc); font-size: 20px; padding: 0; cursor:pointer; }
+.tipveil { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.25); }
+.bubble.tipbox { position: fixed; left: 16px; right: 16px; width: auto; max-width: 520px; margin: 0 auto; max-height: calc(100dvh - 110px); overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,.35); animation: tipin .16s ease-out; }
+@keyframes tipin { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: none } }
 .bubble { background: var(--acc); color: var(--btxt); border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.45; margin: 10px 0; cursor:pointer; width: 100%; }
 .pad { display:grid; grid-template-columns: repeat(3, 72px); gap: 14px; justify-content:center; margin-top: 24px; }
 .pad button { width:72px; height:72px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--fg); font: 500 24px Inter, sans-serif; cursor:pointer; }
