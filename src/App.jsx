@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { RV, TK, VK, burst, buzz, level, rpc, store } from './lib'
+import { MOCK, RV, TK, VK, sb, burst, buzz, level, rpc, store } from './lib'
 import { Toast } from './ui'
 import { Login, QuoteSplash } from './screens/Login'
 import { Home } from './screens/Home'
@@ -31,9 +31,13 @@ export default function App() {
   const loadDuels = useCallback(() => { if (token && me?.role === 'staff') rpc('daraja_duels', { p_token: token }).then(setDuels).catch(() => {}) }, [token, me?.role])
   useEffect(() => {
     if (!me || me.role !== 'staff') return
-    loadDuels(); const t = setInterval(loadDuels, 12000)
-    return () => clearInterval(t)
-  }, [loadDuels, me?.role])
+    // Temps réel : le serveur envoie un signal quand un duel bouge ; on revérifie aussi toutes les 30 s et au retour dans l'appli
+    loadDuels(); const t = setInterval(loadDuels, 30000)
+    const vis = () => { if (document.visibilityState === 'visible') loadDuels() }
+    document.addEventListener('visibilitychange', vis)
+    const ch = MOCK || !me.rt ? null : sb.channel(me.rt).on('broadcast', { event: 'duels' }, () => loadDuels()).subscribe()
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', vis); if (ch) sb.removeChannel(ch) }
+  }, [loadDuels, me?.role, me?.rt])
   useEffect(() => {
     const d = (duels || []).find(x => ((x.status === 'pending' && !x.mine) || x.status === 'ready') && !seenInv.current.has(x.id + x.status))
     if (d) { seenInv.current.add(d.id + d.status); setInvite(d); buzz(80) }

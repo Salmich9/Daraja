@@ -82,6 +82,7 @@ CREATE INDEX IF NOT EXISTS votes_venue_month_idx ON daraja.votes USING btree (ve
 
 -- déclencheurs
 CREATE TRIGGER point_events_bonus_once BEFORE INSERT ON daraja.point_events FOR EACH ROW EXECUTE FUNCTION daraja.bonus_once();
+CREATE TRIGGER duels_ping AFTER INSERT OR UPDATE OF status, c_ans, o_ans, start_at ON daraja.duels FOR EACH ROW EXECUTE FUNCTION daraja.duel_ping();
 
 -- droits : rien en direct sur les tables, seulement les fonctions daraja_* pour le rôle anon
 revoke all on all tables in schema daraja from anon, authenticated;

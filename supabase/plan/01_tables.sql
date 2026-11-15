@@ -254,7 +254,8 @@ create table if not exists daraja.staff (
   avatar text,
   phone text,
   birthday text,
-  pin_len integer not null default 4
+  pin_len integer not null default 4,
+  rt text not null default encode(gen_random_bytes(12), 'hex'::text)
 );
 alter table daraja.staff enable row level security;
 

@@ -213,6 +213,23 @@ CREATE OR REPLACE FUNCTION daraja.duel_end(d daraja.duels)
  SET search_path TO 'daraja', 'extensions', 'public'
 AS $function$ select daraja.duel_slot(d, cardinality(d.limits)) $function$;
 
+CREATE OR REPLACE FUNCTION daraja.duel_ping()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare k text;
+begin
+  for k in select rt from daraja.staff where id in (new.challenger, new.opponent) loop
+    begin
+      perform realtime.send('{}'::jsonb, 'duels', 'dj-' || k, false);
+    exception when others then null;
+    end;
+  end loop;
+  return null;
+end $function$;
+
 CREATE OR REPLACE FUNCTION daraja.duel_slot(d daraja.duels, i integer)
  RETURNS numeric
  LANGUAGE sql
@@ -1458,6 +1475,7 @@ begin
         and note = 'Mois exemplaire ' || to_char(now() at time zone 'Africa/Casablanca' - interval '1 month', 'YYYY-MM')),
     'pending_ack', (select count(*) from daraja.conduct_records where staff_id = s.id and acknowledged_at is null),
     'errors_24h', case when s.role = 'super' then (select count(*) from daraja.client_errors where last_at > now() - interval '24 hours') else 0 end,
+    'rt', 'dj-' || s.rt,
     'direction_todo', case when s.role = 'super' then (select count(*) from daraja.conduct_records where needs_direction) else 0 end
   );
 end $function$;
