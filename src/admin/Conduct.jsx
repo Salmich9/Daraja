@@ -64,7 +64,7 @@ function ConductAdd({ token, me, staff, toast, done }) {
           <div className="row between" style={{ marginBottom: 6 }}><span className="sub">Calcul automatique</span><Pill line={prev.line} /></div>
           {prev.escalation && <div style={{ fontSize: 13, marginBottom: 4 }}>{prev.escalation}</div>}
           <div style={{ fontSize: 14 }}>{prev.sanction}</div>
-          <div style={{ color: 'var(--bad)', fontWeight: 600, fontSize: 14, marginTop: 4 }}>Malus −{prev.malus} pts</div>
+          <div style={{ color: 'var(--bad)', fontWeight: 600, fontSize: 14, marginTop: 4 }}>Malus −{prev.malus} pièces</div>
           {prev.line === 'rouge' && <div className="sub" style={{ marginTop: 6 }}>Rouge : rapport le jour même, entretien, notification écrite signée.</div>}
         </div>
       )}
@@ -100,7 +100,7 @@ function Register({ token, me, venue, toast }) {
           <div><b>Sanction :</b> {r.sanction}{r.escalation ? ' (' + r.escalation + ')' : ''}</div>
           <div><b>Faits :</b> {r.facts}</div>
           {r.witnesses && <div><b>Témoins :</b> {r.witnesses}</div>}
-          <div className="sub">Par {r.by} · −{r.malus} pts · {r.ack ? 'lu par le salarié' : 'pas encore lu'}</div>
+          <div className="sub">Par {r.by} · −{r.malus} pièces · {r.ack ? 'lu par le salarié' : 'pas encore lu'}</div>
           {r.line === 'rouge' && !r.notified && me.role === 'super' && <button className="mini" style={{ marginTop: 8 }} onClick={e => { e.stopPropagation(); notify(r.id) }}>Notification signée remise</button>}
         </div>
       )}

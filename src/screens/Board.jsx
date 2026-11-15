@@ -3,9 +3,9 @@ import { fmt, rpc } from '../lib'
 import { Avatar, Info } from '../ui'
 
 const BOARDS = [
-  ['savoir', 'Savoir', 'brain', v => fmt(v) + ' pts', 'Points gagnés aux quiz ce mois-ci, sur les bonnes réponses.'],
+  ['savoir', 'Savoir', 'brain', v => fmt(v) + ' XP', 'XP gagnée aux quiz ce mois-ci, sur les bonnes réponses.'],
   ['assiduite', 'Assiduité', 'calendar-check', v => v + ' j', 'Nombre de jours où tu as terminé ton défi ce mois-ci. Même avec des erreurs, chaque jour compte.'],
-  ['progression', 'Progression', 'trending-up', v => (v > 0 ? '+' : '') + v + ' pts', 'Ta précision ce mois-ci comparée au mois dernier. Il faut au moins 10 réponses sur chaque mois pour apparaître.'],
+  ['progression', 'Progression', 'trending-up', v => (v > 0 ? '+' : '') + v + ' %', 'Ta précision ce mois-ci comparée au mois dernier. Il faut au moins 10 réponses sur chaque mois pour apparaître.'],
 ]
 
 function Board({ token, me, venue }) {

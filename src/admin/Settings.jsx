@@ -91,7 +91,7 @@ function RewardsAdmin({ token, toast }) {
         <i className={'ti ti-' + r.icon + ' acc'} style={{ fontSize: 22 }} />
         <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setEd(r)}>
           <div style={{ fontSize: 14 }}>{r.name}</div>
-          <div className="sub">{fmt(r.cost)} pts{n ? ' · ' + n + ' condition' + (n > 1 ? 's' : '') : ''}{r.stock != null ? ' · stock ' + r.stock : ''}{r.venue ? ' · ' + (r.venue === 'zz' ? 'Zama' : 'Baro') : ''}</div>
+          <div className="sub">{fmt(r.cost)} pièces{n ? ' · ' + n + ' condition' + (n > 1 ? 's' : '') : ''}{r.stock != null ? ' · stock ' + r.stock : ''}{r.venue ? ' · ' + (r.venue === 'zz' ? 'Zama' : 'Baro') : ''}</div>
         </div>
         <button className={'sw ' + (r.active ? 'on' : '')} aria-label="En boutique" onClick={() => save({ ...r, active: !r.active })} />
       </div>

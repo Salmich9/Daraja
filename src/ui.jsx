@@ -55,7 +55,7 @@ function GiftProgress({ r, pts, onClick }) {
         <span className="acc" style={{ fontWeight: 600, fontSize: 13 }}>{left === 0 ? 'À toi !' : near ? 'Presque !' : pct + ' %'}</span>
       </div>
       <div className="bar" style={{ height: 9, margin: '9px 0 6px' }}><div style={{ width: pct + '%', height: 9 }} /></div>
-      <div className="sub">{left === 0 ? 'Touche pour l\'échanger' : <>Plus que <b className="acc">{fmt(left)} pts</b>{left <= 90 ? ' : un quiz parfait et c\'est à toi' : ''}</>}</div>
+      <div className="sub">{left === 0 ? 'Touche pour l\'échanger' : <>Plus que <b className="acc">{fmt(left)} pièces</b>{left <= 90 ? ' : un quiz parfait et c\'est à toi' : ''}</>}</div>
     </div>
   )
 }

@@ -18,7 +18,7 @@ function relance(p, kind, per) {
   const n = first(p.display)
   if (kind === 'champ') return `Bravo ${n} ! ${p.acc} % de bonnes réponses ${per}, tu fais partie des meilleurs de l'équipe. Continue comme ça 🔥`
   if (kind === 'prog') return `Salut ${n} ! Tu joues le jeu sur Daraja (${p.days_played} jour${p.days_played > 1 ? 's' : ''} ${per}), c'est top. Petit conseil : prends 10 secondes pour lire l'explication après chaque réponse, ça paie vite. On croit en toi 💪`
-  return `Salut ${n} ! On ne t'a pas vu sur Daraja ${per}. 3 minutes par jour suffisent : même avec des erreurs, tu gagnes des points de présence et des tickets pour le tirage du mois 🎟️ À tout de suite !`
+  return `Salut ${n} ! On ne t'a pas vu sur Daraja ${per}. 3 minutes par jour suffisent : même avec des erreurs, tu gagnes des pièces de présence et des tickets pour le tirage du mois 🎟️ À tout de suite !`
 }
 
 function Reports({ token, me, venue, toast }) {
@@ -37,7 +37,7 @@ function Reports({ token, me, venue, toast }) {
   const pts = st.reduce((a, p) => a + (p.pts || 0), 0)
   const summary = () => [
     `📊 Daraja · ${me.venue_name} · ${{ day: "Aujourd'hui", week: '7 derniers jours', month: '30 derniers jours' }[per]}`,
-    `👥 ${active}/${st.length} actifs · 🎯 ${avg ?? '–'} % de bonnes réponses · ⭐ ${fmt(pts)} pts gagnés`,
+    `👥 ${active}/${st.length} actifs · 🎯 ${avg ?? '–'} % de bonnes réponses · ⭐ ${fmt(pts)} pièces gagnées`,
     groups.champ.length ? `🏆 Champions : ${groups.champ.map(p => first(p.display) + ' (' + p.acc + ' %)').join(', ')}` : '',
     groups.prog.length ? `📈 En progrès : ${groups.prog.map(p => first(p.display)).join(', ')}` : '',
     groups.off.length ? `💤 À relancer : ${groups.off.map(p => first(p.display)).join(', ')}` : '',
@@ -54,7 +54,7 @@ function Reports({ token, me, venue, toast }) {
       <div className="kpis">
         <div className="card"><b>{active}/{st.length}</b><span className="sub">actifs</span></div>
         <div className="card"><b>{avg ?? '–'}{avg != null ? ' %' : ''}</b><span className="sub">bonnes réponses</span></div>
-        <div className="card"><b>{fmt(pts)}</b><span className="sub">points gagnés</span></div>
+        <div className="card"><b>{fmt(pts)}</b><span className="sub">pièces gagnées</span></div>
         <div className="card"><b>{r.gifts} · {r.reviews}</b><span className="sub">cadeaux · avis</span></div>
       </div>
       <button className="btn wa" onClick={copy}><i className="ti ti-copy" /> Copier le résumé pour WhatsApp</button>

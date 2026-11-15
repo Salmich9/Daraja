@@ -67,7 +67,7 @@ function Profile({ token, me, logout, toast, refresh, go, openTest }) {
       <div className="card">
         <div className="row between" style={{ fontSize: 13, marginBottom: 8 }}>
           <span>{lv.to ? `Vers niveau ${lv.n + 1}` : 'Niveau max'}</span>
-          <span className="acc">{fmt(me.earned)}{lv.to ? ' / ' + fmt(lv.to) : ''}</span>
+          <span className="acc">{fmt(me.earned)}{lv.to ? ' / ' + fmt(lv.to) : ''} XP</span>
         </div>
         <div className="bar"><div style={{ width: pct + '%' }} /></div>
       </div>
@@ -78,7 +78,7 @@ function Profile({ token, me, logout, toast, refresh, go, openTest }) {
       <div className="card row" style={{ gap: 12, marginTop: 12 }}>
         <i className={'ti ti-flame flame ' + (['out', 'new'].includes(me.flame) ? 'off' : me.flame)} style={{ fontSize: 36 }} />
         <div><div style={{ fontWeight: 600 }}>{me.streak} jour{me.streak > 1 ? 's' : ''} de série</div>
-          <div className="sub">Prochain défi : bonus série +{me.next_bonus} pts{me.next_bonus >= 100 ? ' (max)' : ''}</div></div>
+          <div className="sub">Prochain défi : bonus série +{me.next_bonus} pièces{me.next_bonus >= 100 ? ' (max)' : ''}</div></div>
       </div>
       {me.role === 'staff' && <MyConduct token={token} toast={toast} refresh={refresh} />}
       {edit && <ProfileEdit token={token} me={me} close={() => setEdit(false)} done={() => { setEdit(false); refresh(); toast('Profil mis à jour') }} />}
@@ -90,7 +90,7 @@ function Profile({ token, me, logout, toast, refresh, go, openTest }) {
       {avis && <div className="sheet" onClick={() => setAvis(false)}>
         <div onClick={e => e.stopPropagation()}>
           <h1>Avis client</h1>
-          <div className="sub" style={{ marginBottom: 12 }}>+{RV.review} pts après validation du manager</div>
+          <div className="sub" style={{ marginBottom: 12 }}>+{RV.review} pièces après validation du manager</div>
           <textarea rows={3} placeholder="Lien Google ou Tripadvisor" value={note} onChange={e => { setNote(e.target.value); setErr('') }} />
           <div className="err">{err}</div>
           <button className="btn" onClick={send}>Envoyer</button>
@@ -108,7 +108,7 @@ function MyConduct({ token, toast, refresh }) {
   const ack = async id => { try { await rpc('daraja_conduct_ack', { p_token: token, p_record: id }); toast('Pris en compte'); load(); refresh() } catch { toast('Erreur') } }
   return (
     <>
-      <div className="sec" style={{ position: 'relative' }}>Ma conduite <Info text={`Visible par toi et ta direction seulement, jamais au classement. Chaque mois sans grise ni rouge te rapporte +${RV.clean_month} points.`} /></div>
+      <div className="sec" style={{ position: 'relative' }}>Ma conduite <Info text={`Visible par toi et ta direction seulement, jamais au classement. Chaque mois sans grise ni rouge te rapporte +${RV.clean_month} pièces.`} /></div>
       <div className="card" style={{ textAlign: 'center' }}>
         <div className="sub">Jours sans faute</div>
         <div className="big acc">{c.days_clean}</div>
@@ -153,15 +153,16 @@ function Rules({ token, back }) {
       <button className="mini ghost" onClick={back}><i className="ti ti-chevron-left" /> Retour</button>
       <h1 style={{ marginTop: 12 }}><i className="ti ti-book acc" /> Règles du jeu</h1>
       <div className="sub">Le référentiel officiel. Il est le même pour tout le monde.</div>
-      <div className="sec"><i className="ti ti-plus acc" /> Gagner des points</div>
+      <div className="sec"><i className="ti ti-plus acc" /> Gagner des pièces</div>
+      <div className="sub" style={{ marginBottom: 8 }}>Chaque pièce gagnée compte aussi en XP pour ton niveau. Dépenser tes pièces en boutique ne fait jamais baisser ton niveau.</div>
       {EARN().map(([ic, l, v]) => <div key={l} className="lb"><i className={'ti ti-' + ic + ' acc'} style={{ fontSize: 20 }} /><span style={{ flex: 1, fontSize: 14 }}>{l}</span><b style={{ fontSize: 13, color: 'var(--good)', textAlign: 'right' }}>{v}</b></div>)}
       <div className="sec"><i className="ti ti-stopwatch acc" /> Le chrono</div>
       <div className="card" style={{ fontSize: 14, lineHeight: 1.5 }}>{RV.time} secondes par question, {RV.time_long} secondes pour remettre des mots dans l'ordre ou faire des associations. Temps écoulé = réponse fausse, sans malus.</div>
       <div className="sec"><i className="ti ti-gift acc" /> Cadeaux et tirage</div>
-      <div className="card" style={{ fontSize: 14, lineHeight: 1.5 }}>Les cadeaux s'échangent contre tes points. Certains demandent des conditions (bonne conduite, ponctualité, assiduité) : elles sont affichées sur chaque cadeau. Tirage au sort chaque mois : plus tu as de tickets, plus tu as de chances. Une ligne grise ou rouge dans le mois exclut du tirage. Une faute grave bloque la boutique pendant un an.</div>
-      <div className="sec"><i className="ti ti-minus" style={{ color: 'var(--bad)' }} /> Perdre des points : la charte</div>
+      <div className="card" style={{ fontSize: 14, lineHeight: 1.5 }}>Les cadeaux s'échangent contre tes pièces. Certains demandent des conditions (bonne conduite, ponctualité, assiduité) : elles sont affichées sur chaque cadeau. Tirage au sort chaque mois : plus tu as de tickets, plus tu as de chances. Une ligne grise ou rouge dans le mois exclut du tirage. Une faute grave bloque la boutique pendant un an.</div>
+      <div className="sec"><i className="ti ti-minus" style={{ color: 'var(--bad)' }} /> Perdre des pièces : la charte</div>
       <div className="seg">{['blanche', 'grise', 'rouge'].map(l => <button key={l} className={line === l ? 'on' : ''} onClick={() => setLine(l)}>{LINE[l][0]}</button>)}</div>
-      <div className="sub" style={{ marginBottom: 8 }}>{{ blanche: `Ligne blanche : −${RV.malus_blanche} pts. Répétée, elle devient grise.`, grise: `Ligne grise : −${RV.malus_grise} pts. Répétée, elle devient rouge.`, rouge: `Ligne rouge : −${RV.malus_rouge} pts. Faute grave : −${fmt(RV.malus_grave)} pts.` }[line]}</div>
+      <div className="sub" style={{ marginBottom: 8 }}>{{ blanche: `Ligne blanche : −${RV.malus_blanche} pièces. Répétée, elle devient grise.`, grise: `Ligne grise : −${RV.malus_grise} pièces. Répétée, elle devient rouge.`, rouge: `Ligne rouge : −${RV.malus_rouge} pièces. Faute grave : −${fmt(RV.malus_grave)} pièces.` }[line]}</div>
       {!rules ? <div className="sub">Chargement…</div> : rules.filter(r => r.line === line).map((r, k) => (
         <div key={k} className="card" style={{ padding: 12 }}>
           <div className="row between"><span className="sub">{r.domain}</span><b style={{ color: 'var(--bad)', fontSize: 13 }}>−{r.malus}</b></div>

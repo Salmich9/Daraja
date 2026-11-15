@@ -14,7 +14,7 @@ function Home({ token, me, venue, go, toast, duels, openDuel }) {
           <Avatar value={me.avatar} name={me.display} size={46} me />
           <div><div className="sub">{me.venue_name}</div><h1 style={{ margin: 0 }}>Salut {me.display.split(' ')[0]}</h1></div>
         </div>
-        <button className="ptspill" onClick={() => go('profile')}><span className="lvchip">N{lv.n}</span><b>{fmt(me.points)}</b><small>pts</small></button>
+        <button className="ptspill" onClick={() => go('profile')}><span className="lvchip">N{lv.n}</span><b>{fmt(me.points)}</b><i className="ti ti-coin coin" /></button>
       </div>
       <div className={'card hero' + (me.flame === 'danger' && !me.quiz_done ? ' danger' : '')} style={{ position: 'relative' }}>
         <div className="row between">
@@ -22,10 +22,10 @@ function Home({ token, me, venue, go, toast, duels, openDuel }) {
             <i className={'ti ti-flame flame big ' + (['out', 'new'].includes(me.flame) ? 'off' : me.flame)} />
             <div>
               <div style={{ fontSize: 20, fontWeight: 700 }}>{me.streak > 0 && me.flame !== 'out' ? me.streak + ' jour' + (me.streak > 1 ? 's' : '') + ' de série' : 'Lance ta série'}</div>
-              <div className="sub">{me.quiz_done ? 'Défi relevé, à demain' : me.flame === 'danger' ? 'Joue aujourd\'hui pour la sauver' : me.flame === 'out' ? 'Rallume la flamme aujourd\'hui' : me.next_bonus > RV.streak_step ? 'Bonus série +' + me.next_bonus + ' pts' : 'Chaque jour joué rapporte un bonus'}</div>
+              <div className="sub">{me.quiz_done ? 'Défi relevé, à demain' : me.flame === 'danger' ? 'Joue aujourd\'hui pour la sauver' : me.flame === 'out' ? 'Rallume la flamme aujourd\'hui' : me.next_bonus > RV.streak_step ? 'Bonus série +' + me.next_bonus + ' pièces' : 'Chaque jour joué rapporte un bonus'}</div>
             </div>
           </div>
-          <Info text={`Chaque jour : vrai ou faux, scènes client, anglais, associations… 2 manches faciles, 2 confirmées, 1 experte. Chaque jour de série ajoute +${RV.streak_step} pts de bonus (jusqu'à +${RV.streak_step * RV.streak_days}). Un jour manqué : la flamme est en danger. Deux jours : elle s'éteint. Touche pour fermer.`} />
+          <Info text={`Chaque jour : vrai ou faux, scènes client, anglais, associations… 2 manches faciles, 2 confirmées, 1 experte. Chaque jour de série ajoute +${RV.streak_step} pièces de bonus (jusqu'à +${RV.streak_step * RV.streak_days}). Un jour manqué : la flamme est en danger. Deux jours : elle s'éteint. Touche pour fermer.`} />
         </div>
         <div className="week">
           {(me.week || []).map((d, k) => {
@@ -39,7 +39,7 @@ function Home({ token, me, venue, go, toast, duels, openDuel }) {
         </div>
         <div className="row between" style={{ margin: '4px 0 12px' }}>
           <span style={{ fontWeight: 600 }}>Défi du jour</span>
-          <span className="row sub" style={{ gap: 5 }}>{[1, 1, 2, 2, 3].map((l, i) => <span key={i} className={'ddot l' + l} />)}&nbsp;jusqu'à +90 pts</span>
+          <span className="row sub" style={{ gap: 5 }}>{[1, 1, 2, 2, 3].map((l, i) => <span key={i} className={'ddot l' + l} />)}&nbsp;jusqu'à +90</span>
         </div>
         {me.quiz_done
           ? <button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Voir mon score</button>
@@ -109,7 +109,7 @@ function EotmCard({ token, me, venue, toast }) {
     <div className="card eotm rise" style={{ position: 'relative' }}>
       <div className="row between">
         <span className="sub"><i className="ti ti-crown acc" /> Employé du mois</span>
-        <Info text={`Chaque mois, vote en secret pour le collègue qui t'a le plus impressionné. Le gagnant reçoit +${RV.eotm} pts et le badge, annoncé le 1er du mois. Tu peux changer ton vote jusqu'à la fin du mois. Touche pour fermer.`} />
+        <Info text={`Chaque mois, vote en secret pour le collègue qui t'a le plus impressionné. Le gagnant reçoit +${RV.eotm} pièces et le badge, annoncé le 1er du mois. Tu peux changer ton vote jusqu'à la fin du mois. Touche pour fermer.`} />
       </div>
       {e.last && <div className="row" style={{ gap: 10, margin: '8px 0' }}>
         <Avatar value={e.last.avatar} name={e.last.display} size={44} />
@@ -141,7 +141,7 @@ function BirthdayCard({ token, me, venue }) {
     <div className="card bday rise">
       <div style={{ fontWeight: 700, marginBottom: 6 }}><i className="ti ti-cake" /> Anniversaires</div>
       {today.map(b => b.me
-        ? <div key={b.id} className="row" style={{ gap: 10 }}><Avatar value={b.avatar} name={b.display} /><b style={{ flex: 1 }}>Joyeux anniversaire ! +50 pts 🎉</b></div>
+        ? <div key={b.id} className="row" style={{ gap: 10 }}><Avatar value={b.avatar} name={b.display} /><b style={{ flex: 1 }}>Joyeux anniversaire ! +{RV.birthday} pièces 🎉</b></div>
         : <div key={b.id} className="row" style={{ gap: 10, marginBottom: 6 }}>
             <Avatar value={b.avatar} name={b.display} /><span style={{ flex: 1 }}><b>{b.display}</b> fête son anniversaire aujourd'hui 🎂</span>
             {b.phone && <a className="mini" style={{ background: '#25D366', color: '#fff', textDecoration: 'none' }} href={waLink(b.phone, `Joyeux anniversaire ${first(b.display)} ! 🎂🎉 Toute l'équipe te souhaite une super journée. ${first(me.display)}`)} target="_blank" rel="noreferrer"><i className="ti ti-brand-whatsapp" /></a>}

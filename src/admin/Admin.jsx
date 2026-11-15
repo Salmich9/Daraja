@@ -41,7 +41,7 @@ function Admin({ token, me, venue, toast }) {
       {d.reviews.map(r => (
         <div key={r.id} className="lb">
           <div style={{ flex: 1, minWidth: 0 }}><div>{r.name}</div><div className="sub" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.note}</div></div>
-          <button className="mini" onClick={() => act('daraja_admin_review', { p_event: r.id, p_ok: true }, '+' + RV.review + ' pts validés')}>+{RV.review}</button>
+          <button className="mini" onClick={() => act('daraja_admin_review', { p_event: r.id, p_ok: true }, '+' + RV.review + ' pièces validées')}>+{RV.review}</button>
           <button className="mini ghost" aria-label="Refuser" onClick={() => act('daraja_admin_review', { p_event: r.id, p_ok: false }, 'Refusé')}><i className="ti ti-x" /></button>
         </div>
       ))}
@@ -130,7 +130,7 @@ function StaffSheet({ token, me, s, mission, close, act, toast, reload }) {
         <div className="sub" style={{ marginBottom: 6 }}>Poste (choisit ses questions et sa mission)</div>
         <PostSelect token={token} value={post} onChange={setPost} />
         <input placeholder="WhatsApp : 06 12 34 56 78" inputMode="tel" value={phone} onChange={e => setPhone(e.target.value)} />
-        <div className="sub" style={{ marginBottom: 6 }}><i className="ti ti-cake" /> Anniversaire (+50 pts le jour J, l'équipe est prévenue)</div>
+        <div className="sub" style={{ marginBottom: 6 }}><i className="ti ti-cake" /> Anniversaire (+{RV.birthday} pièces le jour J, l'équipe est prévenue)</div>
         <div className="row" style={{ gap: 8 }}>
           <select value={bd[1]} onChange={e => setBd([bd[0], e.target.value])}><option value="">Jour</option>{[...Array(31)].map((_, k) => { const v = String(k + 1).padStart(2, '0'); return <option key={v} value={v}>{k + 1}</option> })}</select>
           <select value={bd[0]} onChange={e => setBd([e.target.value, bd[1]])}><option value="">Mois</option>{['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'].map((m, k) => { const v = String(k + 1).padStart(2, '0'); return <option key={v} value={v}>{m}</option> })}</select>

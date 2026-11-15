@@ -237,3 +237,5 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 .wd.today:not(.on) i { border: 2px dashed var(--acc); color: var(--acc); background: transparent; }
 .btn.big { padding: 17px; font-size: 18px; font-weight: 800; letter-spacing: .3px; }
 .card.hero.danger { border-color: #E8833A; background: linear-gradient(160deg, color-mix(in srgb, #E8833A 22%, var(--card)), var(--card) 60%); }
+.coin { color: #F2B544; margin-left: 3px; }
+.t-zz .coin { color: #D9A400; }

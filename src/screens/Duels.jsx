@@ -44,7 +44,7 @@ function Duels({ token, venue, toast, duels, reload, open }) {
     <div className="page">
       <div className="row between" style={{ position: 'relative' }}>
         <h1>Duels</h1>
-        <Info text={`Tu envoies un défi. Ton collègue a 24 h pour accepter. Ensuite, vous vous retrouvez dans la salle et le duel démarre en direct : mêmes questions au même moment, ${RV.time} secondes chacune. Le plus de bonnes réponses gagne +${RV.duel_win} pts ; à égalité, le plus rapide. 3 défis lancés par jour maximum. Touche pour fermer.`} />
+        <Info text={`Tu envoies un défi. Ton collègue a 24 h pour accepter. Ensuite, vous vous retrouvez dans la salle et le duel démarre en direct : mêmes questions au même moment, ${RV.time} secondes chacune. Le plus de bonnes réponses gagne +${RV.duel_win} pièces ; à égalité, le plus rapide. 3 défis lancés par jour maximum. Touche pour fermer.`} />
       </div>
       <button className="btn pulse" style={{ margin: '12px 0 6px' }} onClick={() => setPickOpen(true)}><i className="ti ti-swords" /> Défier un collègue</button>
       {!duels ? <div className="sub">Chargement…</div> : !list.length ? <div className="sub" style={{ marginTop: 12 }}>Aucun duel pour l'instant. Lance le premier !</div> :
@@ -162,7 +162,7 @@ function LiveDuel({ token, id, back, toast, refresh }) {
         <Head />
         <i className={'ti ' + (w === true ? 'ti-trophy' : w === false ? 'ti-mood-smile' : 'ti-scale') + ' acc pop'} style={{ fontSize: 64, display: 'block', marginTop: 20 }} />
         <h1 style={{ fontSize: 30 }}>{w === true ? 'Victoire !' : w === false ? 'Défaite' : 'Égalité'}</h1>
-        <div className="acc" style={{ fontWeight: 600, marginBottom: 20 }}>{w === true ? '+' + RV.duel_win + ' points' : w === false ? 'La revanche t\'attend' : st.my_score > 0 ? '+' + RV.duel_tie + ' points chacun' : 'Aucun point'}</div>
+        <div className="acc" style={{ fontWeight: 600, marginBottom: 20 }}>{w === true ? '+' + RV.duel_win + ' pièces' : w === false ? 'La revanche t\'attend' : st.my_score > 0 ? '+' + RV.duel_tie + ' pièces chacun' : 'Aucun point'}</div>
         {(st.questions || []).map((q, k) => { const a = (st.answers || [])[k] || {}; return (
           <div key={q.id} className="lb" style={{ fontSize: 13, textAlign: 'left' }}>
             <i className={'ti ti-' + (a.me?.ok ? 'circle-check' : 'circle-x')} style={{ color: a.me?.ok ? 'var(--good)' : 'var(--bad)', fontSize: 18 }} />

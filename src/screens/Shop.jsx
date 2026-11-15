@@ -13,7 +13,7 @@ function Shop({ token, me, venue, refresh, toast }) {
     try {
       const r = await rpc('daraja_redeem', { p_token: token, p_reward: sel.id })
       if (r.ok) { setClaim(sel); burst(60); refresh(); load() }
-      else toast(r.error === 'blocked' ? 'Boutique bloquée suite à une faute grave' : r.error === 'conditions' ? 'Une condition n\'est pas encore remplie' : r.error === 'stock' ? 'Plus en stock' : 'Pas assez de points')
+      else toast(r.error === 'blocked' ? 'Boutique bloquée suite à une faute grave' : r.error === 'conditions' ? 'Une condition n\'est pas encore remplie' : r.error === 'stock' ? 'Plus en stock' : 'Pas assez de pièces')
     } catch { toast('Erreur, réessaie') }
     setSel(null)
   }
@@ -30,7 +30,7 @@ function Shop({ token, me, venue, refresh, toast }) {
         <i className={'ti ti-' + r.icon + ' acc'} />
         <div style={{ fontSize: 14, margin: '6px 0', minHeight: 36 }}>{r.name}</div>
         <div className="bar" style={{ margin: '0 0 6px' }}><div style={{ width: pct + '%' }} /></div>
-        <div className={ok || near ? 'acc' : 'sub'} style={{ fontWeight: 600, fontSize: 13 }}>{ok ? fmt(r.cost) + ' pts' : 'encore ' + fmt(r.cost - me.points)}</div>
+        <div className={ok || near ? 'acc' : 'sub'} style={{ fontWeight: 600, fontSize: 13 }}>{ok ? fmt(r.cost) + ' pièces' : 'encore ' + fmt(r.cost - me.points)}</div>
         {unmet.length > 0 && <div className="lockline"><i className="ti ti-lock" /> {unmet.length} condition{unmet.length > 1 ? 's' : ''}</div>}
         {r.stock != null && r.stock <= 3 && <div className="sub" style={{ fontSize: 11 }}>Plus que {r.stock}</div>}
       </div>
@@ -41,7 +41,7 @@ function Shop({ token, me, venue, refresh, toast }) {
     <div className="page">
       <div className="row between" style={{ marginBottom: 6 }}>
         <h1>Boutique</h1>
-        <div className="acc" style={{ fontWeight: 600 }}>{fmt(me.points)} pts</div>
+        <div className="acc" style={{ fontWeight: 600 }}>{fmt(me.points)} <i className="ti ti-coin coin" /></div>
       </div>
       {!items ? <div className="sub">Chargement…</div> : tiers.map(([l, list]) => (
         <div key={l}>
@@ -65,7 +65,7 @@ function Shop({ token, me, venue, refresh, toast }) {
           <div onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
             <i className={'ti ti-' + sel.icon + ' acc'} style={{ fontSize: 40 }} />
             <h1>{sel.name}</h1>
-            <div className="sub" style={{ marginBottom: 10 }}>{fmt(sel.cost)} points · le manager te le remet</div>
+            <div className="sub" style={{ marginBottom: 10 }}>{fmt(sel.cost)} pièces · le manager te le remet</div>
             {(sel.checks || []).map(c => (
               <div key={c.key} className="cond">
                 <i className={'ti ti-' + (c.ok ? 'circle-check' : 'circle-x')} style={{ color: c.ok ? 'var(--good)' : 'var(--bad)', fontSize: 18 }} />
@@ -74,7 +74,7 @@ function Shop({ token, me, venue, refresh, toast }) {
             ))}
             <div style={{ height: 14 }} />
             {enough && !unmet.length ? <button className="btn" onClick={buy}>Échanger</button>
-              : <div className="sub" style={{ marginBottom: 6 }}>{!enough ? 'Plus que ' + fmt(sel.cost - me.points) + ' pts' : 'Encore un petit effort sur les conditions'}</div>}
+              : <div className="sub" style={{ marginBottom: 6 }}>{!enough ? 'Plus que ' + fmt(sel.cost - me.points) + ' pièces' : 'Encore un petit effort sur les conditions'}</div>}
             <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => setSel(null)}>Fermer</button>
           </div>
         </div>
