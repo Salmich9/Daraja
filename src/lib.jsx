@@ -25,7 +25,7 @@ function reportError(message, place, detail) {
     if (MOCK || sentCount >= 20 || now - (sent.get(m) || 0) < 5 * 60 * 1000) return
     sent.set(m, now); sentCount++
     sb.rpc('daraja_log_error', { p_token: store.get(TK) || '', p_message: m, p_place: String(place || '').slice(0, 80),
-      p_detail: String(detail || '').slice(0, 1500), p_agent: navigator.userAgent.slice(0, 200) }).then(() => {}, () => {})
+      p_detail: String(detail || '').slice(0, 1500), p_agent: ('v' + __VERSION__ + ' · ' + navigator.userAgent).slice(0, 200) }).then(() => {}, () => {})
   } catch {}
 }
 

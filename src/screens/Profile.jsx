@@ -86,6 +86,7 @@ function Profile({ token, me, logout, toast, refresh, go, openTest }) {
       {me.role === 'super' && <button className="btn ghost" style={{ marginTop: 10 }} onClick={openTest}><i className="ti ti-flask" /> Mode test</button>}
       <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => setAvis(true)}><i className="ti ti-star" /> Un client m'a cité dans un avis</button>
       <button className="btn ghost" style={{ marginTop: 10, color: 'var(--muted)' }} onClick={logout}><i className="ti ti-logout" /> Me déconnecter</button>
+      <div className="sub" style={{ textAlign: 'center', fontSize: 11, opacity: .5, marginTop: 14 }}>Version {__VERSION__}</div>
       {avis && <div className="sheet" onClick={() => setAvis(false)}>
         <div onClick={e => e.stopPropagation()}>
           <h1>Avis client</h1>
