@@ -289,3 +289,4 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 .admgrp { margin-top: 12px; }
 .admgrp button { position: relative; font-weight: 600; }
 .cnt { display:inline-block; margin-left: 6px; vertical-align: 1px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--bad); color: #fff; font: 700 11px/18px Inter, sans-serif; }
+.netbar { position: sticky; top: 0; z-index: 8; margin: -4px -16px 10px; padding: 9px 16px; background: #B4532A; color: #fff; font: 600 13px Inter, sans-serif; display:flex; align-items:center; gap: 8px; animation: rise .3s ease both; }

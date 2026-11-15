@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { listen, sfx, MOCK, RV, TK, VK, burst, buzz, level, rpc, store } from './lib'
+import { useOffline, listen, sfx, MOCK, RV, TK, VK, burst, buzz, level, rpc, store } from './lib'
 import { Toast } from './ui'
 import { Login, QuoteSplash } from './screens/Login'
 import { Home } from './screens/Home'
@@ -15,6 +15,8 @@ export default function App() {
   const [token, setToken] = useState(store.get(TK))
   const [venueRaw, setVenue] = useState(store.get(VK))
   const [net, setNet] = useState(false)
+  const offline = useOffline()
+  const [epoch, setEpoch] = useState(0)
   let [me, setMe] = useState(null)
   const venue = me?.role === 'super' ? venueRaw : null
   const [tab, setTab] = useState('home')
@@ -50,6 +52,12 @@ export default function App() {
     rpc('daraja_me', { p_token: token, p_venue: venue }).then(m => { setNet(false); Object.assign(RV, m.rules); setMe(m) }).catch(e => { if (String(e?.message || '').includes('session')) { store.set(TK, null); store.set(VK, null); setToken(null); setMe(null) } else setNet(true) })
   }, [token, venue])
   useEffect(() => { refresh() }, [refresh])
+  // Hors ligne : on réessaie toutes les 5 s et au retour du réseau ; une fois revenu, on recharge l'écran (sauf en plein jeu)
+  const wasOff = React.useRef(false)
+  useEffect(() => {
+    if (offline) { wasOff.current = true; const t = setInterval(refresh, 5000); const on = () => refresh(); window.addEventListener('online', on); return () => { clearInterval(t); window.removeEventListener('online', on) } }
+    if (wasOff.current) { wasOff.current = false; if (!['quiz', 'live'].includes(tab)) setEpoch(e => e + 1) }
+  }, [offline])
   useEffect(() => {
     if (!me) return
     if (store.get('daraja_quote_day') !== todayKey) setSplash(true)
@@ -102,6 +110,8 @@ export default function App() {
         </div>
       )}
       {preview && <div className="previewbar"><i className="ti ti-eye" /> Aperçu équipier · {preview}<button className="mini" onClick={() => { setPreview(null); setTab('profile') }}>Quitter</button></div>}
+      {offline && <div className="netbar"><i className="ti ti-wifi-off" /> Pas de connexion · on réessaie…</div>}
+      <React.Fragment key={epoch}>
       {tab === 'home' && <Home token={token} me={me} venue={venue} go={go} toast={toast} duels={duels} openDuel={openDuel} />}
       {tab === 'live' && duelId && <LiveDuel key={duelId} token={token} id={duelId} back={() => { loadDuels(); go('duels') }} toast={toast} refresh={refresh} open={id => { loadDuels(); openDuel(id) }} />}
       {invite && tab !== 'live' && tab !== 'quiz' && <DuelInvite d={invite} token={token} close={() => setInvite(null)} open={openDuel} toast={toast} />}
@@ -116,6 +126,7 @@ export default function App() {
       {tab === 'shop' && <Shop token={token} me={me} venue={venue} refresh={refresh} toast={toast} />}
       {tab === 'profile' && <Profile token={token} me={preview ? real : me} logout={logout} toast={toast} refresh={refresh} go={go} openTest={() => setTestOpen(true)} />}
       {tab === 'admin' && isAdmin && <Admin token={token} me={me} venue={venue} toast={toast} />}
+      </React.Fragment>
       <nav className="nav">
         {tabs.map(([k, ic, lab]) => <button key={k} aria-label={k} className={tab === k || (['quiz', 'duels', 'live'].includes(tab) && k === 'home') || (tab === 'rules' && k === 'profile') ? 'on' : ''} onClick={() => go(k)}><span className="navic"><i className={'ti ti-' + ic} /></span><small>{lab}</small>{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && (me.direction_todo > 0 || me.errors_24h > 0)) || (k === 'home' && duelTodo.length > 0)) && <span className="dot" />}</button>)}
       </nav>

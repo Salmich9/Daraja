@@ -26,12 +26,25 @@ function reportError(message, place, detail) {
   } catch {}
 }
 
+// État du réseau : passe à « hors ligne » quand un appel n'aboutit pas, revient dès qu'un appel réussit
+let offline = false
+const netSubs = new Set()
+const setOffline = v => { if (v !== offline) { offline = v; netSubs.forEach(f => f(v)) } }
+function useOffline() {
+  const [v, setV] = React.useState(offline)
+  React.useEffect(() => { netSubs.add(setV); return () => netSubs.delete(setV) }, [])
+  return v
+}
+
 async function rpc(fn, args = {}) {
-  if (MOCK) return (await import('./mock.js')).default(fn, args)
-  try { return await call(fn, args) }
+  if (MOCK) {
+    if (localStorage.getItem('mock_net') === 'off' && fn !== 'daraja_me') { setOffline(true); throw new Error('Failed to fetch') }
+    return (await import('./mock.js')).default(fn, args)
+  }
+  try { const r = await call(fn, args); setOffline(false); return r }
   catch (e) {
-    if (!e.server) reportError('Réseau : ' + (e?.message || e), fn)
-    else if (!EXPECTED.test(e.message || '')) reportError(e.message || 'Erreur serveur', fn, [e.code, e.details, e.hint].filter(Boolean).join(' · '))
+    if (!e.server) { setOffline(true); reportError('Réseau : ' + (e?.message || e), fn) }
+    else { setOffline(false); if (!EXPECTED.test(e.message || '')) reportError(e.message || 'Erreur serveur', fn, [e.code, e.details, e.hint].filter(Boolean).join(' · ')) }
     throw e
   }
 }
@@ -145,4 +158,4 @@ const monday = (off = 0) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.s
 // Règles du jeu : remplies par le serveur avec le profil (daraja_me.rules), seule source des chiffres affichés
 const RV = {}
 
-export { listen, sfx, soundOn, setSound, RV, reportError, avFile, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }
+export { useOffline, listen, sfx, soundOn, setSound, RV, reportError, avFile, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }
