@@ -89,7 +89,7 @@ function ContactsAdmin({ token, venue, toast }) {
   const n = ROLES.filter(([k]) => c[k]?.phone).length
   return (
     <>
-      <div className="sec" style={{ cursor: 'pointer' }} onClick={() => setOpen(!open)}><i className="ti ti-brand-whatsapp wa-ic" /> Contacts WhatsApp · {n}/4 <i className={'ti ti-chevron-' + (open ? 'up' : 'down')} /></div>
+      <div className="sec" style={{ cursor: 'pointer' }} onClick={() => setOpen(!open)}><i className="ti ti-brand-whatsapp wa-ic" /> Contacts WhatsApp · {n}/4 <i className={(open ? 'ti ti-chevron-up' : 'ti ti-chevron-down')} /></div>
       {open && ROLES.map(([k, label, ic]) => (
         <div key={k} className="card" style={{ padding: 10 }}>
           <div className="sub" style={{ marginBottom: 6 }}><i className={'ti ti-' + ic} /> {label}</div>
