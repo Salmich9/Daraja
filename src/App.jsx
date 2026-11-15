@@ -79,7 +79,7 @@ export default function App() {
   const duelTodo = (duels || []).filter(d => (d.status === 'pending' && !d.mine) || d.status === 'ready' || d.status === 'live')
   if (preview) me = { ...me, role: 'staff' }
   const isAdmin = me.role !== 'staff'
-  const tabs = [['home', 'home'], ['board', 'trophy'], ['stories', 'book-2'], ['shop', 'gift'], ['profile', 'user'], ...(isAdmin ? [['admin', 'settings']] : [])]
+  const tabs = [['home', 'home', 'Accueil'], ['board', 'trophy', 'Classement'], ['stories', 'book-2', 'Histoires'], ['shop', 'gift', 'Boutique'], ['profile', 'user', 'Profil'], ...(isAdmin ? [['admin', 'settings', 'Admin']] : [])]
 
   return (
     <div className={'app ' + theme}>
@@ -117,7 +117,7 @@ export default function App() {
       {tab === 'profile' && <Profile token={token} me={preview ? real : me} logout={logout} toast={toast} refresh={refresh} go={go} openTest={() => setTestOpen(true)} />}
       {tab === 'admin' && isAdmin && <Admin token={token} me={me} venue={venue} toast={toast} />}
       <nav className="nav">
-        {tabs.map(([k, ic]) => <button key={k} aria-label={k} className={tab === k || (['quiz', 'duels', 'live'].includes(tab) && k === 'home') || (tab === 'rules' && k === 'profile') ? 'on' : ''} onClick={() => go(k)}><i className={'ti ti-' + ic} />{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && (me.direction_todo > 0 || me.errors_24h > 0)) || (k === 'home' && duelTodo.length > 0)) && <span className="dot" />}</button>)}
+        {tabs.map(([k, ic, lab]) => <button key={k} aria-label={k} className={tab === k || (['quiz', 'duels', 'live'].includes(tab) && k === 'home') || (tab === 'rules' && k === 'profile') ? 'on' : ''} onClick={() => go(k)}><span className="navic"><i className={'ti ti-' + ic} /></span><small>{lab}</small>{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && (me.direction_todo > 0 || me.errors_24h > 0)) || (k === 'home' && duelTodo.length > 0)) && <span className="dot" />}</button>)}
       </nav>
     </div>
   )
