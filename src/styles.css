@@ -274,3 +274,14 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 .navic { display:grid; place-items:center; width: 52px; height: 30px; border-radius: 999px; transition: background .2s; }
 .nav button.on .navic { background: color-mix(in srgb, var(--acc) 22%, transparent); }
 .nav .dot { top: 0; right: calc(50% - 22px); }
+/* Histoires : cartes à faire défiler */
+.stcards { margin-top: 10px; }
+.stbars { display:flex; gap: 4px; margin-bottom: 10px; }
+.stbars i { flex:1; height: 4px; border-radius: 4px; background: var(--line); transition: background .25s; }
+.stbars i.on { background: var(--acc); }
+.stcard { min-height: 58vh; border-radius: 22px; background: linear-gradient(165deg, color-mix(in srgb, var(--acc) 16%, var(--card)), var(--card) 55%); border: 1px solid var(--line); padding: 26px 22px; display:flex; align-items:center; cursor:pointer; user-select:none; -webkit-user-select:none; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+.stin { width:100%; animation: rise .35s ease both; }
+.stin p { font-size: 19px; line-height: 1.6; margin: 0; }
+.stin h2 { font-size: 30px; line-height: 1.2; margin: 14px 0 10px; }
+.sthint { margin-top: 28px; }
+.stlesson { font: 600 21px/1.5 Inter, sans-serif; margin-top: 12px; }
