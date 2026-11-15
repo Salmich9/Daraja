@@ -67,18 +67,32 @@ alter table daraja.votes add constraint votes_voter_fkey FOREIGN KEY (voter) REF
 
 -- index
 CREATE INDEX IF NOT EXISTS answers_question_idx ON daraja.answers USING btree (question_id);
-CREATE INDEX IF NOT EXISTS answers_staff_idx ON daraja.answers USING btree (staff_id, at);
 CREATE INDEX IF NOT EXISTS answers_staff_at ON daraja.answers USING btree (staff_id, at);
 CREATE INDEX IF NOT EXISTS attendance_day_idx ON daraja.attendance USING btree (day);
+CREATE INDEX IF NOT EXISTS client_errors_staff_idx ON daraja.client_errors USING btree (staff_id);
 CREATE INDEX IF NOT EXISTS client_errors_last_idx ON daraja.client_errors USING btree (last_at);
 CREATE INDEX IF NOT EXISTS client_errors_msg_idx ON daraja.client_errors USING btree (md5(message), staff_id, last_at);
 CREATE INDEX IF NOT EXISTS conduct_records_staff_idx ON daraja.conduct_records USING btree (staff_id, occurred_at);
+CREATE INDEX IF NOT EXISTS conduct_records_recorded_by_idx ON daraja.conduct_records USING btree (recorded_by);
+CREATE INDEX IF NOT EXISTS conduct_records_notified_by_idx ON daraja.conduct_records USING btree (notified_by);
+CREATE INDEX IF NOT EXISTS conduct_records_rule_idx ON daraja.conduct_records USING btree (rule_id);
+CREATE INDEX IF NOT EXISTS draws_winner_idx ON daraja.draws USING btree (winner);
 CREATE INDEX IF NOT EXISTS duels_ch_idx ON daraja.duels USING btree (challenger, status);
 CREATE INDEX IF NOT EXISTS duels_opp_idx ON daraja.duels USING btree (opponent, status);
+CREATE INDEX IF NOT EXISTS eotm_winner_idx ON daraja.eotm USING btree (winner);
+CREATE INDEX IF NOT EXISTS mission_done_validated_by_idx ON daraja.mission_done USING btree (validated_by);
+CREATE INDEX IF NOT EXISTS mission_done_mission_idx ON daraja.mission_done USING btree (mission_id);
 CREATE INDEX IF NOT EXISTS point_events_staff_idx ON daraja.point_events USING btree (staff_id, created_at);
+CREATE INDEX IF NOT EXISTS point_events_reward_idx ON daraja.point_events USING btree (reward_id);
+CREATE INDEX IF NOT EXISTS point_events_by_staff_idx ON daraja.point_events USING btree (by_staff);
+CREATE INDEX IF NOT EXISTS questions_venue_idx ON daraja.questions USING btree (venue);
+CREATE INDEX IF NOT EXISTS rewards_venue_idx ON daraja.rewards USING btree (venue);
 CREATE INDEX IF NOT EXISTS sessions_staff_idx ON daraja.sessions USING btree (staff_id);
 CREATE UNIQUE INDEX IF NOT EXISTS staff_avatar_uniq ON daraja.staff USING btree (avatar) WHERE ((avatar IS NOT NULL) AND active);
+CREATE INDEX IF NOT EXISTS staff_venue_idx ON daraja.staff USING btree (venue);
 CREATE INDEX IF NOT EXISTS votes_venue_month_idx ON daraja.votes USING btree (venue, month);
+CREATE INDEX IF NOT EXISTS votes_voter_idx ON daraja.votes USING btree (voter);
+CREATE INDEX IF NOT EXISTS votes_candidate_idx ON daraja.votes USING btree (candidate);
 
 -- déclencheurs
 CREATE TRIGGER point_events_bonus_once BEFORE INSERT ON daraja.point_events FOR EACH ROW EXECUTE FUNCTION daraja.bonus_once();
@@ -121,8 +135,8 @@ grant execute on function public.daraja_contacts(text,text) to anon;
 grant execute on function public.daraja_draw_info(text,text) to anon;
 grant execute on function public.daraja_duel_cancel(text,uuid) to anon;
 grant execute on function public.daraja_duel_new(text,uuid) to anon;
-grant execute on function public.daraja_duel_rematch(text,uuid) to anon;
 grant execute on function public.daraja_duel_play(text,uuid,integer,integer,jsonb) to anon;
+grant execute on function public.daraja_duel_rematch(text,uuid) to anon;
 grant execute on function public.daraja_duel_respond(text,uuid,boolean) to anon;
 grant execute on function public.daraja_duel_state(text,uuid) to anon;
 grant execute on function public.daraja_duels(text) to anon;

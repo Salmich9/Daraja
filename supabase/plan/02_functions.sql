@@ -11,6 +11,7 @@ CREATE OR REPLACE FUNCTION daraja.bday_on(b text, d date)
  RETURNS boolean
  LANGUAGE sql
  IMMUTABLE
+ SET search_path TO 'daraja', 'public'
 AS $function$
   select b = to_char(d, 'MM-DD') or (b = '02-29' and to_char(d, 'MM-DD') = '02-28'
     and extract(day from (date_trunc('year', d) + interval '2 months' - interval '1 day')) = 28) $function$;
@@ -19,6 +20,7 @@ CREATE OR REPLACE FUNCTION daraja.bday_valid(m text)
  RETURNS boolean
  LANGUAGE sql
  IMMUTABLE
+ SET search_path TO 'daraja', 'public'
 AS $function$
   select m ~ '^((0[13578]|1[02])-(0[1-9]|[12][0-9]|3[01])|(0[469]|11)-(0[1-9]|[12][0-9]|30)|02-(0[1-9]|[12][0-9]))$' $function$;
 
@@ -1201,21 +1203,6 @@ begin
   return json_build_object('ok', true, 'id', d);
 end $function$;
 
-CREATE OR REPLACE FUNCTION public.daraja_duel_rematch(p_token text, p_duel uuid)
- RETURNS json
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'daraja', 'public'
-AS $function$
-declare s daraja.staff; o uuid;
-begin
-  s := daraja.who(p_token);
-  select case when challenger = s.id then opponent else challenger end into o
-    from daraja.duels where id = p_duel and (challenger = s.id or opponent = s.id) and status = 'done';
-  if o is null then return json_build_object('ok', false, 'error', 'duel'); end if;
-  return public.daraja_duel_new(p_token, o);
-end $function$;
-
 CREATE OR REPLACE FUNCTION public.daraja_duel_play(p_token text, p_duel uuid, p_idx integer, p_choice integer, p_answer jsonb)
  RETURNS json
  LANGUAGE plpgsql
@@ -1241,6 +1228,21 @@ begin
   else update daraja.duels set o_ans = mine where id = d.id; end if;
   return json_build_object('ok', true, 'correct', ok, 'answer_idx', q.answer_idx, 'explanation', q.explanation,
     'solution', case when q.kind = 'order' then q.payload->'answer' end);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_duel_rematch(p_token text, p_duel uuid)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; o uuid;
+begin
+  s := daraja.who(p_token);
+  select case when challenger = s.id then opponent else challenger end into o
+    from daraja.duels where id = p_duel and (challenger = s.id or opponent = s.id) and status = 'done';
+  if o is null then return json_build_object('ok', false, 'error', 'duel'); end if;
+  return public.daraja_duel_new(p_token, o);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_duel_respond(p_token text, p_duel uuid, p_accept boolean)
