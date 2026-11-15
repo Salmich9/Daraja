@@ -1,9 +1,6 @@
 import React from 'react'
-import { createClient } from '@supabase/supabase-js'
-import { SUPABASE_URL, SUPABASE_KEY } from './config.js'
+import { call, listen } from './net.js'
 import { AV_SEEDS, AV_STYLES, avFile } from './avatar-list.js'
-
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } })
 
 const TK = 'daraja_token', VK = 'daraja_venue'
 
@@ -24,22 +21,19 @@ function reportError(message, place, detail) {
     const now = Date.now()
     if (MOCK || sentCount >= 20 || now - (sent.get(m) || 0) < 5 * 60 * 1000) return
     sent.set(m, now); sentCount++
-    sb.rpc('daraja_log_error', { p_token: store.get(TK) || '', p_message: m, p_place: String(place || '').slice(0, 80),
+    call('daraja_log_error', { p_token: store.get(TK) || '', p_message: m, p_place: String(place || '').slice(0, 80),
       p_detail: String(detail || '').slice(0, 1500), p_agent: ('v' + __VERSION__ + ' · ' + navigator.userAgent).slice(0, 200) }).then(() => {}, () => {})
   } catch {}
 }
 
 async function rpc(fn, args = {}) {
   if (MOCK) return (await import('./mock.js')).default(fn, args)
-  let res
-  try { res = await sb.rpc(fn, args) }
-  catch (e) { reportError('Réseau : ' + (e?.message || e), fn); throw e }
-  const { data, error } = res
-  if (error) {
-    if (!EXPECTED.test(error.message || '')) reportError(error.message || 'Erreur serveur', fn, [error.code, error.details, error.hint].filter(Boolean).join(' · '))
-    throw error
+  try { return await call(fn, args) }
+  catch (e) {
+    if (!e.server) reportError('Réseau : ' + (e?.message || e), fn)
+    else if (!EXPECTED.test(e.message || '')) reportError(e.message || 'Erreur serveur', fn, [e.code, e.details, e.hint].filter(Boolean).join(' · '))
+    throw e
   }
-  return data
 }
 
 const LEVELS = [
@@ -151,4 +145,4 @@ const monday = (off = 0) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.s
 // Règles du jeu : remplies par le serveur avec le profil (daraja_me.rules), seule source des chiffres affichés
 const RV = {}
 
-export { sfx, soundOn, setSound, RV, reportError, avFile, sb, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }
+export { listen, sfx, soundOn, setSound, RV, reportError, avFile, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }

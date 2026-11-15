@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { sfx, MOCK, RV, TK, VK, sb, burst, buzz, level, rpc, store } from './lib'
+import { listen, sfx, MOCK, RV, TK, VK, burst, buzz, level, rpc, store } from './lib'
 import { Toast } from './ui'
 import { Login, QuoteSplash } from './screens/Login'
 import { Home } from './screens/Home'
@@ -35,8 +35,8 @@ export default function App() {
     loadDuels(); const t = setInterval(loadDuels, 30000)
     const vis = () => { if (document.visibilityState === 'visible') loadDuels() }
     document.addEventListener('visibilitychange', vis)
-    const ch = MOCK || !me.rt ? null : sb.channel(me.rt).on('broadcast', { event: 'duels' }, () => loadDuels()).subscribe()
-    return () => { clearInterval(t); document.removeEventListener('visibilitychange', vis); if (ch) sb.removeChannel(ch) }
+    const stop = MOCK || !me.rt ? null : listen(me.rt, 'duels', () => loadDuels())
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', vis); if (stop) stop() }
   }, [loadDuels, me?.role, me?.rt])
   useEffect(() => {
     const d = (duels || []).find(x => ((x.status === 'pending' && !x.mine) || x.status === 'ready') && !seenInv.current.has(x.id + x.status))
