@@ -31,6 +31,15 @@ create table if not exists daraja.attendance (
 );
 alter table daraja.attendance enable row level security;
 
+create table if not exists daraja.chests (
+  staff_id uuid not null,
+  day date not null,
+  kind text not null,
+  amount integer not null default 0,
+  opened_at timestamp with time zone not null default now()
+);
+alter table daraja.chests enable row level security;
+
 create table if not exists daraja.client_errors (
   id bigint not null generated always as identity,
   first_at timestamp with time zone not null default now(),

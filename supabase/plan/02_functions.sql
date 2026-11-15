@@ -520,6 +520,8 @@ AS $function$
        + daraja.rv('punct_tickets') * (select count(*) from daraja.point_events e where e.staff_id = p_staff and e.kind = 'bonus'
             and e.note ~ '^Ponctualité semaine [0-9]{4}-[0-9]{2}-[0-9]{2}$'
             and substr(e.note, 21, 7) = to_char(p_month, 'YYYY-MM'))::int
+       + (select count(*) from daraja.chests c where c.staff_id = p_staff and c.kind = 'ticket'
+            and date_trunc('month', c.day) = date_trunc('month', p_month))::int
 $function$;
 
 CREATE OR REPLACE FUNCTION daraja.today()
@@ -996,6 +998,36 @@ begin
     select o.id, daraja.display_name(o) display, o.avatar, o.phone, o.birthday, o.id = s.id me,
       (select min(g) from generate_series(0, 7) g where daraja.bday_on(o.birthday, t + g)) in_days
     from daraja.staff o where o.venue = v and o.active and o.birthday is not null) x where x.in_days is not null);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_chest_open(p_token text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; c daraja.chests; r numeric; k text; amt int := 0; acc int := 0;
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'staff' then return json_build_object('ok', false, 'error', 'role'); end if;
+  if not exists (select 1 from daraja.quiz_sessions q where q.staff_id = s.id and q.day = daraja.today()
+                 and cardinality(q.answered) >= cardinality(q.question_ids)) then
+    return json_build_object('ok', false, 'error', 'locked'); end if;
+  perform pg_advisory_xact_lock(hashtext('chest' || s.id));
+  select * into c from daraja.chests where staff_id = s.id and day = daraja.today();
+  if c.staff_id is not null then return json_build_object('ok', true, 'again', true, 'kind', c.kind, 'amount', c.amount); end if;
+  r := random() * 100;
+  acc := daraja.rv('chest_p_legend'); if r < acc then k := 'legend'; end if;
+  if k is null then acc := acc + daraja.rv('chest_p_epic'); if r < acc then k := 'epic'; end if; end if;
+  if k is null then acc := acc + daraja.rv('chest_p_ticket'); if r < acc then k := 'ticket'; end if; end if;
+  if k is null then acc := acc + daraja.rv('chest_p_rare'); if r < acc then k := 'rare'; end if; end if;
+  if k is null then k := 'common'; end if;
+  amt := case k when 'legend' then daraja.rv('chest_legend') when 'epic' then daraja.rv('chest_epic') when 'rare' then daraja.rv('chest_rare') when 'common' then daraja.rv('chest_common') else 0 end;
+  insert into daraja.chests(staff_id, day, kind, amount) values (s.id, daraja.today(), k, amt);
+  if amt > 0 then
+    insert into daraja.point_events(staff_id, kind, amount, note) values (s.id, 'bonus', amt, 'Coffre ' || k);
+  end if;
+  return json_build_object('ok', true, 'kind', k, 'amount', amt);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_conduct_ack(p_token text, p_record uuid)
@@ -1489,6 +1521,7 @@ begin
     'streak', daraja.live_streak(s), 'flame', daraja.flame_state(s),
     'next_bonus', daraja.rv('streak_step') * least(daraja.live_streak(s) + 1, daraja.rv('streak_days')), 'rules', (select json_object_agg(key, val) from daraja.rule_values),
     'quiz_done', done,
+    'chest', case when not done then 'locked' when exists (select 1 from daraja.chests c where c.staff_id = s.id and c.day = daraja.today()) then 'opened' else 'ready' end,
     'week', (select json_agg(exists(select 1 from daraja.quiz_sessions q where q.staff_id = s.id and q.day = daraja.today() - g
       and cardinality(q.answered) >= cardinality(q.question_ids)) order by g desc) from generate_series(0, 6) g),
     'tickets', daraja.tickets(s.id, daraja.today()),

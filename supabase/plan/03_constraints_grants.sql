@@ -4,6 +4,7 @@
 alter table daraja.answers add constraint answers_pkey PRIMARY KEY (id);
 alter table daraja.attendance add constraint attendance_pkey PRIMARY KEY (staff_id, day);
 alter table daraja.attendance add constraint attendance_status_check CHECK ((status = ANY (ARRAY['present'::text, 'absent'::text, 'conge'::text, 'recup'::text, 'maladie'::text, 'autorise'::text, 'repos'::text])));
+alter table daraja.chests add constraint chests_pkey PRIMARY KEY (staff_id, day);
 alter table daraja.client_errors add constraint client_errors_pkey PRIMARY KEY (id);
 alter table daraja.conduct_records add constraint conduct_records_pkey PRIMARY KEY (id);
 alter table daraja.conduct_rules add constraint conduct_rules_line_check CHECK ((line = ANY (ARRAY['blanche'::text, 'grise'::text, 'rouge'::text])));
@@ -40,6 +41,7 @@ alter table daraja.votes add constraint votes_pkey PRIMARY KEY (month, voter);
 alter table daraja.answers add constraint answers_question_id_fkey FOREIGN KEY (question_id) REFERENCES daraja.questions(id) ON DELETE CASCADE;
 alter table daraja.answers add constraint answers_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES daraja.staff(id) ON DELETE CASCADE;
 alter table daraja.attendance add constraint attendance_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES daraja.staff(id);
+alter table daraja.chests add constraint chests_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES daraja.staff(id) ON DELETE CASCADE;
 alter table daraja.client_errors add constraint client_errors_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES daraja.staff(id) ON DELETE SET NULL;
 alter table daraja.conduct_records add constraint conduct_records_notified_by_fkey FOREIGN KEY (notified_by) REFERENCES daraja.staff(id);
 alter table daraja.conduct_records add constraint conduct_records_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES daraja.staff(id);
@@ -125,6 +127,7 @@ grant execute on function public.daraja_admin_validate_mission(text,uuid) to ano
 grant execute on function public.daraja_answer_v2(text,uuid,integer,jsonb) to anon;
 grant execute on function public.daraja_avatars_taken(text) to anon;
 grant execute on function public.daraja_birthdays(text,text) to anon;
+grant execute on function public.daraja_chest_open(text) to anon;
 grant execute on function public.daraja_conduct_ack(text,uuid) to anon;
 grant execute on function public.daraja_conduct_add(text,uuid,integer,text,text,text) to anon;
 grant execute on function public.daraja_conduct_mine(text) to anon;
