@@ -1,0 +1,23 @@
+-- Requête d'export : son résultat (JSON) sert à régénérer les fichiers 01 à 04 avec scripts/build-plan.py
+select json_build_object(
+ 'sequences', (select json_agg('create sequence if not exists daraja.' || c.relname || ';') from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='daraja' and c.relkind='S'),
+ 'tables', (select json_agg(json_build_object('t', c.relname,
+    'cols', (select string_agg(quote_ident(a.attname) || ' ' || format_type(a.atttypid, a.atttypmod) || case when a.attnotnull then ' not null' else '' end || coalesce(' default ' || pg_get_expr(ad.adbin, ad.adrelid), ''), E',\n  ' order by a.attnum)
+       from pg_attribute a left join pg_attrdef ad on ad.adrelid=a.attrelid and ad.adnum=a.attnum where a.attrelid=c.oid and a.attnum>0 and not a.attisdropped),
+    'pk_uq', (select json_agg('alter table daraja.' || c.relname || ' add constraint ' || conname || ' ' || pg_get_constraintdef(oid) || ';') from pg_constraint where conrelid=c.oid and contype in ('p','u','c')),
+    'fk', (select json_agg('alter table daraja.' || c.relname || ' add constraint ' || conname || ' ' || pg_get_constraintdef(oid) || ';') from pg_constraint where conrelid=c.oid and contype='f'),
+    'idx', (select json_agg(pg_get_indexdef(i.indexrelid) || ';') from pg_index i where i.indrelid=c.oid and not i.indisprimary and not exists (select 1 from pg_constraint k where k.conindid=i.indexrelid))
+   ) order by c.relname) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='daraja' and c.relkind='r'),
+ 'triggers', (select json_agg(pg_get_triggerdef(t.oid) || ';') from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='daraja' and not t.tgisinternal),
+ 'grants', (select json_agg(format('grant execute on function public.%s to anon;', p.oid::regprocedure)) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like 'daraja%' and has_function_privilege('anon', p.oid, 'execute')),
+ 'functions', (select json_agg(pg_get_functiondef(p.oid) order by n.nspname, p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='daraja' or (n.nspname='public' and p.proname like 'daraja%')),
+ 'data', json_build_object(
+   'venues', (select json_agg(t) from daraja.venues t),
+   'posts', (select json_agg(t order by sort) from daraja.posts t),
+   'conduct_rules', (select json_agg(t order by id) from daraja.conduct_rules t),
+   'missions', (select json_agg(t order by id) from daraja.missions t),
+   'quotes', (select json_agg(t order by id) from daraja.quotes t),
+   'rewards', (select json_agg(t order by cost) from daraja.rewards t),
+   'quiz_settings', (select json_agg(t) from daraja.quiz_settings t),
+   'questions', (select json_agg(t order by cat, level, id) from daraja.questions t))
+)::text;

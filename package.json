@@ -6,24 +6,26 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:db": "node scripts/test-db.mjs"
   },
   "dependencies": {
+    "@dicebear/adventurer": "^9.4.2",
+    "@dicebear/avataaars": "^9.4.2",
     "@dicebear/big-smile": "^9.4.2",
     "@dicebear/bottts": "^9.4.2",
     "@dicebear/core": "^9.4.3",
     "@dicebear/croodles": "^9.4.2",
     "@dicebear/fun-emoji": "^9.4.2",
+    "@dicebear/pixel-art": "^9.4.2",
+    "@dicebear/thumbs": "^9.4.2",
     "@supabase/supabase-js": "^2.45.0",
     "@tabler/icons-webfont": "^3.19.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "@dicebear/thumbs": "^9.4.2",
-    "@dicebear/adventurer": "^9.4.2",
-    "@dicebear/pixel-art": "^9.4.2",
-    "@dicebear/avataaars": "^9.4.2"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "@vitejs/plugin-react": "^4.3.1",
     "vite": "^5.4.0"
   }
