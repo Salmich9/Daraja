@@ -38,15 +38,20 @@ function ProfileEdit({ token, me, close, done }) {
 function Profile({ token, me, logout, toast, refresh, go, openTest }) {
   const lv = level(me.earned)
   const [avis, setAvis] = useState(false)
+  const [bsel, setBsel] = useState(null)
   const [note, setNote] = useState('')
   const [err, setErr] = useState('')
   const [edit, setEdit] = useState(false)
   const pct = lv.to ? Math.round(((me.earned - lv.from) / (lv.to - lv.from)) * 100) : 100
   const badges = [
-    ['flame', 'Série 7', me.streak >= 7], ['target', 'Sans faute', me.perfect >= 1],
-    ['star', 'Cité en avis', me.avis >= 1], ['gift', '1er cadeau', me.gifts >= 1],
-    ['bolt', 'Expert', me.earned >= 2000], ['crown', 'Légende', me.earned >= 7000],
-    ['shield-check', 'Exemplaire', me.exemplary], ['crown', 'Employé du mois', me.eotm > 0],
+    ['flame', 'Série 7', me.streak, 7, 'Joue ton défi 7 jours d\'affilée.'],
+    ['target', 'Sans faute', me.perfect, 1, 'Termine un défi du jour avec 5 bonnes réponses sur 5.'],
+    ['star', 'Cité en avis', me.avis, 1, 'Un client te cite dans un avis en ligne, validé par ton manager.'],
+    ['gift', '1er cadeau', me.gifts, 1, 'Échange tes pièces contre un cadeau en boutique.'],
+    ['bolt', 'Expert', me.earned, 2000, 'Atteins 2 000 XP au total.'],
+    ['crown', 'Légende', me.earned, 7000, 'Atteins 7 000 XP au total.'],
+    ['shield-check', 'Exemplaire', me.exemplary ? 1 : 0, 1, 'Passe un mois entier sans ligne grise ni rouge.'],
+    ['trophy', 'Employé du mois', me.eotm, 1, 'Sois élu par tes collègues au vote du mois.'],
   ]
   const send = async () => {
     if (!note.trim()) { setErr('Colle le lien ou décris l\'avis'); return }
@@ -73,8 +78,17 @@ function Profile({ token, me, logout, toast, refresh, go, openTest }) {
       </div>
       <div className="sec">Badges</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-        {badges.map(([ic, l, on]) => <div key={l} className={'badge ' + (on ? '' : 'off')}><div><i className={'ti ti-' + (on ? ic : 'lock')} /></div>{l}</div>)}
+        {badges.map(([ic, l, have, need], k) => { const on = (have || 0) >= need, pct = Math.min(100, Math.round((have || 0) / need * 100)); return (
+          <button key={l} className={'badge ' + (on ? 'on' : 'off') + (bsel === k ? ' sel' : '')} onClick={() => setBsel(bsel === k ? null : k)}>
+            <div style={on ? null : { background: `conic-gradient(var(--acc) ${pct}%, var(--line) 0)` }}><span><i className={'ti ti-' + ic} /></span></div>
+            {l}{!on && need > 1 && <small>{fmt(Math.min(have || 0, need))}/{fmt(need)}</small>}
+          </button>) })}
       </div>
+      {bsel != null && (() => { const [ic, l, have, need, how] = badges[bsel]; const on = (have || 0) >= need; return (
+        <div className="card badgetip rise" onClick={() => setBsel(null)}>
+          <i className={'ti ti-' + ic + ' acc'} style={{ fontSize: 26 }} />
+          <div style={{ flex: 1 }}><b>{l}{on ? ' · obtenu' : ''}</b><div className="sub">{how}</div></div>
+        </div>) })()}
       <div className="card row" style={{ gap: 12, marginTop: 12 }}>
         <i className={'ti ti-flame flame ' + (['out', 'new'].includes(me.flame) ? 'off' : me.flame)} style={{ fontSize: 36 }} />
         <div><div style={{ fontWeight: 600 }}>{me.streak} jour{me.streak > 1 ? 's' : ''} de série</div>
