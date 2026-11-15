@@ -76,7 +76,8 @@ AS $function$
  select case c when 'hospitalite' then 'Hospitalité et règlement' when 'vente' then 'Vente et relation client'
   when 'cocktails' then 'Cocktails et spiritueux' when 'vins' then 'Vins et accords' when 'anglais' then 'Anglais'
   when 'carte' then 'Notre carte' when 'histoire' then 'Histoire du lieu' when 'cuisine' then 'Cuisine et hygiène'
-  when 'securite' then 'Sécurité' when 'caisse' then 'Caisse, achats et stock' else c end $function$;
+  when 'securite' then 'Sécurité' when 'caisse' then 'Caisse, achats et stock' when 'marrakech' then 'Marrakech et patrimoine'
+  when 'legendes' then 'Légendes et palmarès du F&B' else c end $function$;
 
 CREATE OR REPLACE FUNCTION daraja.conduct_bonus(p_staff uuid)
  RETURNS void
@@ -168,6 +169,7 @@ CREATE OR REPLACE FUNCTION daraja.default_enabled(p_family text, p_key text)
 AS $function$
  select case
   when p_key like 'level:%' then true
+  when p_key in ('cat:marrakech', 'cat:legendes') then true
   when p_family in ('salle','bar') then p_key in ('cat:hospitalite','cat:vente','cat:cocktails','cat:vins','cat:anglais','cat:carte','cat:histoire','cat:securite')
   when p_family = 'cuisine' then p_key in ('cat:hospitalite','cat:carte','cat:histoire','cat:cuisine','cat:securite')
   when p_family = 'support' then p_key in ('cat:hospitalite','cat:histoire','cat:securite','cat:caisse','cat:anglais')
@@ -1564,6 +1566,22 @@ begin
   return (select json_agg(json_build_object('id', id, 'family', family, 'label', label) order by sort) from daraja.posts);
 end $function$;
 
+CREATE OR REPLACE FUNCTION public.daraja_practice_answer(p_token text, p_question uuid, p_choice integer, p_answer jsonb)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; q daraja.questions; ok boolean;
+begin
+  s := daraja.who(p_token);
+  select * into q from daraja.questions where id = p_question;
+  if q.id is null then raise exception 'question'; end if;
+  ok := daraja.grade(q, p_choice, p_answer);
+  return json_build_object('correct', ok, 'answer_idx', q.answer_idx, 'explanation', q.explanation,
+    'solution', case when q.kind = 'order' then q.payload->'answer' else null end, 'points', 0);
+end $function$;
+
 CREATE OR REPLACE FUNCTION public.daraja_practice_quiz(p_token text, p_kind text DEFAULT NULL::text)
  RETURNS json
  LANGUAGE plpgsql
@@ -1579,22 +1597,6 @@ begin
   end if;
   ids := daraja.pick_questions(coalesce(s.venue, 'baro'), daraja.family(s), null, nullif(p_kind, ''));
   return json_build_object('answered', '[]'::json, 'correct', 0, 'questions', coalesce(daraja.q_json(ids), '[]'::json));
-end $function$;
-
-CREATE OR REPLACE FUNCTION public.daraja_practice_answer(p_token text, p_question uuid, p_choice integer, p_answer jsonb)
- RETURNS json
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'daraja', 'public'
-AS $function$
-declare s daraja.staff; q daraja.questions; ok boolean;
-begin
-  s := daraja.who(p_token);
-  select * into q from daraja.questions where id = p_question;
-  if q.id is null then raise exception 'question'; end if;
-  ok := daraja.grade(q, p_choice, p_answer);
-  return json_build_object('correct', ok, 'answer_idx', q.answer_idx, 'explanation', q.explanation,
-    'solution', case when q.kind = 'order' then q.payload->'answer' else null end, 'points', 0);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_q_start(p_token text, p_question uuid)
