@@ -1,7 +1,26 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { FAM, TIERS, burst, first, fmt, iso, rpc, waLink } from '../lib'
+import { FAM, RV, TIERS, burst, first, fmt, iso, rpc, waLink } from '../lib'
+import { Info } from '../ui'
 
-function QuizSettings({ token, venue, toast }) {
+// Chrono des questions : réservé à la direction. Bornes vérifiées aussi par le serveur.
+const TIMERS = [['time', 'QCM, vrai/faux, scènes', 4, 20], ['time_long', 'Ordre et association', 8, 40]]
+function Timers({ token, toast }) {
+  const [v, setV] = useState({ time: RV.time, time_long: RV.time_long })
+  const set = async (k, n) => {
+    const old = v[k]; setV({ ...v, [k]: n }); RV[k] = n
+    try { const r = await rpc('daraja_admin_set_timer', { p_token: token, p_key: k, p_val: n }); if (!r.ok) throw 0 }
+    catch { setV(x => ({ ...x, [k]: old })); RV[k] = old; toast('Erreur, réessaie') }
+  }
+  return <>
+    <div className="sec u-pos-relative">Chrono par question <Info text="Le temps pour répondre à chaque question, dans les défis du jour, les duels et l'entraînement. Pour toutes les équipes, dès la prochaine partie. Touche pour fermer." /></div>
+    {TIMERS.map(([k, l, lo, hi]) => <div key={k} className="tog"><span>{l}</span>
+      <span className="stepper"><button className="mini ghost" aria-label="moins" disabled={v[k] <= lo} onClick={() => set(k, v[k] - 1)}><i className="ti ti-minus" /></button>
+        <b>{v[k]} s</b>
+        <button className="mini ghost" aria-label="plus" disabled={v[k] >= hi} onClick={() => set(k, v[k] + 1)}><i className="ti ti-plus" /></button></span></div>)}
+  </>
+}
+
+function QuizSettings({ token, venue, toast, me }) {
   const [fam, setFam] = useState('salle')
   const [s, setS] = useState(null)
   useEffect(() => { setS(null); rpc('daraja_settings', { p_token: token, p_venue: venue, p_family: fam }).then(setS).catch(() => setS({ levels: [], cats: [] })) }, [token, venue, fam])
@@ -12,6 +31,7 @@ function QuizSettings({ token, venue, toast }) {
   }
   return (
     <>
+      {me?.role === 'super' && <Timers token={token} toast={toast} />}
       <div className="tabs">{Object.entries(FAM).map(([k, l]) => <button key={k} className={fam === k ? 'on' : ''} onClick={() => setFam(k)}>{k === 'support' ? 'Accueil · sécurité · support' : l}</button>)}</div>
       {!s ? <div className="sub">Chargement…</div> : <>
         <div className="sec">Niveaux</div>

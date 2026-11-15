@@ -50,6 +50,7 @@ export default async function mock(fn, a) {
       // falls through
     case 'daraja_test_quiz': case 'daraja_practice_quiz':  return { answered: [], correct: 0, today_points: 0, questions: [{ id: 'q1', theme: 'Bar en images', question: 'Comment s\'appelle cet outil du bar ?', options: ['Un shaker', 'Un jigger (doseur)', 'Une passoire', 'Un pilon'], level: 1, kind: 'image', limit: 6, payload: { img: 'e028bf0afdba' } }, { id: 'q2', theme: 'Hospitalité', question: 'x', options: ['a', 'b'], level: 2, kind: 'qcm', limit: 6 }] }
     case 'daraja_chest_open': { const k = localStorage.getItem('mock_chest') || 'rare'; return { ok: true, preview: !!localStorage.getItem('mock_chest_preview'), kind: k, amount: { common: 5, rare: 15, epic: 40, legend: 100, ticket: 0 }[k] } }
+    case 'daraja_admin_set_timer': return { ok: true }
     case 'daraja_q_start':  return { elapsed: 2.2 }
     case 'daraja_answer_v2': case 'daraja_test_answer': case 'daraja_practice_answer': { const m = localStorage.getItem('mock_ans') || 'win'; return { correct: m === 'win', timeout: m === 'late', answer_idx: 1, points: 10, score: m === 'win' ? 1 : 0, today_points: m === 'win' ? 10 : 0, explanation: localStorage.getItem('mock_mk') ? '« Kutubiyyin » signifie les libraires : jusqu\'à une centaine de marchands de livres travaillaient autour de la mosquée.' : 'Le jigger sert à doser précisément chaque alcool : même goût à chaque cocktail, et pas de perte.' } }
     case 'daraja_avatars_taken': return ['fun-emoji:Citron', 'fun-emoji:Momo', 'fun-emoji:Safran', 'fun-emoji:Mojito']

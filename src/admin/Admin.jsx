@@ -37,7 +37,7 @@ function Admin({ token, me, venue, toast }) {
       {tab === 'conduct' && <Conduct token={token} me={me} venue={venue} staff={d.staff} toast={toast} />}
       {tab === 'report' && <Reports token={token} me={me} venue={v} toast={toast} />}
       {tab === 'att' && <Attendance token={token} venue={v} toast={toast} />}
-      {tab === 'quiz' && <QuizSettings token={token} venue={v} toast={toast} />}
+      {tab === 'quiz' && <QuizSettings token={token} venue={v} toast={toast} me={me} />}
       {tab === 'draw' && <DrawAdmin token={token} me={me} venue={v} toast={toast} />}
       {tab === 'gifts' && <RewardsAdmin token={token} toast={toast} />}
       {tab === 'errors' && <ErrorsAdmin token={token} />}

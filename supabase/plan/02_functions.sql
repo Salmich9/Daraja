@@ -889,6 +889,23 @@ begin
   return json_build_object('ok', true, 'phone', ph);
 end $function$;
 
+CREATE OR REPLACE FUNCTION public.daraja_admin_set_timer(p_token text, p_key text, p_val integer)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'super' then raise exception 'forbidden'; end if;
+  if p_key = 'time' and p_val between 4 and 20 or p_key = 'time_long' and p_val between 8 and 40 then
+    update daraja.rule_values set val = p_val where key = p_key;
+    return json_build_object('ok', true, 'key', p_key, 'val', p_val);
+  end if;
+  return json_build_object('ok', false, 'error', 'range');
+end $function$;
+
 CREATE OR REPLACE FUNCTION public.daraja_admin_update_staff(p_token text, p_staff uuid, p_post text, p_phone text)
  RETURNS json
  LANGUAGE plpgsql

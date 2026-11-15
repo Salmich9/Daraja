@@ -122,6 +122,7 @@ grant execute on function public.daraja_admin_reward_save(text,jsonb) to anon;
 grant execute on function public.daraja_admin_rewards(text) to anon;
 grant execute on function public.daraja_admin_set_birthday(text,uuid,text) to anon;
 grant execute on function public.daraja_admin_set_contact(text,text,text,text,text) to anon;
+grant execute on function public.daraja_admin_set_timer(text,text,integer) to anon;
 grant execute on function public.daraja_admin_update_staff(text,uuid,text,text) to anon;
 grant execute on function public.daraja_admin_validate_mission(text,uuid) to anon;
 grant execute on function public.daraja_answer_v2(text,uuid,integer,jsonb) to anon;

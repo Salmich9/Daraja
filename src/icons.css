@@ -25,12 +25,14 @@
 .ti-book:before{content:"\ea39"}
 .ti-book-2:before{content:"\efc5"}
 .ti-bottle:before{content:"\ef0b"}
+.ti-box:before{content:"\ea45"}
 .ti-braille:before{content:"\f545"}
 .ti-brain:before{content:"\f59f"}
 .ti-brand-whatsapp:before{content:"\ec74"}
 .ti-broadcast:before{content:"\f1e9"}
 .ti-bubble:before{content:"\feba"}
 .ti-bulb:before{content:"\ea51"}
+.ti-burger:before{content:"\fcb4"}
 .ti-bus:before{content:"\ebe4"}
 .ti-cake:before{content:"\f00f"}
 .ti-calendar-check:before{content:"\f824"}
@@ -122,6 +124,7 @@
 .ti-music:before{content:"\eafc"}
 .ti-note:before{content:"\eb6d"}
 .ti-notification:before{content:"\eafe"}
+.ti-old:before{content:"\eeb9"}
 .ti-om:before{content:"\f58d"}
 .ti-option:before{content:"\1019f"}
 .ti-pdf:before{content:"\f7ac"}
