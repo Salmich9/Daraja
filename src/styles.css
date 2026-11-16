@@ -327,3 +327,4 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 .gpt i { font-size: 22px; flex: none; }
 .gdots { margin: 0 0 14px; gap: 10px; }
 .gdots span { width: 10px; height: 10px; cursor: pointer; }
+.helpfab { position: fixed; right: max(14px, calc(50% - 240px + 14px)); bottom: calc(78px + env(safe-area-inset-bottom)); width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); background: var(--nav); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: var(--acc); font-size: 22px; display:flex; align-items:center; justify-content:center; z-index: 6; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
