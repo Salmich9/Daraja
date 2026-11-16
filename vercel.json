@@ -6,5 +6,5 @@
     ] },
     { "source": "/api/(.*)", "headers": [ { "key": "Cache-Control", "value": "no-store" } ] }
   ],
-  "crons": [ { "path": "/api/push/tick", "schedule": "0 19 * * *" } ]
+  "crons": [ { "path": "/api/push/tick", "schedule": "0 * * * *" } ]
 }
