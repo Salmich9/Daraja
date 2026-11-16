@@ -24,3 +24,9 @@ Le dépôt est **public** : aucun secret dans le code, un `.env` commité, un lo
 - **Téléphone** : `public/sw.js` minimal (pas de cache, pas de `fetch`), enregistré seulement au toucher « Notifications » du profil. iPhone : uniquement dans l'appli installée (iOS 16.4+), l'icône a sa propre connexion, un abonnement est lié à l'adresse (se réabonner en production). Les aperçus Vercel sont protégés : tester sur la production, mode « Direction ».
 - **Retour arrière** : mode « Arrêt » dans Admin › Réglages › 🔔 Notifications. Pour retirer le service worker des téléphones : copier `public/sw-uninstall.js` sur `public/sw.js` et publier.
 - Langue : français seul pour l'instant.
+
+## Formation vente (v003-formation)
+- **Base** (`supabase/archive/v7_formation.sql`, test `t24`) : `fiches` (par établissement : histoire, cocktail, vin, pourquoi, phrase à dire), `sell_asks` (« à vendre » des managers), `point_events.kind = 'vente'` (déclarée par l'équipier, en attente, validée par le manager dans la même liste que les avis).
+- **Questions** : `daraja.fiche_sync` crée « quel cocktail / quel vin conseiller avec … » pour chaque fiche (cat `vente`), mauvaises réponses prises dans les autres fiches de l'établissement ; jamais supprimées, seulement mises à jour ou éteintes.
+- **Écrans** : Accueil › Carte & ventes (`src/screens/Formation.jsx`), carte « À vendre » à l'accueil, Admin › Équipe › À vendre (`src/admin/Asks.jsx`). Plafond de déclarations par jour : `rule_values.sale_cap`.
+- Plus tard : ventes de la caisse à la place des déclarations, puis l'IA qui propose quoi pousser.

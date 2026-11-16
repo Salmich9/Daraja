@@ -285,7 +285,7 @@ CREATE OR REPLACE FUNCTION daraja.earned(p_staff uuid)
  LANGUAGE sql
  STABLE
  SET search_path TO 'daraja', 'extensions', 'public'
-AS $function$ select coalesce(sum(amount),0)::int from daraja.point_events where staff_id = p_staff and status = 'ok' and kind in ('quiz','avis','bonus') $function$;
+AS $function$ select coalesce(sum(amount),0)::int from daraja.point_events where staff_id = p_staff and status = 'ok' and kind in ('quiz','avis','bonus','vente') $function$;
 
 CREATE OR REPLACE FUNCTION daraja.eotm_resolve(p_venue text)
  RETURNS void
@@ -311,6 +311,45 @@ CREATE OR REPLACE FUNCTION daraja.family(s daraja.staff)
  STABLE
  SET search_path TO 'daraja', 'extensions', 'public'
 AS $function$ select coalesce((select family from daraja.posts where id = s.post), 'salle') $function$;
+
+CREATE OR REPLACE FUNCTION daraja.fiche_sync(p_fiche uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare f daraja.fiches; k text; good text; wrong text[]; opts jsonb; pos int; q text; qid uuid;
+begin
+  select * into f from daraja.fiches where id = p_fiche;
+  foreach k in array array['cocktail', 'wine'] loop
+    -- une question par fiche et par type ; jamais supprimée (l'historique des réponses y est lié), seulement mise à jour ou éteinte
+    select id into qid from daraja.questions where payload->>'fiche' = p_fiche::text and payload->>'k' = k;
+    good := case when f.active and f.section <> 'boisson' then nullif(trim(case k when 'cocktail' then f.cocktail else f.wine end), '') end;
+    wrong := null;
+    if good is not null then
+      select array_agg(x.v) into wrong from (
+        select v from (select distinct trim(case k when 'cocktail' then o.cocktail else o.wine end) v
+          from daraja.fiches o where o.venue = f.venue and o.active and o.id <> f.id) d
+        where v is not null and v <> '' and lower(v) <> lower(good)
+        order by abs(length(v) - length(good)), v limit 3) x;
+    end if;
+    if good is null or coalesce(cardinality(wrong), 0) < 3
+       or length(good) > 1.25 * (select max(length(w)) from unnest(wrong) w) then
+      update daraja.questions set active = false where id = qid;
+      continue;
+    end if;
+    pos := (abs(hashtext(f.id::text || k)) % 4);
+    opts := to_jsonb(wrong[1:pos] || array[good] || wrong[pos + 1:3]);
+    q := case k when 'cocktail' then 'Quel cocktail conseiller avec « ' || f.title || ' » ?'
+                else 'Quel vin conseiller avec « ' || f.title || ' » ?' end;
+    if qid is null then
+      insert into daraja.questions(venue, theme, question, options, answer_idx, explanation, active, level, kind, payload, cat)
+        values (f.venue, 'Accords', q, opts, pos, coalesce(f.why, f.pitch), true, 2, 'qcm', jsonb_build_object('fiche', f.id, 'k', k), 'vente');
+    else
+      update daraja.questions set question = q, options = opts, answer_idx = pos, explanation = coalesce(f.why, f.pitch), active = true where id = qid;
+    end if;
+  end loop;
+end $function$;
 
 CREATE OR REPLACE FUNCTION daraja.flame_state(s daraja.staff)
  RETURNS text
@@ -478,21 +517,21 @@ begin
   union all
   select e.staff_id, 'cadeaux', 'pe:' || e.id,
     case when e.kind = 'malus' then 'message' else 'points' end,
-    case when e.kind = 'cadeau' then 'Ton cadeau est prêt 🎁' when e.kind = 'avis' then 'Ton avis est validé ⭐'
+    case when e.kind = 'cadeau' then 'Ton cadeau est prêt 🎁' when e.kind = 'avis' then 'Ton avis est validé ⭐' when e.kind = 'vente' then 'Ta vente est validée 🎯'
          when e.kind = 'malus' then 'Un message t''attend' else 'Bonus du mois 🎉' end,
-    case when e.kind = 'cadeau' then 'Passe le récupérer auprès de ton manager.' when e.kind = 'avis' then 'Merci ! Tes points sont crédités.'
+    case when e.kind = 'cadeau' then 'Passe le récupérer auprès de ton manager.' when e.kind in ('avis', 'vente') then 'Bravo ! Tes points sont crédités.'
          when e.kind = 'malus' then 'Ton manager t''a laissé un message.' else 'Un mois exemplaire, bravo !' end,
     case when e.kind = 'malus' then '/?go=profile' else '/?go=shop' end, 2
     from daraja.point_events e join ppl p on p.id = e.staff_id
     where e.created_at > greatest(p.since, p_now - interval '7 days') and (
-      (e.kind = 'cadeau' and e.delivered) or (e.kind = 'avis' and e.status = 'ok') or e.kind = 'malus'
+      (e.kind = 'cadeau' and e.delivered) or (e.kind in ('avis', 'vente') and e.status = 'ok') or e.kind = 'malus'
       or (e.kind = 'bonus' and e.note like 'Mois exemplaire %'))
   union all
   select p.id, 'alertes', 'alertes:' || d, 'alertes', 'À valider 📋', n || ' demande' || case when n > 1 then 's attendent' else ' attend' end || ' ta validation.', '/?go=admin', 2
     from ppl p cross join lateral (
       select (select count(*) from daraja.point_events e join daraja.staff o on o.id = e.staff_id
                where (p.role = 'super' or o.venue = p.venue)
-                 and ((e.kind = 'avis' and e.status = 'pending') or (e.kind = 'cadeau' and not e.delivered)))
+                 and ((e.kind in ('avis', 'vente') and e.status = 'pending') or (e.kind = 'cadeau' and not e.delivered)))
            + case when p.role = 'super' then (select count(*) from daraja.conduct_records where needs_direction) else 0 end n) x
     where p.role in ('admin', 'super') and x.n > 0;
 end $function$;
@@ -681,9 +720,9 @@ declare s daraja.staff; v text;
 begin
   s := daraja.who(p_token); v := daraja.can_admin(s, p_venue);
   return json_build_object(
-    'reviews', (select coalesce(json_agg(json_build_object('id', e.id, 'name', o.name, 'note', e.note) order by e.created_at), '[]'::json)
+    'reviews', (select coalesce(json_agg(json_build_object('id', e.id, 'name', o.name, 'note', e.note, 'kind', e.kind, 'amount', e.amount) order by e.created_at), '[]'::json)
       from daraja.point_events e join daraja.staff o on o.id = e.staff_id
-      where o.venue = v and e.kind = 'avis' and e.status = 'pending'),
+      where o.venue = v and e.kind in ('avis', 'vente') and e.status = 'pending'),
     'gifts', (select coalesce(json_agg(json_build_object('id', e.id, 'name', o.name, 'note', e.note) order by e.created_at), '[]'::json)
       from daraja.point_events e join daraja.staff o on o.id = e.staff_id
       where o.venue = v and e.kind = 'cadeau' and not e.delivered),
@@ -711,6 +750,22 @@ begin
   np := daraja.new_pin();
   insert into daraja.staff(venue, name, pin_hash, pin_len, role, post, phone) values (v, trim(p_name), crypt(np, gen_salt('bf')), 6, p_role, p_post, nullif(ph, ''));
   return json_build_object('ok', true, 'pin', np, 'phone', nullif(ph, ''));
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_admin_asks(p_token text, p_venue text DEFAULT NULL::text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; v text;
+begin
+  s := daraja.who(p_token); v := daraja.can_admin(s, p_venue);
+  return coalesce((select json_agg(json_build_object('id', a.id, 'title', a.title, 'note', a.note, 'points', a.points, 'starts', a.starts, 'ends', a.ends,
+      'live', a.active and daraja.today() between a.starts and a.ends,
+      'sold', (select count(*) from daraja.point_events e where e.ask_id = a.id and e.status = 'ok'),
+      'pending', (select count(*) from daraja.point_events e where e.ask_id = a.id and e.status = 'pending')) order by a.active desc, a.ends desc, a.created_at desc)
+    from daraja.sell_asks a where a.venue = v and (a.active or a.ends >= daraja.today() - 30)), '[]'::json);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_admin_attendance(p_token text, p_venue text, p_from date, p_to date)
@@ -918,7 +973,7 @@ begin
   s := daraja.who(p_token);
   perform daraja.can_admin_staff(s, (select e.staff_id from daraja.point_events e where e.id = p_event), false);
   update daraja.point_events set status = case when p_ok then 'ok' else 'rejected' end, by_staff = s.id
-    where id = p_event and kind = 'avis' and status = 'pending';
+    where id = p_event and kind in ('avis', 'vente') and status = 'pending';
   return json_build_object('ok', true);
 end $function$;
 
@@ -1092,6 +1147,62 @@ begin
   return json_build_object('correct', ok, 'timeout', late, 'answer_idx', q.answer_idx, 'explanation', q.explanation,
     'solution', case when q.kind = 'order' then q.payload->'answer' else null end,
     'finished', finished, 'score', qs.correct, 'points', daraja.rv('answer') * q.level, 'today_points', today_pts, 'streak_bonus', sb, 'presence', pres);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_ask_save(p_token text, p_venue text, p_ask jsonb)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; v text; t text := left(trim(coalesce(p_ask->>'title', '')), 80); pts int; days int; fid uuid; aid uuid;
+begin
+  s := daraja.who(p_token); v := daraja.can_admin(s, p_venue);
+  if length(t) < 2 then return json_build_object('ok', false, 'error', 'title'); end if;
+  pts := coalesce((p_ask->>'points')::int, 0);
+  if pts not between 5 and 200 then return json_build_object('ok', false, 'error', 'points'); end if;
+  days := coalesce((p_ask->>'days')::int, 1);
+  if days not between 1 and 31 then return json_build_object('ok', false, 'error', 'days'); end if;
+  fid := nullif(p_ask->>'fiche', '')::uuid;
+  if fid is not null and not exists (select 1 from daraja.fiches where id = fid and venue = v) then fid := null; end if;
+  insert into daraja.sell_asks(venue, title, note, fiche_id, points, starts, ends, created_by)
+    values (v, t, left(p_ask->>'note', 200), fid, pts, daraja.today(), daraja.today() + days - 1, s.id) returning id into aid;
+  return json_build_object('ok', true, 'id', aid);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_ask_stop(p_token text, p_ask uuid)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; v text;
+begin
+  s := daraja.who(p_token);
+  select venue into v from daraja.sell_asks where id = p_ask;
+  if v is null then return json_build_object('ok', false); end if;
+  perform daraja.can_admin(s, v);
+  update daraja.sell_asks set active = false where id = p_ask;
+  return json_build_object('ok', true);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_asks(p_token text, p_venue text DEFAULT NULL::text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; v text; d date := daraja.today();
+begin
+  s := daraja.who(p_token);
+  v := case when s.role = 'super' then coalesce(p_venue, 'baro') else s.venue end;
+  return coalesce((select json_agg(json_build_object('id', a.id, 'title', a.title, 'note', a.note, 'points', a.points, 'ends', a.ends,
+      'fiche', a.fiche_id,
+      'mine_today', (select count(*) from daraja.point_events e where e.staff_id = s.id and e.ask_id = a.id
+                     and e.status <> 'rejected' and (e.created_at at time zone 'Africa/Casablanca')::date = d),
+      'validated', (select count(*) from daraja.point_events e where e.staff_id = s.id and e.ask_id = a.id and e.status = 'ok'),
+      'team', (select count(*) from daraja.point_events e where e.ask_id = a.id and e.status = 'ok')) order by a.created_at desc)
+    from daraja.sell_asks a where a.venue = v and a.active and d between a.starts and a.ends), '[]'::json);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_avatars_taken(p_token text)
@@ -1524,6 +1635,67 @@ begin
     'last', case when e.venue is null then null else json_build_object('month', e.month, 'votes', e.votes, 'me', e.winner = s.id,
       'display', (select daraja.display_name(o) from daraja.staff o where o.id = e.winner),
       'avatar', (select avatar from daraja.staff where id = e.winner)) end);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_fiche_delete(p_token text, p_fiche uuid)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; v text;
+begin
+  s := daraja.who(p_token);
+  select venue into v from daraja.fiches where id = p_fiche and active;
+  if v is null then return json_build_object('ok', false); end if;
+  perform daraja.can_admin(s, v);
+  update daraja.fiches set active = false, updated_by = s.id, updated_at = now() where id = p_fiche;
+  perform daraja.fiche_sync(f.id) from daraja.fiches f where f.venue = v;
+  return json_build_object('ok', true);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_fiche_save(p_token text, p_venue text, p_fiche jsonb)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; v text; fid uuid; t text := left(trim(coalesce(p_fiche->>'title', '')), 60); sec text := coalesce(p_fiche->>'section', 'plat');
+begin
+  s := daraja.who(p_token); v := daraja.can_admin(s, p_venue);
+  if length(t) < 2 then return json_build_object('ok', false, 'error', 'title'); end if;
+  if sec not in ('entree', 'plat', 'dessert', 'boisson') then return json_build_object('ok', false, 'error', 'section'); end if;
+  fid := nullif(p_fiche->>'id', '')::uuid;
+  if fid is null then
+    insert into daraja.fiches(venue, section, title, story, cocktail, wine, why, pitch, updated_by)
+      values (v, sec, t, left(p_fiche->>'story', 600), left(p_fiche->>'cocktail', 60), left(p_fiche->>'wine', 80),
+              left(p_fiche->>'why', 600), left(p_fiche->>'pitch', 400), s.id) returning id into fid;
+  else
+    update daraja.fiches set section = sec, title = t, story = left(p_fiche->>'story', 600), cocktail = left(p_fiche->>'cocktail', 60),
+      wine = left(p_fiche->>'wine', 80), why = left(p_fiche->>'why', 600), pitch = left(p_fiche->>'pitch', 400),
+      updated_by = s.id, updated_at = now()
+      where id = fid and venue = v and active;
+    if not found then return json_build_object('ok', false, 'error', 'fiche'); end if;
+  end if;
+  perform daraja.fiche_sync(f.id) from daraja.fiches f where f.venue = v and f.active;
+  return json_build_object('ok', true, 'id', fid);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_fiches(p_token text, p_venue text DEFAULT NULL::text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; v text;
+begin
+  s := daraja.who(p_token);
+  v := case when s.role = 'super' then coalesce(p_venue, 'baro') else s.venue end;
+  return json_build_object('venue', v, 'can_edit', s.role in ('admin', 'super'),
+    'items', (select coalesce(json_agg(json_build_object('id', f.id, 'section', f.section, 'title', f.title, 'story', f.story,
+        'cocktail', f.cocktail, 'wine', f.wine, 'why', f.why, 'pitch', f.pitch, 'sort', f.sort)
+        order by case f.section when 'entree' then 1 when 'plat' then 2 when 'dessert' then 3 else 4 end, f.sort, f.title), '[]'::json)
+      from daraja.fiches f where f.venue = v and f.active));
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_leaderboard2(p_token text, p_venue text DEFAULT NULL::text, p_kind text DEFAULT 'savoir'::text)
@@ -2060,6 +2232,26 @@ begin
       'recid1', recid1, 'recid2', recid2, 'grave', grave,
       'malus', case when grave then daraja.rv('malus_grave') when line = 'rouge' then daraja.rv('malus_rouge') when line = 'grise' then daraja.rv('malus_grise') else daraja.rv('malus_blanche') end) order by sort), '[]'::json)
     from daraja.conduct_rules where active);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_sale_declare(p_token text, p_ask uuid)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; a daraja.sell_asks; d date := daraja.today(); n int;
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'staff' then return json_build_object('ok', false, 'error', 'role'); end if;
+  select * into a from daraja.sell_asks where id = p_ask for update;
+  if a.id is null or not a.active or a.venue <> s.venue or d not between a.starts and a.ends then
+    return json_build_object('ok', false, 'error', 'closed'); end if;
+  select count(*) into n from daraja.point_events e where e.staff_id = s.id and e.ask_id = a.id
+    and e.status <> 'rejected' and (e.created_at at time zone 'Africa/Casablanca')::date = d;
+  if n >= daraja.rv('sale_cap') then return json_build_object('ok', false, 'error', 'cap'); end if;
+  insert into daraja.point_events(staff_id, kind, amount, note, status, ask_id) values (s.id, 'vente', a.points, left(a.title, 120), 'pending', a.id);
+  return json_build_object('ok', true, 'mine_today', n + 1);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_set_profile(p_token text, p_alias text, p_avatar text)

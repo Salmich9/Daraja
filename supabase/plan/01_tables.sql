@@ -140,6 +140,23 @@ create table if not exists daraja.eotm (
 );
 alter table daraja.eotm enable row level security;
 
+create table if not exists daraja.fiches (
+  id uuid not null default gen_random_uuid(),
+  venue text not null,
+  section text not null default 'plat'::text,
+  title text not null,
+  story text,
+  cocktail text,
+  wine text,
+  why text,
+  pitch text,
+  sort integer not null default 100,
+  active boolean not null default true,
+  updated_by uuid,
+  updated_at timestamp with time zone not null default now()
+);
+alter table daraja.fiches enable row level security;
+
 create table if not exists daraja.login_fails (
   at timestamp with time zone default now(),
   device text
@@ -173,7 +190,8 @@ create table if not exists daraja.point_events (
   reward_id uuid,
   delivered boolean default false,
   by_staff uuid,
-  created_at timestamp with time zone default now()
+  created_at timestamp with time zone default now(),
+  ask_id uuid
 );
 alter table daraja.point_events enable row level security;
 
@@ -277,6 +295,21 @@ create table if not exists daraja.rule_values (
   val integer not null
 );
 alter table daraja.rule_values enable row level security;
+
+create table if not exists daraja.sell_asks (
+  id uuid not null default gen_random_uuid(),
+  venue text not null,
+  title text not null,
+  note text,
+  fiche_id uuid,
+  points integer not null,
+  starts date not null,
+  ends date not null,
+  active boolean not null default true,
+  created_by uuid,
+  created_at timestamp with time zone not null default now()
+);
+alter table daraja.sell_asks enable row level security;
 
 create table if not exists daraja.sessions (
   token text not null,
