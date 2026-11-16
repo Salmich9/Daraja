@@ -10,6 +10,7 @@ import { Profile, Rules, TestMode } from './screens/Profile'
 import { Stories } from './screens/Stories'
 import { Review } from './screens/Review'
 import { Formation } from './screens/Formation'
+import Guide from './screens/Guide'
 import { DuelInvite, Duels, LiveDuel } from './screens/Duels'
 import { Admin } from './admin/Admin'
 
@@ -24,6 +25,7 @@ export default function App() {
   const [tab, setTab] = useState('home')
   const [msg, setMsg] = useState('')
   const [splash, setSplash] = useState(false)
+  const [guide, setGuide] = useState(false)
   const [levelUp, setLevelUp] = useState(null)
   const [play, setPlay] = useState({ mode: 'daily', ctx: {} })
   const [testOpen, setTestOpen] = useState(false)
@@ -62,7 +64,8 @@ export default function App() {
   }, [offline])
   useEffect(() => {
     if (!me) return
-    if (store.get('daraja_quote_day') !== todayKey) setSplash(true)
+    if (!store.get('daraja_guide_' + me.id)) setGuide(true)
+    else if (store.get('daraja_quote_day') !== todayKey) setSplash(true)
     const n = level(me.earned).n, key = 'daraja_lv_' + me.id, prev = parseInt(store.get(key) || '0', 10)
     if (prev && n > prev) { setLevelUp(level(me.earned)); setTimeout(() => { burst(80); sfx('level') }, 150) }
     store.set(key, String(n))
@@ -94,6 +97,7 @@ export default function App() {
 
   if (!token) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><Login onToken={login} /></div>
   if (!me) return <div className={'app ' + theme}><div className="page u-ta-center u-pt-80" >{net ? <><i className="ti ti-wifi-off acc u-fs-40"  /><div className="sub u-m-12px-0-18px" >Pas de connexion</div><button className="btn" onClick={refresh}>Réessayer</button></> : <span className="sub">Chargement…</span>}</div></div>
+  if (guide) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><Guide me={me} close={() => { store.set('daraja_guide_' + me.id, '1'); store.set('daraja_quote_day', todayKey); setGuide(false); window.scrollTo(0, 0) }} /></div>
   if (splash) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><div id="fx" /><QuoteSplash token={token} me={me} close={() => { store.set('daraja_quote_day', todayKey); setSplash(false) }} /></div>
 
   const real = me
@@ -139,7 +143,7 @@ export default function App() {
       {tab === 'formation' && <Formation token={token} venue={venue} toast={toast} />}
       {tab === 'stories' && <Stories token={token} me={me} go={go} refresh={refresh} />}
       {tab === 'shop' && <Shop token={token} me={me} venue={venue} refresh={refresh} toast={toast} />}
-      {tab === 'profile' && <Profile token={token} me={preview ? real : me} logout={logout} toast={toast} refresh={refresh} go={go} openTest={() => setTestOpen(true)} />}
+      {tab === 'profile' && <Profile token={token} me={preview ? real : me} logout={logout} toast={toast} refresh={refresh} go={go} openTest={() => setTestOpen(true)} openGuide={() => setGuide(true)} />}
       {tab === 'admin' && isAdmin && <Admin token={token} me={me} venue={venue} toast={toast} />}
       </React.Fragment>
       <nav className="nav">

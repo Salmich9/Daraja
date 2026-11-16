@@ -66,7 +66,7 @@ function PushToggle({ token, toast }) {
     <button className={'sw ' + (on ? 'on' : '')} disabled={busy} aria-label="Notifications" onClick={flip} /></div>
 }
 
-function Profile({ token, me, logout, toast, refresh, go, openTest }) {
+function Profile({ token, me, logout, toast, refresh, go, openTest, openGuide }) {
   const lv = level(me.earned)
   const [avis, setAvis] = useState(false)
   const [bsel, setBsel] = useState(null)
@@ -129,6 +129,7 @@ function Profile({ token, me, logout, toast, refresh, go, openTest }) {
       {me.role === 'staff' && <MyConduct token={token} toast={toast} refresh={refresh} />}
       {edit && <ProfileEdit token={token} me={me} close={() => setEdit(false)} done={() => { setEdit(false); refresh(); toast('Profil mis à jour') }} />}
       <button className="btn ghost u-mt-24"  onClick={() => go('rules')}><i className="ti ti-book" /> Règles du jeu</button>
+      {openGuide && <button className="btn ghost u-mt-8" onClick={openGuide}><i className="ti ti-help-circle" /> Comment ça marche</button>}
       {me.role === 'super' && <button className="btn ghost u-mt-10"  onClick={openTest}><i className="ti ti-flask" /> Mode test</button>}
       <button className="btn ghost u-mt-10"  onClick={() => setAvis(true)}><i className="ti ti-star" /> Un client m'a cité dans un avis</button>
       <PushToggle token={token} toast={toast} />
