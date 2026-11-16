@@ -58,3 +58,17 @@ do $$ declare r json; fid uuid; qid uuid; aid uuid; ev uuid; b0 int; n int; begi
   assert json_array_length(public.daraja_asks('t_am')) = 0, 'demande arrêtée';
   assert (public.daraja_sale_declare('t_am', aid)->>'error') = 'closed', 'plus de déclaration';
 end $$;
+
+-- Remettre une fiche retirée : managers et direction, chacun chez soi ; ses questions reviennent.
+do $$ declare fid uuid; r json; begin
+  select id into fid from daraja.fiches where venue = 'baro' and active order by sort limit 1;
+  perform public.daraja_fiche_delete('t_mgr', fid);
+  r := public.daraja_fiches('t_mgr', 'baro');
+  assert exists (select 1 from json_array_elements(r->'retired') x where (x->>'id')::uuid = fid), 'fiche retirée listée pour le manager';
+  assert json_array_length(public.daraja_fiches('t_am')->'retired') = 0, 'équipier : pas de liste des retirées';
+  assert pg_temp.raises(format($q$select public.daraja_fiche_restore('t_am', %L)$q$, fid)) is not null, 'équipier ne remet pas';
+  assert pg_temp.raises(format($q$select public.daraja_fiche_restore('t_mgrz', %L)$q$, fid)) is not null, 'Zama ne remet pas une fiche du Baromètre';
+  assert (public.daraja_fiche_restore('t_mgr', fid)->>'ok')::boolean, 'manager remet';
+  assert (select active from daraja.fiches where id = fid), 'fiche active';
+  assert (select count(*) from daraja.questions where payload->>'fiche' = fid::text and active) = 2, 'questions revenues';
+end $$;

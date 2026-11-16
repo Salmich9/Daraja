@@ -16,7 +16,7 @@ const days = (k) => { const out = []; const m = new Date(); m.setDate(m.getDate(
 export default async function mock(fn, a) {
   const v = a.p_venue || V()
   switch (fn) {
-    case 'daraja_fiches': return { venue: 'baro', can_edit: (localStorage.getItem('mock_role') || 'super') !== 'staff', items: [
+    case 'daraja_fiches': return { venue: 'baro', can_edit: (localStorage.getItem('mock_role') || 'super') !== 'staff', retired: (localStorage.getItem('mock_role') || 'super') !== 'staff' ? [{ id: 'r1', title: 'Le Tigre qui pleure', section: 'plat' }] : [], items: [
       { id: 'f1', section: 'plat', title: 'Le Tigre qui pleure', story: 'Le nom vient de Thaïlande : le cuisinier pleurait devant une viande trop bonne pour la partager.', cocktail: 'Marrakesh Market', wine: 'S de Siroua (Syrah)', why: 'La marinade asiatique et le bœuf appellent du poivré : le ras el hanout du cocktail et la Syrah reprennent cette chaleur sans l\'écraser.', pitch: '« C\'est notre bœuf le plus parfumé. Avec, je vous conseille la Syrah de Siroua, elle est née pour les épices. »' },
       { id: 'f2', section: 'plat', title: 'Pêche Atlantique', story: 'Le poisson du jour arrive de l\'Atlantique marocain.', cocktail: 'Rosée du Matin', wine: 'Petit Chablis', why: 'Le beurre blanc demande un vin tendu et minéral.', pitch: '« Un Petit Chablis bien frais, et vous êtes au bord de l\'océan. »' },
       { id: 'f3', section: 'plat', title: 'Tortellonis aux cèpes', story: 'La tuile de parmesan répond au vieux parmesan de l\'émulsion.', cocktail: 'Truffle on the Rocks', wine: 'Bourgogne Pinot Noir', why: 'Cèpes, parmesan et truffe parlent la langue de l\'umami.', pitch: '« Le Pinot Noir sent la forêt, comme les cèpes. »' },
@@ -25,7 +25,7 @@ export default async function mock(fn, a) {
     case 'daraja_asks': return localStorage.getItem('mock_asks') === '0' ? [] : [{ id: 'a1', title: 'Tigre qui pleure + S de Siroua', points: 30, ends: '2026-11-22', mine_today: Number(localStorage.getItem('mock_sold') || 0) }, { id: 'a2', title: 'Martini Espresso au dessert', points: 15, ends: '2026-11-18', mine_today: 0 }]
     case 'daraja_sale_declare': localStorage.setItem('mock_sold', String(Number(localStorage.getItem('mock_sold') || 0) + 1)); return { ok: true }
     case 'daraja_admin_asks': return [{ id: 'a1', title: 'Tigre qui pleure + S de Siroua', points: 30, live: true, sold: 6, pending: 2 }, { id: 'a2', title: 'Martini Espresso au dessert', points: 15, live: true, sold: 3, pending: 0 }, { id: 'a3', title: 'Burrata + Tomatini', points: 20, live: false, sold: 11, pending: 0 }]
-    case 'daraja_fiche_save': case 'daraja_fiche_delete': case 'daraja_ask_save': case 'daraja_ask_stop': return { ok: true }
+    case 'daraja_fiche_save': case 'daraja_fiche_delete': case 'daraja_fiche_restore': case 'daraja_ask_save': case 'daraja_ask_stop': return { ok: true }
     case 'daraja_push_status': return { visible: localStorage.getItem('mock_push_mode') !== 'off' || (localStorage.getItem('mock_role') || 'super') === 'super', mode: localStorage.getItem('mock_push_mode') || 'direction', devices: localStorage.getItem('mock_push') === '1' ? 1 : 0 }
     case 'daraja_push_admin': {
       const st = JSON.parse(localStorage.getItem('mock_push_cfg') || 'null') || { mode: 'off', families: { quiz: true, serie: true, defi: true, cadeaux: true, alertes: true }, start_hour: 10, end_hour: 21, serie_hour: 19, cap_day: 3, cap_family: 1 }
