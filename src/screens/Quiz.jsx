@@ -82,7 +82,7 @@ function Timer({ q, deadline, onEnd, stopped }) {
   )
 }
 
-function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd, practice, onStory }) {
+function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd, practice, onStory, onReview }) {
   const M = QMODES[mode]
   const [data, setData] = useState(null)
   const [i, setI] = useState(0)
@@ -137,6 +137,7 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd, practice, onSt
       <div className="sub u-m-8px-0-22px" >{score === qs.length ? 'Sans faute. Respect.' : mode === 'practice' ? 'Chaque erreur t\'apprend quelque chose. On remet ça ?' : score >= 3 ? 'Belle soirée en vue !' : 'Demain, on remet ça. Chaque erreur t\'apprend quelque chose.'}</div>
       {mode === 'test' && <button className="btn u-mb-10"  onClick={() => setRound(round + 1)}>Encore un quiz test</button>}
       {mode === 'practice' && <button className="btn u-mb-10" onClick={() => setRound(round + 1)}><i className="ti ti-barbell" /> Encore un entraînement</button>}
+      {mode === 'daily' && onReview && <button className="btn ghost u-mb-10" onClick={() => { onEnd && onEnd(); onReview() }}><i className="ti ti-eye" /> Revoir mes réponses</button>}
       {mode === 'daily' && practice && <button className="btn ghost u-mb-10" onClick={practice}><i className="ti ti-barbell" /> M'entraîner encore (illimité)</button>}
       <button className={mode === 'test' || mode === 'practice' ? 'btn ghost' : 'btn'} onClick={() => { onEnd && onEnd(); done() }}>Retour</button>
       {mode === 'daily' && <TalkCard token={token} me={me} />}

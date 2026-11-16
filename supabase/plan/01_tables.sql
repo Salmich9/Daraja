@@ -200,7 +200,8 @@ create table if not exists daraja.quiz_sessions (
   question_ids uuid[] not null,
   answered uuid[] not null default '{}'::uuid[],
   correct integer not null default 0,
-  started jsonb not null default '{}'::jsonb
+  started jsonb not null default '{}'::jsonb,
+  picks jsonb not null default '{}'::jsonb
 );
 alter table daraja.quiz_sessions enable row level security;
 

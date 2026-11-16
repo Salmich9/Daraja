@@ -462,6 +462,20 @@ CREATE OR REPLACE FUNCTION daraja.q_limit(k text)
 AS $function$
   select case when k in ('order','match') then daraja.rv('time_long') else daraja.rv('time') end $function$;
 
+CREATE OR REPLACE FUNCTION daraja.review_day(p_staff uuid)
+ RETURNS date
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+  select case
+    when exists (select 1 from daraja.quiz_sessions q where q.staff_id = p_staff and q.day = daraja.today()) then
+      (select q.day from daraja.quiz_sessions q where q.staff_id = p_staff and q.day = daraja.today()
+         and cardinality(q.answered) >= cardinality(q.question_ids))
+    else (select max(q.day) from daraja.quiz_sessions q where q.staff_id = p_staff and q.day < daraja.today()
+         and cardinality(q.answered) >= cardinality(q.question_ids)) end
+$function$;
+
 CREATE OR REPLACE FUNCTION daraja.reward_check(p_staff uuid, c jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -978,7 +992,8 @@ begin
       or extract(epoch from clock_timestamp()) - (qs.started->>p_question::text)::numeric > daraja.q_limit(q.kind) + 2.5;
     ok := not late and daraja.grade(q, p_choice, p_answer);
     insert into daraja.answers(staff_id, question_id, correct) values (s.id, q.id, ok);
-    update daraja.quiz_sessions set answered = answered || p_question, correct = correct + (case when ok then 1 else 0 end)
+    update daraja.quiz_sessions set answered = answered || p_question, correct = correct + (case when ok then 1 else 0 end),
+      picks = picks || jsonb_build_object(p_question::text, jsonb_build_object('c', p_choice, 'a', p_answer, 'ok', ok, 'late', late))
       where staff_id = s.id and day = qs.day returning * into qs;
     if ok then
       insert into daraja.point_events(staff_id, kind, amount, note) values (s.id, 'quiz', daraja.rv('answer') * q.level, q.theme);
@@ -1556,6 +1571,7 @@ begin
     'next_bonus', daraja.rv('streak_step') * least(daraja.live_streak(s) + 1, daraja.rv('streak_days')), 'rules', (select json_object_agg(key, val) from daraja.rule_values),
     'quiz_done', done,
     'chest', daraja.chest_state(s.id), 'chest_left', greatest(0, daraja.rv('chest_week') - (select count(*) from daraja.chests c where c.staff_id = s.id and c.day >= daraja.week_start())),
+    'review', daraja.review_day(s.id),
     'story_read', exists(select 1 from daraja.story_reads r where r.staff_id = s.id and r.day = daraja.today()),
     'week', (select json_agg(exists(select 1 from daraja.quiz_sessions q where q.staff_id = s.id and q.day = daraja.today() - g
       and cardinality(q.answered) >= cardinality(q.question_ids)) order by g desc) from generate_series(0, 6) g),
@@ -1671,6 +1687,32 @@ begin
     where staff_id = s.id and kind = 'quiz' and (created_at at time zone 'Africa/Casablanca')::date = daraja.today();
   return json_build_object('answered', qs.answered, 'correct', qs.correct, 'today_points', today_pts, 'started', qs.started,
     'now', extract(epoch from clock_timestamp()), 'questions', daraja.q_json(qs.question_ids));
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_quiz_review(p_token text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; d date; qs daraja.quiz_sessions;
+begin
+  s := daraja.who(p_token);
+  d := daraja.review_day(s.id);
+  if d is null then return json_build_object('ok', false); end if;
+  select * into qs from daraja.quiz_sessions where staff_id = s.id and day = d;
+  return json_build_object('ok', true, 'day', d, 'today', d = daraja.today(), 'score', qs.correct, 'total', cardinality(qs.question_ids),
+    'items', (select json_agg(json_build_object(
+        'question', q.question, 'kind', q.kind, 'theme', q.theme, 'level', q.level, 'options', q.options,
+        'answer_idx', q.answer_idx, 'explanation', q.explanation,
+        'solution', case when q.kind = 'order' then q.payload->'answer' else null end,
+        'pairs', case when q.kind = 'match' then q.payload->'pairs' else null end,
+        'img', case when q.kind = 'image' then q.payload->'img' else null end,
+        'pick', qs.picks->(q.id::text),
+        'ok', coalesce((qs.picks->(q.id::text)->>'ok')::boolean,
+              (select a.correct from daraja.answers a where a.staff_id = s.id and a.question_id = q.id
+                 and (a.at at time zone 'Africa/Casablanca')::date = d order by a.at desc limit 1))
+      ) order by t.n) from unnest(qs.question_ids) with ordinality t(id, n) join daraja.questions q on q.id = t.id));
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_quote(p_token text, p_random boolean DEFAULT false)

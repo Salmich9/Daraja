@@ -47,8 +47,11 @@ function Home({ token, me, venue, go, toast, duels, openDuel, refresh, practice 
         {me.quiz_done
           ? me.chest === 'ready' ? <button className="btn pulse big" onClick={() => setChestOpen(true)}><i className="ti ti-sparkles" /> Ouvrir mon coffre</button>
             : me.chest === 'story' ? <button className="btn pulse big" onClick={() => go('stories')}><i className="ti ti-book-2" /> Lis l'histoire du jour <i className="ti ti-sparkles" /></button>
-            : <div className="row u-gap-8"><button className="btn" onClick={practice}><i className="ti ti-barbell" /> S'entraîner</button><button className="btn ghost" onClick={() => go('quiz')}><i className="ti ti-check" /> Mon score</button></div>
-          : <button className="btn pulse big" onClick={() => go('quiz')}>Jouer <i className="ti ti-player-play" /></button>}
+            : <div className="row u-gap-8"><button className="btn" onClick={practice}><i className="ti ti-barbell" /> S'entraîner</button><button className="btn ghost" onClick={() => go('review')}><i className="ti ti-eye" /> Revoir</button></div>
+          : <>
+            <button className="btn pulse big" onClick={() => go('quiz')}>Jouer <i className="ti ti-player-play" /></button>
+            {me.review && <button className="mini ghost u-mt-8" onClick={() => go('review')}><i className="ti ti-eye" /> Revoir mon dernier défi</button>}
+          </>}
       </div>
       {me.role === 'staff' && <DuelCard duels={duels} go={go} open={openDuel} />}
       <GiftProgress r={nextGift(rewards, me.points)} pts={me.points} onClick={() => go('shop')} />
