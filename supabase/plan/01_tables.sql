@@ -1,4 +1,4 @@
--- Généré depuis la production le 2026-11-15. Ne pas modifier à la main : régénérer.
+-- Généré depuis la production le 2026-11-16. Ne pas modifier à la main : régénérer.
 
 create extension if not exists pgcrypto with schema extensions;
 create schema if not exists daraja;

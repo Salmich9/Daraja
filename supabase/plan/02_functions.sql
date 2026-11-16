@@ -1,4 +1,4 @@
--- Généré depuis la production le 2026-11-15. Ne pas modifier à la main : régénérer.
+-- Généré depuis la production le 2026-11-16. Ne pas modifier à la main : régénérer.
 set check_function_bodies = off;
 CREATE OR REPLACE FUNCTION daraja.balance(p_staff uuid)
  RETURNS integer

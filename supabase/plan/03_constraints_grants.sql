@@ -1,4 +1,4 @@
--- Généré depuis la production le 2026-11-15. Ne pas modifier à la main : régénérer.
+-- Généré depuis la production le 2026-11-16. Ne pas modifier à la main : régénérer.
 
 -- clés et contrôles
 alter table daraja.answers add constraint answers_pkey PRIMARY KEY (id);
