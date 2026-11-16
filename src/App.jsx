@@ -146,6 +146,7 @@ export default function App() {
       {tab === 'profile' && <Profile token={token} me={preview ? real : me} logout={logout} toast={toast} refresh={refresh} go={go} openTest={() => setTestOpen(true)} openGuide={() => setGuide(true)} />}
       {tab === 'admin' && isAdmin && <Admin token={token} me={me} venue={venue} toast={toast} />}
       </React.Fragment>
+      {!['quiz', 'live'].includes(tab) && <button className="helpfab" aria-label="Comment ça marche" onClick={() => setGuide(true)}><i className="ti ti-help" /></button>}
       <nav className="nav">
         {tabs.map(([k, ic, lab]) => <button key={k} aria-label={k} className={tab === k || (['quiz', 'duels', 'live', 'review', 'formation'].includes(tab) && k === 'home') || (tab === 'rules' && k === 'profile') ? 'on' : ''} onClick={() => go(k)}><span className="navic"><i className={'ti ti-' + ic} /></span><small>{lab}</small>{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && (me.direction_todo > 0 || me.errors_24h > 0)) || (k === 'home' && duelTodo.length > 0)) && <span className="dot" />}</button>)}
       </nav>
