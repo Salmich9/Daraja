@@ -176,6 +176,7 @@ grant execute on function public.daraja_duel_state(text,uuid) to anon;
 grant execute on function public.daraja_duels(text) to anon;
 grant execute on function public.daraja_eotm(text,text) to anon;
 grant execute on function public.daraja_fiche_delete(text,uuid) to anon;
+grant execute on function public.daraja_fiche_restore(text,uuid) to anon;
 grant execute on function public.daraja_fiche_save(text,text,jsonb) to anon;
 grant execute on function public.daraja_fiches(text,text) to anon;
 grant execute on function public.daraja_leaderboard2(text,text,text) to anon;

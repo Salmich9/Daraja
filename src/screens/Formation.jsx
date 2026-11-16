@@ -84,6 +84,7 @@ function Formation({ token, venue, toast }) {
   const [sec, setSec] = useState('plat')
   const [open, setOpen] = useState(null)
   const [edit, setEdit] = useState(null)
+  const [showOld, setShowOld] = useState(false)
   const load = useCallback(() => rpc('daraja_fiches', { p_token: token, p_venue: venue }).then(setD).catch(() => setD({ items: [] })), [token, venue])
   useEffect(() => { load() }, [load])
   if (!d) return <div className="page sub">Chargement…</div>
@@ -103,6 +104,15 @@ function Formation({ token, venue, toast }) {
           <div className="sub fmini">{f.cocktail && <span><i className="ti ti-glass-cocktail" /> {f.cocktail}</span>}{f.wine && <span><i className="ti ti-glass-full" /> {f.wine}</span>}</div>
         </div>
       ))}
+      {d.retired?.length > 0 && <div className="u-mt-14">
+        <button className="mini ghost" onClick={() => setShowOld(!showOld)}><i className={'ti ti-chevron-' + (showOld ? 'up' : 'down')} /> Fiches retirées · {d.retired.length}</button>
+        {showOld && d.retired.map(f => (
+          <div key={f.id} className="lb">
+            <div className="u-flex-1 u-min-width-0 sub">{f.title}</div>
+            <button className="mini" onClick={async () => { try { await rpc('daraja_fiche_restore', { p_token: token, p_fiche: f.id }); toast('Fiche remise'); load() } catch { toast('Erreur') } }}>Remettre</button>
+          </div>
+        ))}
+      </div>}
       {open && <FicheSheet f={open} close={() => setOpen(null)} edit={d.can_edit ? () => { setEdit(open); setOpen(null) } : null} />}
       {edit && <FicheEdit token={token} venue={d.venue} f={edit} toast={toast} close={() => setEdit(null)} done={() => { setEdit(null); load() }} />}
     </div>
