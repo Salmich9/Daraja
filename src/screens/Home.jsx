@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { RV, burst, buzz, first, fmt, level, nextGift, rpc, waLink } from '../lib'
 import { Avatar, GiftProgress, Info } from '../ui'
+import { AsksCard } from './Formation'
 import { DuelCard } from './Duels'
 import { Chest } from './Chest'
 
@@ -55,10 +56,16 @@ function Home({ token, me, venue, go, toast, duels, openDuel, refresh, practice 
       </div>
       {me.role === 'staff' && <DuelCard duels={duels} go={go} open={openDuel} />}
       <GiftProgress r={nextGift(rewards, me.points)} pts={me.points} onClick={() => go('shop')} />
+      {me.role === 'staff' && <AsksCard token={token} toast={toast} compact />}
       {me.role === 'staff' && <MissionCard token={token} />}
       {me.role === 'staff' && <DrawCard token={token} me={me} venue={venue} />}
       <EotmCard token={token} me={me} venue={venue} toast={toast} />
       <BirthdayCard token={token} me={me} venue={venue} />
+      <div className="card row u-gap-12 u-cur-pointer" data-go="formation" onClick={() => go('formation')}>
+        <i className="ti ti-glass-full acc u-fs-28" />
+        <div className="u-flex-1"><div className="u-fw-600">Carte & ventes</div><div className="sub">Histoires, accords, phrases à dire</div></div>
+        <i className="ti ti-chevron-right sub" />
+      </div>
       <div className="card row u-gap-12 u-cur-pointer"  onClick={() => go('stories')}>
         <i className="ti ti-book-2 acc u-fs-28"  />
         <div className="u-flex-1"><div className="u-fw-600">L'histoire du jour</div><div className="sub">Partis de zéro, arrivés au sommet</div></div>

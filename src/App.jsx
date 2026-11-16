@@ -9,6 +9,7 @@ import { Shop } from './screens/Shop'
 import { Profile, Rules, TestMode } from './screens/Profile'
 import { Stories } from './screens/Stories'
 import { Review } from './screens/Review'
+import { Formation } from './screens/Formation'
 import { DuelInvite, Duels, LiveDuel } from './screens/Duels'
 import { Admin } from './admin/Admin'
 
@@ -135,13 +136,14 @@ export default function App() {
       {testOpen && <TestMode token={token} me={real} close={() => setTestOpen(false)} startTest={startTest} preview={p => { setTestOpen(false); setPreview(p); go('home') }} />}
       {tab === 'board' && <Board token={token} me={me} venue={venue} />}
       {tab === 'review' && <Review token={token} back={() => go('home')} />}
+      {tab === 'formation' && <Formation token={token} venue={venue} toast={toast} />}
       {tab === 'stories' && <Stories token={token} me={me} go={go} refresh={refresh} />}
       {tab === 'shop' && <Shop token={token} me={me} venue={venue} refresh={refresh} toast={toast} />}
       {tab === 'profile' && <Profile token={token} me={preview ? real : me} logout={logout} toast={toast} refresh={refresh} go={go} openTest={() => setTestOpen(true)} />}
       {tab === 'admin' && isAdmin && <Admin token={token} me={me} venue={venue} toast={toast} />}
       </React.Fragment>
       <nav className="nav">
-        {tabs.map(([k, ic, lab]) => <button key={k} aria-label={k} className={tab === k || (['quiz', 'duels', 'live', 'review'].includes(tab) && k === 'home') || (tab === 'rules' && k === 'profile') ? 'on' : ''} onClick={() => go(k)}><span className="navic"><i className={'ti ti-' + ic} /></span><small>{lab}</small>{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && (me.direction_todo > 0 || me.errors_24h > 0)) || (k === 'home' && duelTodo.length > 0)) && <span className="dot" />}</button>)}
+        {tabs.map(([k, ic, lab]) => <button key={k} aria-label={k} className={tab === k || (['quiz', 'duels', 'live', 'review', 'formation'].includes(tab) && k === 'home') || (tab === 'rules' && k === 'profile') ? 'on' : ''} onClick={() => go(k)}><span className="navic"><i className={'ti ti-' + ic} /></span><small>{lab}</small>{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && (me.direction_todo > 0 || me.errors_24h > 0)) || (k === 'home' && duelTodo.length > 0)) && <span className="dot" />}</button>)}
       </nav>
     </div>
   )
