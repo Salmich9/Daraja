@@ -23,6 +23,7 @@ const FLOWS = [
   ['super', 'Admin questions', ['nav button[aria-label=admin]', 'text:Réglages']],
   ['super', 'Admin tirage', ['nav button[aria-label=admin]', 'text:Réglages', 'text:Tirage']],
   ['super', 'Admin cadeaux', ['nav button[aria-label=admin]', 'text:Réglages', 'text:Cadeaux']],
+  ['staff', 'Guide', ['nav button[aria-label=profile]', 'text:Comment ça marche', 'text:Suivant', 'text:Suivant']],
   ['staff', 'Carte & ventes', ['[data-go=formation]']],
   ['super', 'Admin à vendre', ['nav button[aria-label=admin]', 'text:À vendre']],
   ['super', 'Admin notifications', ['nav button[aria-label=admin]', 'text:Réglages', 'text:🔔 Notifications']],
@@ -38,7 +39,7 @@ for (const [role, name, steps] of FLOWS) {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole: vc })
   const w = dom.window
   const today = new Date().toLocaleDateString('fr-CA')
-  Object.entries({ daraja_token: 'x', daraja_quote_day: today, daraja_lv_me: '9', mock_role: role, mock_duel: 'pending', daraja_sound: '0' }).forEach(([k, v]) => w.localStorage.setItem(k, v))
+  Object.entries({ daraja_token: 'x', daraja_quote_day: today, daraja_lv_me: '9', daraja_guide_me: '1', mock_role: role, mock_duel: 'pending', daraja_sound: '0' }).forEach(([k, v]) => w.localStorage.setItem(k, v))
   w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {}
   w.matchMedia = w.matchMedia || (() => ({ matches: false, addEventListener() {}, removeEventListener() {} }))
   w.addEventListener('error', e => errors.push(e.message))

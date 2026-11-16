@@ -13,6 +13,7 @@
 .ti-arrows-shuffle:before{content:"\f000"}
 .ti-article:before{content:"\f1e2"}
 .ti-at:before{content:"\ea2b"}
+.ti-award:before{content:"\ea2c"}
 .ti-background:before{content:"\fd2c"}
 .ti-backspace:before{content:"\ea2d"}
 .ti-badge:before{content:"\efc2"}
@@ -23,6 +24,7 @@
 .ti-bat:before{content:"\f284"}
 .ti-bath:before{content:"\ef48"}
 .ti-beach:before{content:"\ef3d"}
+.ti-bell:before{content:"\ea35"}
 .ti-bell-off:before{content:"\ece9"}
 .ti-bell-ringing:before{content:"\ed07"}
 .ti-bolt:before{content:"\ea38"}
@@ -97,6 +99,7 @@
 .ti-grave:before{content:"\f580"}
 .ti-heart-handshake:before{content:"\f0f3"}
 .ti-heartbeat:before{content:"\ef92"}
+.ti-help-circle:before{content:"\f91d"}
 .ti-history:before{content:"\ebea"}
 .ti-home:before{content:"\eac1"}
 .ti-hourglass:before{content:"\ef93"}
@@ -162,6 +165,7 @@
 .ti-run:before{content:"\ec82"}
 .ti-salad:before{content:"\f50a"}
 .ti-scale:before{content:"\ebc2"}
+.ti-school:before{content:"\ecf7"}
 .ti-search:before{content:"\eb1c"}
 .ti-section:before{content:"\eed5"}
 .ti-select:before{content:"\ec9e"}
