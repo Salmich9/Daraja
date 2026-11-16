@@ -465,7 +465,7 @@ begin
     from ppl p where p.id in (select serie.id from serie)
   union all
   select p.id, 'quiz', 'quiz:' || d, 'quiz', 'Ton défi du jour t''attend', '5 questions, 2 minutes. À toi de jouer !', '/?go=quiz', 2
-    from ppl p where p.role = 'staff' and p.id not in (select played.staff_id from played) and p.id not in (select serie.id from serie)
+    from ppl p where p.role = 'staff' and h >= coalesce((cfg->>'quiz_hour')::int, 12) and p.id not in (select played.staff_id from played) and p.id not in (select serie.id from serie)
   union all
   select du.opponent, 'defi', 'duel:' || du.id, 'duel-' || du.id, 'Nouveau défi ⚔️', daraja.push_alias(du.challenger) || ' te lance un duel.', '/?go=duels', 1
     from daraja.duels du join ppl p on p.id = du.opponent and p.venue = du.venue
@@ -1739,7 +1739,7 @@ begin
     if p_set ? 'mode' then
       if p_set->>'mode' not in ('off', 'direction', 'all') then raise exception 'mode'; end if;
       cfg := jsonb_set(cfg, '{mode}', p_set->'mode'); end if;
-    foreach f in array array['start_hour', 'end_hour', 'serie_hour'] loop
+    foreach f in array array['start_hour', 'end_hour', 'serie_hour', 'quiz_hour'] loop
       if p_set ? f then
         if (p_set->>f)::int not between 6 and 23 then raise exception 'hour'; end if;
         cfg := jsonb_set(cfg, array[f], p_set->f); end if;

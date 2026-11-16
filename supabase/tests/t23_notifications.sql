@@ -26,6 +26,8 @@ do $$ declare r jsonb; it jsonb; noon timestamptz; eve timestamptz; early timest
   assert (public.daraja_push_status('t_am')->>'visible')::boolean, 'ouvert à tous : bouton visible';
   -- heures calmes
   assert (public.daraja_push_claim(early)::jsonb->>'quiet')::boolean, 'rien avant 10 h';
+  -- 11 h : pas encore de rappel du défi (il part à partir de quiz_hour, 12 h par défaut)
+  assert not exists (select 1 from daraja.push_candidates(noon - interval '1 hour') c where c.family = 'quiz'), 'pas de rappel avant 12 h';
   -- midi : rappel du quiz pour les équipiers qui n'ont pas joué, chacun chez soi
   r := public.daraja_push_claim(noon)::jsonb;
   assert exists (select 1 from jsonb_array_elements(r->'items') x where x->>'staff_id' = '00000000-0000-0000-0000-0000000000b1' and x->>'family' = 'quiz'), 'rappel quiz Baromètre';

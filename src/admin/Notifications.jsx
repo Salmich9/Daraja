@@ -10,7 +10,7 @@ const FAMS = [['quiz', 'Défi du jour', 'Un rappel si la personne n\'a pas encor
   ['defi', 'Défis et classement', 'Nouveau duel reçu, ou dépassé au classement de son établissement.'],
   ['cadeaux', 'Cadeaux et points', 'Cadeau remis, avis validé, bonus du mois. Un malus s\'affiche sans détail.'],
   ['alertes', 'Alertes managers', 'Avis et cadeaux à valider, pour les managers de l\'établissement.']]
-const HOURS = [['start_hour', 'Pas avant'], ['end_hour', 'Pas après'], ['serie_hour', 'Série en danger vers']]
+const HOURS = [['start_hour', 'Pas avant'], ['end_hour', 'Pas après'], ['quiz_hour', 'Rappel du défi vers'], ['serie_hour', 'Série en danger vers']]
 
 function Keys({ token, toast }) {
   const [k, setK] = useState(null)
@@ -45,7 +45,7 @@ export default function Notifications({ token, toast }) {
   }
   const run = async (k, f, ok) => { setBusy(k); try { toast(ok(await f(token))) } catch (e) { toast(e.message === 'vapid' ? 'Clés pas encore en place' : 'Erreur') } setBusy('') }
   if (!d) return <div className="sub">Chargement…</div>
-  const s = d.settings
+  const s = { quiz_hour: 12, ...d.settings }
   return <>
     <div className="sec u-pos-relative">Notifications <Info text="Arrêt : rien ne part. Direction : seulement vers toi, pour tester. Tous : chaque personne qui a activé les notifications sur son profil. Touche pour fermer." /></div>
     <div className="seg">{MODES.map(([k, l]) => <button key={k} className={s.mode === k ? 'on' : ''} onClick={() => save({ mode: k })}>{l}</button>)}</div>
