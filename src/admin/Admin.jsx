@@ -7,6 +7,7 @@ import { Attendance } from './Attendance'
 import { DrawAdmin, QuizSettings, RewardsAdmin } from './Settings'
 import { pushKick } from '../push'
 import Notifications from './Notifications'
+import Asks from './Asks'
 
 function Admin({ token, me, venue, toast, start }) {
   const [d, setD] = useState(null)
@@ -21,7 +22,7 @@ function Admin({ token, me, venue, toast, start }) {
   const act = async (fn, args, msg) => { try { await rpc(fn, { p_token: token, ...args }); toast(msg); load(); pushKick(token) } catch { toast('Erreur') } }
   if (!d) return <div className="page sub">Chargement…</div>
   // Pages rangées en 3 groupes : on choisit le groupe, puis la page
-  const T = [['team', 'Équipe', 'eq'], ['att', 'Pointage', 'eq'], ['conduct', 'Conduite' + (me.direction_todo ? ' · ' + me.direction_todo : ''), 'eq'],
+  const T = [['team', 'Équipe', 'eq'], ['att', 'Pointage', 'eq'], ['conduct', 'Conduite' + (me.direction_todo ? ' · ' + me.direction_todo : ''), 'eq'], ['asks', 'À vendre', 'eq'],
     ['report', 'Rapports', 'suivi'], ...(me.role === 'super' ? [['errors', 'Erreurs' + (me.errors_24h ? ' · ' + me.errors_24h : ''), 'suivi']] : []),
     ['quiz', 'Questions', 'reg'], ['draw', 'Tirage', 'reg'], ...(me.role === 'super' ? [['gifts', 'Cadeaux', 'reg'], ['notif', '🔔 Notifications', 'reg']] : [])]
   const G = [['eq', 'Équipe', 'ti-users', me.direction_todo || 0], ['suivi', 'Suivi', 'ti-chart-bar', me.role === 'super' ? me.errors_24h || 0 : 0], ['reg', 'Réglages', 'ti-adjustments', 0]]
@@ -43,14 +44,15 @@ function Admin({ token, me, venue, toast, start }) {
       {tab === 'draw' && <DrawAdmin token={token} me={me} venue={v} toast={toast} />}
       {tab === 'gifts' && <RewardsAdmin token={token} toast={toast} />}
       {tab === 'notif' && <Notifications token={token} toast={toast} />}
+      {tab === 'asks' && <Asks token={token} venue={v} toast={toast} />}
       {tab === 'errors' && <ErrorsAdmin token={token} />}
       {tab === 'team' && <>
-      <div className="sec"><i className="ti ti-star acc" /> Avis clients à valider</div>
+      <div className="sec"><i className="ti ti-star acc" /> Avis et ventes à valider</div>
       {!d.reviews.length && <div className="sub">Rien en attente</div>}
       {d.reviews.map(r => (
         <div key={r.id} className="lb">
-          <div className="u-flex-1 u-min-width-0"><div>{r.name}</div><div className="sub u-overflow-hidden u-text-overflow-ellipsis u-ws-nowrap" >{r.note}</div></div>
-          <button className="mini" onClick={() => act('daraja_admin_review', { p_event: r.id, p_ok: true }, '+' + RV.review + ' pièces validées')}>+{RV.review}</button>
+          <div className="u-flex-1 u-min-width-0"><div>{r.name}</div><div className="sub u-overflow-hidden u-text-overflow-ellipsis u-ws-nowrap" ><i className={'ti ' + (r.kind === 'vente' ? 'ti-target-arrow' : 'ti-star')} /> {r.note}</div></div>
+          <button className="mini" onClick={() => act('daraja_admin_review', { p_event: r.id, p_ok: true }, '+' + (r.amount || RV.review) + ' pièces validées')}>+{r.amount || RV.review}</button>
           <button className="mini ghost" aria-label="Refuser" onClick={() => act('daraja_admin_review', { p_event: r.id, p_ok: false }, 'Refusé')}><i className="ti ti-x" /></button>
         </div>
       ))}

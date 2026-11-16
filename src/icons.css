@@ -76,6 +76,7 @@
 .ti-details:before{content:"\ee71"}
 .ti-device-mobile:before{content:"\ea8a"}
 .ti-device-mobile-message:before{content:"\ee79"}
+.ti-devices:before{content:"\eb87"}
 .ti-dice-5:before{content:"\f08f"}
 .ti-direction:before{content:"\ebfb"}
 .ti-disabled:before{content:"\ea8f"}
@@ -96,6 +97,7 @@
 .ti-grave:before{content:"\f580"}
 .ti-heart-handshake:before{content:"\f0f3"}
 .ti-heartbeat:before{content:"\ef92"}
+.ti-history:before{content:"\ebea"}
 .ti-home:before{content:"\eac1"}
 .ti-hourglass:before{content:"\ef93"}
 .ti-icons:before{content:"\f1d4"}
@@ -160,6 +162,8 @@
 .ti-run:before{content:"\ec82"}
 .ti-salad:before{content:"\f50a"}
 .ti-scale:before{content:"\ebc2"}
+.ti-search:before{content:"\eb1c"}
+.ti-section:before{content:"\eed5"}
 .ti-select:before{content:"\ec9e"}
 .ti-send:before{content:"\eb1e"}
 .ti-server:before{content:"\eb1f"}
