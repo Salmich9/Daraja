@@ -39,6 +39,8 @@ for tbl in ['venues', 'posts', 'conduct_rules', 'missions', 'quotes', 'rewards',
     rows = d['data'].get(tbl) or []
     if not rows: continue
     cols = list(rows[0].keys())
+    # qui a modifié une fiche est un équipier réel, absent des données de référence
+    if tbl == 'fiches': rows = [{**r, 'updated_by': None} for r in rows]
     vals = ",\n".join("(" + ", ".join(lit(r[c]) for c in cols) + ")" for r in rows)
     out.append(f"\ninsert into daraja.{tbl} ({', '.join(cols)}) values\n{vals}\non conflict do nothing;")
 for s in ['conduct_rules', 'missions', 'quotes']:
