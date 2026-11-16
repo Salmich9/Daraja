@@ -5,23 +5,25 @@ import { Conduct } from './Conduct'
 import { Reports } from './Reports'
 import { Attendance } from './Attendance'
 import { DrawAdmin, QuizSettings, RewardsAdmin } from './Settings'
+import { pushKick } from '../push'
+import Notifications from './Notifications'
 
-function Admin({ token, me, venue, toast }) {
+function Admin({ token, me, venue, toast, start }) {
   const [d, setD] = useState(null)
   const [pts, setPts] = useState(null)
   const [add, setAdd] = useState(false)
-  const [tab, setTab] = useState('team')
+  const [tab, setTab] = useState(start || 'team')
   const [missions, setMissions] = useState({})
   const v = me.venue
   const load = useCallback(() => rpc('daraja_admin', { p_token: token, p_venue: venue }).then(setD).catch(() => setD({ reviews: [], gifts: [], staff: [] })), [token, venue])
   useEffect(() => { load() }, [load])
   useEffect(() => { rpc('daraja_admin_missions', { p_token: token, p_venue: venue }).then(setMissions).catch(() => {}) }, [token, venue])
-  const act = async (fn, args, msg) => { try { await rpc(fn, { p_token: token, ...args }); toast(msg); load() } catch { toast('Erreur') } }
+  const act = async (fn, args, msg) => { try { await rpc(fn, { p_token: token, ...args }); toast(msg); load(); pushKick(token) } catch { toast('Erreur') } }
   if (!d) return <div className="page sub">Chargement…</div>
   // Pages rangées en 3 groupes : on choisit le groupe, puis la page
   const T = [['team', 'Équipe', 'eq'], ['att', 'Pointage', 'eq'], ['conduct', 'Conduite' + (me.direction_todo ? ' · ' + me.direction_todo : ''), 'eq'],
     ['report', 'Rapports', 'suivi'], ...(me.role === 'super' ? [['errors', 'Erreurs' + (me.errors_24h ? ' · ' + me.errors_24h : ''), 'suivi']] : []),
-    ['quiz', 'Questions', 'reg'], ['draw', 'Tirage', 'reg'], ...(me.role === 'super' ? [['gifts', 'Cadeaux', 'reg']] : [])]
+    ['quiz', 'Questions', 'reg'], ['draw', 'Tirage', 'reg'], ...(me.role === 'super' ? [['gifts', 'Cadeaux', 'reg'], ['notif', '🔔 Notifications', 'reg']] : [])]
   const G = [['eq', 'Équipe', 'ti-users', me.direction_todo || 0], ['suivi', 'Suivi', 'ti-chart-bar', me.role === 'super' ? me.errors_24h || 0 : 0], ['reg', 'Réglages', 'ti-adjustments', 0]]
   const grp = G.find(g => g[0] === (T.find(t => t[0] === tab) || T[0])[2])
   const sub = T.filter(t => t[2] === grp[0])
@@ -40,6 +42,7 @@ function Admin({ token, me, venue, toast }) {
       {tab === 'quiz' && <QuizSettings token={token} venue={v} toast={toast} me={me} />}
       {tab === 'draw' && <DrawAdmin token={token} me={me} venue={v} toast={toast} />}
       {tab === 'gifts' && <RewardsAdmin token={token} toast={toast} />}
+      {tab === 'notif' && <Notifications token={token} toast={toast} />}
       {tab === 'errors' && <ErrorsAdmin token={token} />}
       {tab === 'team' && <>
       <div className="sec"><i className="ti ti-star acc" /> Avis clients à valider</div>

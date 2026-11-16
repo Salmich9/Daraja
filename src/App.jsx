@@ -73,6 +73,16 @@ export default function App() {
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme === 't-zz' ? '#FFF1DE' : '#0F3B33')
   }, [theme])
 
+  // Toucher une notification ouvre l'écran exact : /?go=quiz|duels|board|shop|profile|admin, puis on nettoie l'adresse
+  useEffect(() => {
+    if (!me) return
+    const g = new URLSearchParams(location.search).get('go')
+    if (!g) return
+    history.replaceState(null, '', location.pathname)
+    if (g === 'admin' && ['admin', 'super'].includes(me.role)) go('admin')
+    else if (['quiz', 'duels', 'board', 'shop', 'profile'].includes(g)) go(g === 'quiz' && me.quiz_done ? 'home' : g)
+  }, [me?.id])
+
   const login = t => { store.set(VK, null); setVenue(null); store.set(TK, t); setToken(t) }
   const logout = () => { rpc('daraja_logout', { p_token: token }).catch(() => {}); store.set(TK, null); store.set(VK, null); setVenue(null); setToken(null); setMe(null); setTab('home') }
   const switchVenue = v => { store.set(VK, v); setVenue(v) }

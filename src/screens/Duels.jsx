@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { RV, sfx, burst, buzz, imgSrc, rpc, waLink } from '../lib'
+import { pushKick } from '../push'
 import { Avatar, Info } from '../ui'
 import { MatchGame, OrderGame, Timer } from './Quiz'
 
@@ -32,7 +33,7 @@ function Duels({ token, venue, toast, duels, reload, open }) {
   const challenge = async id => {
     try {
       const r = await rpc('daraja_duel_new', { p_token: token, p_opponent: id })
-      if (r.ok) { setPickOpen(false); toast('Défi envoyé ⚔️'); open(r.id) }
+      if (r.ok) { setPickOpen(false); toast('Défi envoyé ⚔️'); pushKick(token); open(r.id) }
       else toast({ limit: '3 défis lancés par jour maximum', open: 'Un duel est déjà en cours avec cette personne', pair: '2 duels max par jour avec la même personne', role: 'Réservé aux équipiers', questions: 'Pas assez de questions actives' }[r.error] || 'Impossible')
     } catch { toast('Erreur') }
   }
@@ -125,7 +126,7 @@ function LiveDuel({ token, id, back, toast, refresh, open }) {
   const rematch = async () => {
     try {
       const r = await rpc('daraja_duel_rematch', { p_token: token, p_duel: id })
-      if (r.ok) { toast('Revanche envoyée ⚔️'); open(r.id) }
+      if (r.ok) { toast('Revanche envoyée ⚔️'); pushKick(token); open(r.id) }
       else toast({ pair: 'Déjà 2 duels aujourd\'hui ensemble : revanche demain', limit: '3 défis lancés par jour maximum', open: 'Un duel est déjà en cours avec cette personne' }[r.error] || 'Impossible')
     } catch { toast('Erreur') }
   }

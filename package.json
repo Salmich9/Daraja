@@ -17,7 +17,8 @@
   "dependencies": {
     "@tabler/icons-webfont": "^3.19.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "web-push": "3.6.7"
   },
   "devDependencies": {
     "@dicebear/adventurer": "^9.4.2",

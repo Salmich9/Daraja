@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { RV, sfx, soundOn, setSound, AV_LIB, AV_STYLES, LINE, dshort, fmt, level, rpc } from '../lib'
 import { Avatar, Info, Pill, PostSelect } from '../ui'
+import { pushActive, pushOff, pushOn, pushSupport } from '../push'
 
 function ProfileEdit({ token, me, close, done }) {
   const [alias, setAlias] = useState(me.alias || '')
@@ -33,6 +34,36 @@ function ProfileEdit({ token, me, close, done }) {
       </div>
     </div>
   )
+}
+
+// Bouton « Notifications » : visible quand la direction les a ouvertes à tous (ou pour la direction).
+// L'autorisation est demandée sur ce toucher, jamais à l'ouverture.
+function PushToggle({ token, toast }) {
+  const [st, setSt] = useState(null)
+  const [on, setOn] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const sup = pushSupport()
+  useEffect(() => {
+    rpc('daraja_push_status', { p_token: token }).then(setSt).catch(() => {})
+    pushActive().then(setOn).catch(() => {})
+  }, [token])
+  if (!st?.visible) return null
+  const flip = async () => {
+    if (sup === 'install') { toast('Ouvre Daraja depuis l\'écran d\'accueil'); return }
+    if (sup === 'denied') { toast('Autorise Daraja dans les réglages du téléphone'); return }
+    if (sup === 'none') { toast('Ce navigateur ne reçoit pas de notifications'); return }
+    setBusy(true)
+    try {
+      if (on) { await pushOff(token); setOn(false); toast('Notifications coupées') }
+      else { await pushOn(token); setOn(true); toast('Notifications activées 🔔') }
+    } catch (e) { toast(e.message === 'denied' ? 'Autorisation refusée' : e.message === 'vapid' ? 'Pas encore prêt, reviens bientôt' : 'Erreur, réessaie') }
+    setBusy(false)
+  }
+  const tip = sup === 'install'
+    ? 'Sur iPhone (iOS 16.4 ou plus), les notifications marchent seulement dans l\'appli installée : Partager › Sur l\'écran d\'accueil, puis ouvre Daraja depuis l\'icône et reconnecte-toi. Touche pour fermer.'
+    : 'Défi du jour, série, duels et cadeaux. Jamais la nuit, 3 par jour au plus. Valable pour ce téléphone. Touche pour fermer.'
+  return <div className="card tog u-mt-10"><span className="u-pos-relative"><i className={'ti ' + (on ? 'ti-bell-ringing' : 'ti-bell-off') + ' acc'} /> Notifications <Info text={tip} /></span>
+    <button className={'sw ' + (on ? 'on' : '')} disabled={busy} aria-label="Notifications" onClick={flip} /></div>
 }
 
 function Profile({ token, me, logout, toast, refresh, go, openTest }) {
@@ -100,6 +131,7 @@ function Profile({ token, me, logout, toast, refresh, go, openTest }) {
       <button className="btn ghost u-mt-24"  onClick={() => go('rules')}><i className="ti ti-book" /> Règles du jeu</button>
       {me.role === 'super' && <button className="btn ghost u-mt-10"  onClick={openTest}><i className="ti ti-flask" /> Mode test</button>}
       <button className="btn ghost u-mt-10"  onClick={() => setAvis(true)}><i className="ti ti-star" /> Un client m'a cité dans un avis</button>
+      <PushToggle token={token} toast={toast} />
       <div className="card tog u-mt-10" ><span><i className={'ti ' + (snd ? 'ti-volume' : 'ti-volume-off') + ' acc'} /> Sons du jeu</span><button className={'sw ' + (snd ? 'on' : '')} aria-label="Sons du jeu" onClick={() => { setSound(!snd); setSnd(!snd); if (!snd) setTimeout(() => sfx('good'), 50) }} /></div>
       <button className="btn ghost u-mt-10 u-c-muted"  onClick={logout}><i className="ti ti-logout" /> Me déconnecter</button>
       <div className="sub" style={{ textAlign: 'center', fontSize: 11, opacity: .7, marginTop: 14 }}>Version {__VERSION__}</div>

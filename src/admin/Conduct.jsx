@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { dshort, rpc } from '../lib'
+import { pushKick } from '../push'
 import { Pill } from '../ui'
 
 function Conduct({ token, me, venue, staff, toast }) {
@@ -39,7 +40,7 @@ function ConductAdd({ token, me, staff, toast, done }) {
     setBusy(true)
     try {
       const r = await rpc('daraja_conduct_add', { p_token: token, p_staff: who, p_rule: rule.id, p_facts: facts, p_witnesses: wit, p_applied: '' })
-      if (r.ok) { toast('Inscrit et verrouillé · −' + r.result.malus); done() }
+      if (r.ok) { toast('Inscrit et verrouillé · −' + r.result.malus); pushKick(token); done() }
       else setErr(r.error === 'direction' ? 'Réservé à la direction' : 'Vérifie les champs')
     } catch { setErr('Erreur, réessaie') }
     setBusy(false)
