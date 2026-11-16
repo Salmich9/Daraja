@@ -10,6 +10,7 @@ select json_build_object(
    ) order by c.relname) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='daraja' and c.relkind='r'),
  'triggers', (select json_agg(pg_get_triggerdef(t.oid) || ';') from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='daraja' and not t.tgisinternal),
  'grants', (select json_agg(format('grant execute on function public.%s to anon;', p.oid::regprocedure)) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like 'daraja%' and has_function_privilege('anon', p.oid, 'execute')),
+ 'service_grants', (select json_agg(format('grant execute on function public.%s to service_role;', p.oid::regprocedure)) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like 'daraja%' and not has_function_privilege('anon', p.oid, 'execute') and has_function_privilege('service_role', p.oid, 'execute')),
  'functions', (select json_agg(pg_get_functiondef(p.oid) order by n.nspname, p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='daraja' or (n.nspname='public' and p.proname like 'daraja%')),
  'data', json_build_object(
    'venues', (select json_agg(t) from daraja.venues t),
@@ -20,5 +21,6 @@ select json_build_object(
    'rewards', (select json_agg(t order by cost) from daraja.rewards t),
    'quiz_settings', (select json_agg(t) from daraja.quiz_settings t),
    'questions', (select json_agg(t order by cat, level, id) from daraja.questions t),
-   'rule_values', (select json_agg(t order by key) from daraja.rule_values t))
+   'rule_values', (select json_agg(t order by key) from daraja.rule_values t),
+   'app_settings', (select json_agg(t order by key) from daraja.app_settings t))
 )::text;

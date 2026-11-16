@@ -2,6 +2,7 @@
 
 -- clés et contrôles
 alter table daraja.answers add constraint answers_pkey PRIMARY KEY (id);
+alter table daraja.app_settings add constraint app_settings_pkey PRIMARY KEY (key);
 alter table daraja.attendance add constraint attendance_pkey PRIMARY KEY (staff_id, day);
 alter table daraja.attendance add constraint attendance_status_check CHECK ((status = ANY (ARRAY['present'::text, 'absent'::text, 'conge'::text, 'recup'::text, 'maladie'::text, 'autorise'::text, 'repos'::text])));
 alter table daraja.chests add constraint chests_pkey PRIMARY KEY (staff_id, day);
@@ -20,6 +21,11 @@ alter table daraja.point_events add constraint point_events_pkey PRIMARY KEY (id
 alter table daraja.point_events add constraint point_events_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'pending'::text, 'rejected'::text])));
 alter table daraja.posts add constraint posts_family_check CHECK ((family = ANY (ARRAY['salle'::text, 'bar'::text, 'cuisine'::text, 'support'::text])));
 alter table daraja.posts add constraint posts_pkey PRIMARY KEY (id);
+alter table daraja.push_rank add constraint push_rank_pkey PRIMARY KEY (staff_id, month);
+alter table daraja.push_sent add constraint push_sent_pkey PRIMARY KEY (id);
+alter table daraja.push_sent add constraint push_sent_staff_id_ref_key UNIQUE (staff_id, ref);
+alter table daraja.push_subscriptions add constraint push_subscriptions_endpoint_key UNIQUE (endpoint);
+alter table daraja.push_subscriptions add constraint push_subscriptions_pkey PRIMARY KEY (id);
 alter table daraja.questions add constraint questions_kind_check CHECK ((kind = ANY (ARRAY['qcm'::text, 'tf'::text, 'order'::text, 'match'::text, 'scene'::text, 'price'::text, 'image'::text])));
 alter table daraja.questions add constraint questions_level_check CHECK (((level >= 1) AND (level <= 3)));
 alter table daraja.questions add constraint questions_pkey PRIMARY KEY (id);
@@ -58,6 +64,9 @@ alter table daraja.mission_done add constraint mission_done_validated_by_fkey FO
 alter table daraja.point_events add constraint point_events_by_staff_fkey FOREIGN KEY (by_staff) REFERENCES daraja.staff(id);
 alter table daraja.point_events add constraint point_events_reward_id_fkey FOREIGN KEY (reward_id) REFERENCES daraja.rewards(id);
 alter table daraja.point_events add constraint point_events_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES daraja.staff(id) ON DELETE CASCADE;
+alter table daraja.push_rank add constraint push_rank_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES daraja.staff(id) ON DELETE CASCADE;
+alter table daraja.push_sent add constraint push_sent_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES daraja.staff(id) ON DELETE CASCADE;
+alter table daraja.push_subscriptions add constraint push_subscriptions_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES daraja.staff(id) ON DELETE CASCADE;
 alter table daraja.questions add constraint questions_venue_fkey FOREIGN KEY (venue) REFERENCES daraja.venues(id);
 alter table daraja.quiz_sessions add constraint quiz_sessions_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES daraja.staff(id) ON DELETE CASCADE;
 alter table daraja.quiz_settings add constraint quiz_settings_venue_fkey FOREIGN KEY (venue) REFERENCES daraja.venues(id);
@@ -90,6 +99,8 @@ CREATE INDEX IF NOT EXISTS mission_done_mission_idx ON daraja.mission_done USING
 CREATE INDEX IF NOT EXISTS point_events_staff_idx ON daraja.point_events USING btree (staff_id, created_at);
 CREATE INDEX IF NOT EXISTS point_events_reward_idx ON daraja.point_events USING btree (reward_id);
 CREATE INDEX IF NOT EXISTS point_events_by_staff_idx ON daraja.point_events USING btree (by_staff);
+CREATE INDEX IF NOT EXISTS push_sent_day_idx ON daraja.push_sent USING btree (staff_id, day);
+CREATE INDEX IF NOT EXISTS push_subscriptions_staff_idx ON daraja.push_subscriptions USING btree (staff_id);
 CREATE INDEX IF NOT EXISTS questions_venue_idx ON daraja.questions USING btree (venue);
 CREATE INDEX IF NOT EXISTS rewards_venue_idx ON daraja.rewards USING btree (venue);
 CREATE INDEX IF NOT EXISTS sessions_staff_idx ON daraja.sessions USING btree (staff_id);
@@ -157,6 +168,8 @@ grant execute on function public.daraja_mission(text) to anon;
 grant execute on function public.daraja_posts(text) to anon;
 grant execute on function public.daraja_practice_answer(text,uuid,integer,jsonb) to anon;
 grant execute on function public.daraja_practice_quiz(text,text) to anon;
+grant execute on function public.daraja_push_admin(text,jsonb) to anon;
+grant execute on function public.daraja_push_status(text) to anon;
 grant execute on function public.daraja_q_start(text,uuid) to anon;
 grant execute on function public.daraja_quiz(text) to anon;
 grant execute on function public.daraja_quiz_review(text) to anon;
@@ -173,3 +186,9 @@ grant execute on function public.daraja_story_read(text) to anon;
 grant execute on function public.daraja_test_answer(text,uuid,integer,jsonb) to anon;
 grant execute on function public.daraja_test_quiz(text,text,text,text) to anon;
 grant execute on function public.daraja_vote(text,uuid) to anon;
+grant execute on function public.daraja_push_claim(timestamp with time zone) to service_role;
+grant execute on function public.daraja_push_drop(text) to service_role;
+grant execute on function public.daraja_push_sub(text,text,text,text,text) to service_role;
+grant execute on function public.daraja_push_test(text) to service_role;
+grant execute on function public.daraja_push_unsub(text,text) to service_role;
+grant execute on function public.daraja_push_who(text) to service_role;

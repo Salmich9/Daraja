@@ -438,6 +438,83 @@ AS $function$
   delete from daraja.client_errors where last_at < now() - interval '90 days';
 $function$;
 
+CREATE OR REPLACE FUNCTION daraja.push_alias(p_staff uuid)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$ select coalesce((select nullif(trim(alias), '') from daraja.staff where id = p_staff), 'Un collègue') $function$;
+
+CREATE OR REPLACE FUNCTION daraja.push_candidates(p_now timestamp with time zone)
+ RETURNS TABLE(staff_id uuid, family text, ref text, tag text, title text, body text, url text, prio integer)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare cfg jsonb := daraja.push_cfg(); d date := (p_now at time zone 'Africa/Casablanca')::date;
+  h int := extract(hour from p_now at time zone 'Africa/Casablanca'); m date := date_trunc('month', d)::date;
+begin
+  return query
+  with subs as (select ps.staff_id sid, min(ps.created_at) since from daraja.push_subscriptions ps group by ps.staff_id),
+  ppl as (select st.*, subs.since from daraja.staff st join subs on subs.sid = st.id where st.active
+          and (cfg->>'mode' = 'all' or (cfg->>'mode' = 'direction' and st.role = 'super'))),
+  played as (select q.staff_id from daraja.quiz_sessions q where q.day = d and cardinality(q.answered) >= cardinality(q.question_ids)),
+  serie as (select p.id from ppl p where p.role = 'staff' and p.streak >= 2 and p.last_quiz_day = d - 1
+            and h >= (cfg->>'serie_hour')::int and p.id not in (select played.staff_id from played))
+  select p.id, 'serie', 'serie:' || d, 'quiz', 'Ta série : ' || p.streak || ' jours 🔥', 'Un défi ce soir et elle continue.', '/?go=quiz', 1
+    from ppl p where p.id in (select serie.id from serie)
+  union all
+  select p.id, 'quiz', 'quiz:' || d, 'quiz', 'Ton défi du jour t''attend', '5 questions, 2 minutes. À toi de jouer !', '/?go=quiz', 2
+    from ppl p where p.role = 'staff' and p.id not in (select played.staff_id from played) and p.id not in (select serie.id from serie)
+  union all
+  select du.opponent, 'defi', 'duel:' || du.id, 'duel-' || du.id, 'Nouveau défi ⚔️', daraja.push_alias(du.challenger) || ' te lance un duel.', '/?go=duels', 1
+    from daraja.duels du join ppl p on p.id = du.opponent and p.venue = du.venue
+    where du.status = 'pending' and du.created_at > greatest(p.since, p_now - interval '24 hours')
+  union all
+  select p.id, 'defi', 'rank:' || m || ':' || daraja.push_month_rank(p.id), 'rang', 'On t''a dépassé 📈',
+         'Tu es ' || daraja.push_month_rank(p.id) || 'e ce mois-ci. Reprends ta place !', '/?go=board', 2
+    from ppl p join daraja.push_rank r on r.staff_id = p.id and r.month = m
+    where p.role = 'staff' and daraja.push_month_rank(p.id) > r.rank
+  union all
+  select e.staff_id, 'cadeaux', 'pe:' || e.id,
+    case when e.kind = 'malus' then 'message' else 'points' end,
+    case when e.kind = 'cadeau' then 'Ton cadeau est prêt 🎁' when e.kind = 'avis' then 'Ton avis est validé ⭐'
+         when e.kind = 'malus' then 'Un message t''attend' else 'Bonus du mois 🎉' end,
+    case when e.kind = 'cadeau' then 'Passe le récupérer auprès de ton manager.' when e.kind = 'avis' then 'Merci ! Tes points sont crédités.'
+         when e.kind = 'malus' then 'Ton manager t''a laissé un message.' else 'Un mois exemplaire, bravo !' end,
+    case when e.kind = 'malus' then '/?go=profile' else '/?go=shop' end, 2
+    from daraja.point_events e join ppl p on p.id = e.staff_id
+    where e.created_at > greatest(p.since, p_now - interval '7 days') and (
+      (e.kind = 'cadeau' and e.delivered) or (e.kind = 'avis' and e.status = 'ok') or e.kind = 'malus'
+      or (e.kind = 'bonus' and e.note like 'Mois exemplaire %'))
+  union all
+  select p.id, 'alertes', 'alertes:' || d, 'alertes', 'À valider 📋', n || ' demande' || case when n > 1 then 's attendent' else ' attend' end || ' ta validation.', '/?go=admin', 2
+    from ppl p cross join lateral (
+      select (select count(*) from daraja.point_events e join daraja.staff o on o.id = e.staff_id
+               where (p.role = 'super' or o.venue = p.venue)
+                 and ((e.kind = 'avis' and e.status = 'pending') or (e.kind = 'cadeau' and not e.delivered)))
+           + case when p.role = 'super' then (select count(*) from daraja.conduct_records where needs_direction) else 0 end n) x
+    where p.role in ('admin', 'super') and x.n > 0;
+end $function$;
+
+CREATE OR REPLACE FUNCTION daraja.push_cfg()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$ select coalesce((select value from daraja.app_settings where key = 'push'), '{}'::jsonb) $function$;
+
+CREATE OR REPLACE FUNCTION daraja.push_month_rank(p_staff uuid)
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+  select count(*)::int + 1 from daraja.staff o, daraja.staff me
+  where me.id = p_staff and o.venue = me.venue and o.active and o.role = 'staff' and o.id <> me.id
+    and daraja.month_quiz(o.id) > daraja.month_quiz(me.id)
+$function$;
+
 CREATE OR REPLACE FUNCTION daraja.q_json(ids uuid[])
  RETURNS json
  LANGUAGE sql
@@ -1646,6 +1723,147 @@ begin
   end if;
   ids := daraja.pick_questions(coalesce(s.venue, 'baro'), daraja.family(s), null, nullif(p_kind, ''));
   return json_build_object('answered', '[]'::json, 'correct', 0, 'questions', coalesce(daraja.q_json(ids), '[]'::json));
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_push_admin(p_token text, p_set jsonb DEFAULT NULL::jsonb)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; cfg jsonb := daraja.push_cfg(); f text; d date := daraja.today();
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'super' then raise exception 'forbidden'; end if;
+  if p_set is not null then
+    if p_set ? 'mode' then
+      if p_set->>'mode' not in ('off', 'direction', 'all') then raise exception 'mode'; end if;
+      cfg := jsonb_set(cfg, '{mode}', p_set->'mode'); end if;
+    foreach f in array array['start_hour', 'end_hour', 'serie_hour'] loop
+      if p_set ? f then
+        if (p_set->>f)::int not between 6 and 23 then raise exception 'hour'; end if;
+        cfg := jsonb_set(cfg, array[f], p_set->f); end if;
+    end loop;
+    if (cfg->>'start_hour')::int >= (cfg->>'end_hour')::int then raise exception 'hours'; end if;
+    if p_set ? 'families' then
+      foreach f in array array['quiz', 'serie', 'defi', 'cadeaux', 'alertes'] loop
+        if p_set->'families' ? f then cfg := jsonb_set(cfg, array['families', f], to_jsonb((p_set->'families'->>f)::boolean)); end if;
+      end loop; end if;
+    update daraja.app_settings set value = cfg where key = 'push';
+  end if;
+  return json_build_object('settings', cfg,
+    'subs', (select count(*) from daraja.push_subscriptions), 'people', (select count(distinct staff_id) from daraja.push_subscriptions),
+    'mine', (select count(*) from daraja.push_subscriptions where staff_id = s.id),
+    'sent_today', (select count(*) from daraja.push_sent where day = d and family <> 'test'));
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_push_claim(p_now timestamp with time zone DEFAULT now())
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare cfg jsonb := daraja.push_cfg(); d date := (p_now at time zone 'Africa/Casablanca')::date;
+  h int := extract(hour from p_now at time zone 'Africa/Casablanca'); c record; out jsonb := '[]'::jsonb; m date := date_trunc('month', d)::date;
+begin
+  if coalesce(cfg->>'mode', 'off') = 'off' then return json_build_object('ok', true, 'mode', 'off', 'items', out); end if;
+  if h < (cfg->>'start_hour')::int or h >= (cfg->>'end_hour')::int then
+    return json_build_object('ok', true, 'quiet', true, 'items', out); end if;
+  perform pg_advisory_xact_lock(hashtext('push_claim'));
+  for c in select * from daraja.push_candidates(p_now) pc
+           where coalesce((cfg->'families'->>pc.family)::boolean, false)
+           order by pc.staff_id, pc.prio loop
+    continue when exists (select 1 from daraja.push_sent s where s.staff_id = c.staff_id and s.ref = c.ref);
+    continue when (select count(*) from daraja.push_sent s where s.staff_id = c.staff_id and s.day = d and s.family = c.family) >= (cfg->>'cap_family')::int;
+    continue when c.family in ('quiz', 'serie') and exists (select 1 from daraja.push_sent s where s.staff_id = c.staff_id and s.day = d and s.family in ('quiz', 'serie'));
+    continue when (select count(*) from daraja.push_sent s where s.staff_id = c.staff_id and s.day = d and s.family <> 'test') >= (cfg->>'cap_day')::int;
+    insert into daraja.push_sent(staff_id, family, ref, day) values (c.staff_id, c.family, c.ref, d);
+    out := out || jsonb_build_object('staff_id', c.staff_id, 'family', c.family, 'tag', c.tag, 'title', c.title, 'body', c.body, 'url', c.url,
+      'subs', (select jsonb_agg(jsonb_build_object('endpoint', ps.endpoint, 'p256dh', ps.p256dh, 'auth', ps.auth)) from daraja.push_subscriptions ps where ps.staff_id = c.staff_id));
+  end loop;
+  insert into daraja.push_rank(staff_id, month, rank)
+    select distinct ps.staff_id, m, daraja.push_month_rank(ps.staff_id) from daraja.push_subscriptions ps join daraja.staff st on st.id = ps.staff_id and st.role = 'staff'
+    on conflict (staff_id, month) do update set rank = excluded.rank;
+  return json_build_object('ok', true, 'items', out);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_push_drop(p_endpoint text)
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$ delete from daraja.push_subscriptions where endpoint = p_endpoint $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_push_status(p_token text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; cfg jsonb := daraja.push_cfg();
+begin
+  s := daraja.who(p_token);
+  return json_build_object('visible', cfg->>'mode' = 'all' or s.role = 'super', 'mode', cfg->>'mode',
+    'devices', (select count(*) from daraja.push_subscriptions where staff_id = s.id));
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_push_sub(p_token text, p_endpoint text, p_p256dh text, p_auth text, p_device text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  if coalesce(p_endpoint, '') !~ '^https://' or length(p_endpoint) > 1000 or coalesce(p_p256dh, '') = '' or coalesce(p_auth, '') = '' then
+    raise exception 'subscription'; end if;
+  insert into daraja.push_subscriptions(staff_id, venue, endpoint, p256dh, auth, device)
+    values (s.id, s.venue, p_endpoint, p_p256dh, p_auth, left(p_device, 80))
+    on conflict (endpoint) do update set staff_id = excluded.staff_id, venue = excluded.venue, p256dh = excluded.p256dh,
+      auth = excluded.auth, device = excluded.device, created_at = now();
+  return json_build_object('ok', true);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_push_test(p_token text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'super' then raise exception 'forbidden'; end if;
+  return json_build_object('ok', true, 'items', jsonb_build_array(jsonb_build_object('staff_id', s.id, 'family', 'test', 'tag', 'test',
+    'title', 'Test Daraja 🔔', 'body', 'Les notifications marchent sur cet appareil.', 'url', '/?go=profile',
+    'subs', (select coalesce(jsonb_agg(jsonb_build_object('endpoint', ps.endpoint, 'p256dh', ps.p256dh, 'auth', ps.auth)), '[]'::jsonb)
+             from daraja.push_subscriptions ps where ps.staff_id = s.id))));
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_push_unsub(p_token text, p_endpoint text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  delete from daraja.push_subscriptions where endpoint = p_endpoint and staff_id = s.id;
+  return json_build_object('ok', true);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_push_who(p_token text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  return json_build_object('id', s.id, 'role', s.role, 'venue', s.venue);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_q_start(p_token text, p_question uuid)
