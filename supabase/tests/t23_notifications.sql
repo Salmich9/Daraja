@@ -3,6 +3,8 @@ do $$ declare r jsonb; it jsonb; noon timestamptz; eve timestamptz; early timest
   noon := (daraja.today() + time '12:00') at time zone 'Africa/Casablanca';
   eve := (daraja.today() + time '19:30') at time zone 'Africa/Casablanca';
   early := (daraja.today() + time '08:00') at time zone 'Africa/Casablanca';
+  -- réglages par défaut pour le test, quels que soient ceux de la production
+  update daraja.app_settings set value = '{"mode":"off","families":{"quiz":true,"serie":true,"defi":true,"cadeaux":true,"alertes":true},"start_hour":10,"end_hour":21,"serie_hour":19,"quiz_hour":12,"cap_day":3,"cap_family":1}' where key = 'push';
   -- fermé au téléphone : seules les routes serveur (clé service) peuvent abonner ou envoyer
   assert pg_temp.raises($q$set local role anon; select public.daraja_push_claim()$q$) is not null, 'claim interdit au téléphone';
   reset role;
