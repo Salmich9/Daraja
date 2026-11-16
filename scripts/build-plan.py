@@ -26,7 +26,7 @@ out += ["\n-- déclencheurs"] + d['triggers']
 out += ["\n-- droits : rien en direct sur les tables, seulement les fonctions daraja_* pour le rôle anon",
         "revoke all on all tables in schema daraja from anon, authenticated;",
         "revoke execute on all functions in schema daraja from public, anon, authenticated;",
-        "revoke execute on all functions in schema public from public;"] + d['grants']
+        "revoke execute on all functions in schema public from public;"] + d['grants'] + (d.get('service_grants') or [])
 w('03_constraints_grants.sql', "\n".join(out) + "\n")
 def lit(v):
     if v is None: return 'null'
@@ -35,7 +35,7 @@ def lit(v):
     if isinstance(v, (dict, list)): v = json.dumps(v, ensure_ascii=False)
     return "'" + str(v).replace("'", "''") + "'"
 out = [H, "-- Données de référence (contenu du jeu). Les données des équipiers ne sont pas incluses."]
-for tbl in ['venues', 'posts', 'conduct_rules', 'missions', 'quotes', 'rewards', 'quiz_settings', 'questions', 'rule_values']:
+for tbl in ['venues', 'posts', 'conduct_rules', 'missions', 'quotes', 'rewards', 'quiz_settings', 'questions', 'rule_values', 'app_settings']:
     rows = d['data'].get(tbl) or []
     if not rows: continue
     cols = list(rows[0].keys())

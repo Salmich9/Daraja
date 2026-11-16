@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const dir = path.join(root, 'supabase/plan')
 const tests = fs.readdirSync(path.join(root, 'supabase/tests')).filter(f => /^t\d.*\.sql$/.test(f)).sort().map(f => path.join(root, 'supabase/tests', f))
 const db = new PGlite({ extensions: { pgcrypto } })
-await db.exec(`create role anon; create role authenticated; create schema extensions; set search_path to public, extensions;`)
+await db.exec(`create role anon; create role authenticated; create role service_role; create schema extensions; set search_path to public, extensions;`)
 for (const f of ['01_tables.sql','02_functions.sql','03_constraints_grants.sql','04_reference_data.sql']) {
   try { await db.exec(fs.readFileSync(`${dir}/${f}`, 'utf8')); console.log('OK  ', f) }
   catch (e) { console.log('FAIL', f, e.message); process.exit(1) }

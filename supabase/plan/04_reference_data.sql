@@ -801,6 +801,10 @@ insert into daraja.rule_values (key, val) values
 ('time', 15),
 ('time_long', 25)
 on conflict do nothing;
+
+insert into daraja.app_settings (key, value) values
+('push', '{"mode": "off", "cap_day": 3, "end_hour": 21, "families": {"defi": true, "quiz": true, "serie": true, "alertes": true, "cadeaux": true}, "cap_family": 1, "serie_hour": 19, "start_hour": 10}')
+on conflict do nothing;
 select setval('daraja.conduct_rules_id_seq', (select coalesce(max(id),1) from daraja.conduct_rules));
 select setval('daraja.missions_id_seq', (select coalesce(max(id),1) from daraja.missions));
 select setval('daraja.quotes_id_seq', (select coalesce(max(id),1) from daraja.quotes));
