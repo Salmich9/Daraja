@@ -97,6 +97,7 @@ const ICONS = ['gift', 'coffee', 'glass', 'music', 'sparkles', 'clock-pause', 'd
 function RewardsAdmin({ token, toast }) {
   const [list, setList] = useState(null)
   const [ed, setEd] = useState(null)
+  const [old, setOld] = useState(false)
   const load = useCallback(() => rpc('daraja_admin_rewards', { p_token: token }).then(setList).catch(() => setList([])), [token])
   useEffect(() => { load() }, [load])
   const save = async r => {
@@ -122,14 +123,22 @@ function RewardsAdmin({ token, toast }) {
       <button className="btn ghost u-mt-10"  onClick={() => setEd({ name: '', cost: 500, icon: 'gift', tier: 'bon', active: true, conditions: {}, stock: null, venue: null })}><i className="ti ti-plus" /> Nouveau cadeau</button>
       <div className="sec">En boutique · {list.filter(r => r.active).length}</div>
       {list.filter(r => r.active).map(row)}
-      <div className="sec">Suggestions à valider · {list.filter(r => !r.active).length}</div>
-      {list.filter(r => !r.active).map(row)}
-      {ed && <RewardEdit r={ed} close={() => setEd(null)} save={r => { save(r); setEd(null) }} />}
+      <div className="sec">Masqués · {list.filter(r => !r.active && !r.archived).length}</div>
+      {list.filter(r => !r.active && !r.archived).map(row)}
+      {list.some(r => r.archived) && <div className="u-mt-14">
+        <button className="mini ghost" onClick={() => setOld(!old)}><i className={'ti ti-chevron-' + (old ? 'up' : 'down')} /> Supprimés · {list.filter(r => r.archived).length}</button>
+        {old && list.filter(r => r.archived).map(r => <div key={r.id} className="lb"><div className="u-flex-1 u-min-width-0 sub">{r.name}</div>
+          <button className="mini" onClick={async () => { await rpc('daraja_admin_reward_restore', { p_token: token, p_reward: r.id }); toast('Remis dans Masqués'); load() }}>Remettre</button></div>)}
+      </div>}
+      {ed && <RewardEdit r={ed} close={() => setEd(null)} save={r => { save(r); setEd(null) }}
+        dup={r => setEd({ ...r, id: undefined, name: r.name + ' (copie)', active: false })}
+        del={async r => { try { const x = await rpc('daraja_admin_reward_delete', { p_token: token, p_reward: r.id }); toast(x.archived ? 'Supprimé (déjà gagné par quelqu\'un, gardé dans l\'historique)' : 'Cadeau supprimé'); setEd(null); load() } catch { toast('Erreur') } }} />}
     </>
   )
 }
 
-function RewardEdit({ r, close, save }) {
+function RewardEdit({ r, close, save, dup, del }) {
+  const [sure, setSure] = useState(false)
   const [f, setF] = useState({ ...r, conditions: { ...(r.conditions || {}) } })
   const c = f.conditions
   const setC = (k, v) => setF({ ...f, conditions: { ...c, [k]: v || undefined } })
@@ -156,6 +165,9 @@ function RewardEdit({ r, close, save }) {
         <Opt k="min_days" vals={[[null, 'Non'], [10, '10 j'], [15, '15 j'], [20, '20 j']]} />
         <div className="tog"><span>En boutique</span><button className={'sw ' + (f.active ? 'on' : '')} aria-label="En boutique" onClick={() => setF({ ...f, active: !f.active })} /></div>
         <button className="btn u-mt-12"  onClick={() => save(f)}>Enregistrer</button>
+        {r.id && dup && <button className="btn ghost u-mt-8" onClick={() => dup(f)}><i className="ti ti-copy" /> Dupliquer</button>}
+        {r.id && del && (sure ? <button className="btn danger u-mt-8" onClick={() => del(r)}>Oui, supprimer ce cadeau</button>
+          : <button className="btn ghost u-mt-8" onClick={() => setSure(true)}><i className="ti ti-trash" /> Supprimer</button>)}
       </div>
     </div>
   )

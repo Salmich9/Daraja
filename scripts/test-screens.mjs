@@ -23,9 +23,10 @@ const FLOWS = [
   ['super', 'Admin questions', ['nav button[aria-label=admin]', 'text:Réglages']],
   ['super', 'Admin tirage', ['nav button[aria-label=admin]', 'text:Réglages', 'text:Tirage']],
   ['super', 'Admin cadeaux', ['nav button[aria-label=admin]', 'text:Réglages', 'text:Cadeaux']],
-  ['staff', 'Guide', ['button.helpfab', 'text:Suivant', 'text:Suivant']],
+  ['staff', 'Guide', ['button.helpfab', 'text:Suivant', 'text:Suivant', 'text:Suivant', 'text:C\'est parti !']],
   ['staff', 'Carte & ventes', ['[data-go=formation]']],
   ['super', 'Admin à vendre', ['nav button[aria-label=admin]', 'text:À vendre']],
+  ['super', 'Admin charte', ['nav button[aria-label=admin]', 'text:Réglages', 'text:Charte']],
   ['super', 'Admin notifications', ['nav button[aria-label=admin]', 'text:Réglages', 'text:🔔 Notifications']],
   ['super', 'Mode test', ['nav button[aria-label=profile]', 'text:Mode test']],
 ]

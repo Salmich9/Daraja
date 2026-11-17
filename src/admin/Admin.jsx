@@ -8,6 +8,7 @@ import { DrawAdmin, QuizSettings, RewardsAdmin } from './Settings'
 import { pushKick } from '../push'
 import Notifications from './Notifications'
 import Asks from './Asks'
+import Charter from './Charter'
 
 function Admin({ token, me, venue, toast, start }) {
   const [d, setD] = useState(null)
@@ -24,7 +25,7 @@ function Admin({ token, me, venue, toast, start }) {
   // Pages rangées en 3 groupes : on choisit le groupe, puis la page
   const T = [['team', 'Équipe', 'eq'], ['att', 'Pointage', 'eq'], ['conduct', 'Conduite' + (me.direction_todo ? ' · ' + me.direction_todo : ''), 'eq'], ['asks', 'À vendre', 'eq'],
     ['report', 'Rapports', 'suivi'], ...(me.role === 'super' ? [['errors', 'Erreurs' + (me.errors_24h ? ' · ' + me.errors_24h : ''), 'suivi']] : []),
-    ['quiz', 'Questions', 'reg'], ['draw', 'Tirage', 'reg'], ...(me.role === 'super' ? [['gifts', 'Cadeaux', 'reg'], ['notif', '🔔 Notifications', 'reg']] : [])]
+    ['quiz', 'Questions', 'reg'], ['draw', 'Tirage', 'reg'], ...(me.role === 'super' ? [['gifts', 'Cadeaux', 'reg'], ['charte', 'Charte', 'reg'], ['notif', '🔔 Notifications', 'reg']] : [])]
   const G = [['eq', 'Équipe', 'ti-users', me.direction_todo || 0], ['suivi', 'Suivi', 'ti-chart-bar', me.role === 'super' ? me.errors_24h || 0 : 0], ['reg', 'Réglages', 'ti-adjustments', 0]]
   const grp = G.find(g => g[0] === (T.find(t => t[0] === tab) || T[0])[2])
   const sub = T.filter(t => t[2] === grp[0])
@@ -44,6 +45,7 @@ function Admin({ token, me, venue, toast, start }) {
       {tab === 'draw' && <DrawAdmin token={token} me={me} venue={v} toast={toast} />}
       {tab === 'gifts' && <RewardsAdmin token={token} toast={toast} />}
       {tab === 'notif' && <Notifications token={token} toast={toast} />}
+      {tab === 'charte' && <Charter token={token} toast={toast} />}
       {tab === 'asks' && <Asks token={token} venue={v} toast={toast} />}
       {tab === 'errors' && <ErrorsAdmin token={token} />}
       {tab === 'team' && <>

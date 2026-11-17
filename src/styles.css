@@ -321,10 +321,20 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 .fpair { display:flex; flex-direction:column; gap:6px; padding: 10px 12px; border:1px solid var(--line); border-radius: 12px; font-weight: 600; }
 .fpair .fwhy { position:absolute; top: 8px; right: 10px; }
 .fpitch { line-height: 1.45; padding: 10px 12px; border-left: 3px solid var(--acc); background: rgba(127,127,127,.08); border-radius: 0 10px 10px 0; }
-.guide .gsub { font-size: 16px; line-height: 1.4; margin-bottom: 20px; }
+.guide .gbody { text-align: center; margin-top: 8vh; }
+.guide .gicon { width: 120px; height: 120px; margin: 0 auto 22px; border-radius: 50%; display:flex; align-items:center; justify-content:center; background: rgba(240,180,60,.14); border: 1px solid var(--line); }
+.guide .gicon i { font-size: 64px; color: var(--acc); }
+.guide .gtitle { font-size: 40px; margin: 0 0 12px; }
+.guide .gsub { font-size: 21px; line-height: 1.4; font-weight: 500; padding: 0 6px; }
+.guide .gnote { margin-top: 26px; font-size: 13px; }
 .gpts { display:flex; flex-direction:column; gap: 10px; text-align:left; }
 .gpt { display:flex; gap: 12px; align-items:center; padding: 12px 14px; border:1px solid var(--line); border-radius: 14px; font-weight: 500; line-height: 1.3; }
 .gpt i { font-size: 22px; flex: none; }
 .gdots { margin: 0 0 14px; gap: 10px; }
 .gdots span { width: 10px; height: 10px; cursor: pointer; }
 .helpfab { position: fixed; right: max(14px, calc(50% - 240px + 14px)); bottom: calc(78px + env(safe-area-inset-bottom)); width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line); background: var(--nav); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: var(--acc); font-size: 22px; display:flex; align-items:center; justify-content:center; z-index: 6; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+.lgrid { display:grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.lcell { display:flex; flex-direction:column; gap:4px; padding: 8px; border:1px solid var(--line); border-radius: 12px; font-size: 13px; font-weight: 600; }
+.lcell input { padding: 6px 8px; font-size: 15px; }
+.lcell.ln-blanche span { color: #e9e9e9; } .lcell.ln-grise span { color: #a9b1b5; } .lcell.ln-rouge span, .lcell.ln-grave span { color: #ff7a6b; }
+.btn.danger { background: #c9473a; color: #fff; }
