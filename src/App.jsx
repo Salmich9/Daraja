@@ -97,7 +97,7 @@ export default function App() {
 
   if (!token) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><Login onToken={login} /></div>
   if (!me) return <div className={'app ' + theme}><div className="page u-ta-center u-pt-80" >{net ? <><i className="ti ti-wifi-off acc u-fs-40"  /><div className="sub u-m-12px-0-18px" >Pas de connexion</div><button className="btn" onClick={refresh}>Réessayer</button></> : <span className="sub">Chargement…</span>}</div></div>
-  if (guide) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><Guide me={me} close={() => { store.set('daraja_guide_' + me.id, '1'); store.set('daraja_quote_day', todayKey); setGuide(false); window.scrollTo(0, 0) }} /></div>
+  if (guide) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><Guide close={() => { store.set('daraja_guide_' + me.id, '1'); store.set('daraja_quote_day', todayKey); setGuide(false); window.scrollTo(0, 0) }} /></div>
   if (splash) return <div className={'app ' + theme}><div className="blobs"><i /><i /><i /></div><div id="fx" /><QuoteSplash token={token} me={me} close={() => { store.set('daraja_quote_day', todayKey); setSplash(false) }} /></div>
 
   const real = me

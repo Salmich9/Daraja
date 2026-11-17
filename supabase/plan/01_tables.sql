@@ -1,4 +1,4 @@
--- Généré depuis la production le 2026-11-16. Ne pas modifier à la main : régénérer.
+-- Généré depuis la production le 2026-11-17. Ne pas modifier à la main : régénérer.
 
 create extension if not exists pgcrypto with schema extensions;
 create schema if not exists daraja;
@@ -95,7 +95,8 @@ create table if not exists daraja.conduct_rules (
   recid2 text,
   grave boolean not null default false,
   direction_only boolean not null default false,
-  active boolean not null default true
+  active boolean not null default true,
+  malus integer
 );
 alter table daraja.conduct_rules enable row level security;
 
@@ -286,7 +287,8 @@ create table if not exists daraja.rewards (
   tier text,
   conditions jsonb not null default '{}'::jsonb,
   stock integer,
-  library boolean not null default false
+  library boolean not null default false,
+  archived boolean not null default false
 );
 alter table daraja.rewards enable row level security;
 

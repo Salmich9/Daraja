@@ -1,4 +1,4 @@
--- Généré depuis la production le 2026-11-16. Ne pas modifier à la main : régénérer.
+-- Généré depuis la production le 2026-11-17. Ne pas modifier à la main : régénérer.
 
 -- clés et contrôles
 alter table daraja.answers add constraint answers_pkey PRIMARY KEY (id);
@@ -9,6 +9,7 @@ alter table daraja.chests add constraint chests_pkey PRIMARY KEY (staff_id, day)
 alter table daraja.client_errors add constraint client_errors_pkey PRIMARY KEY (id);
 alter table daraja.conduct_records add constraint conduct_records_pkey PRIMARY KEY (id);
 alter table daraja.conduct_rules add constraint conduct_rules_line_check CHECK ((line = ANY (ARRAY['blanche'::text, 'grise'::text, 'rouge'::text])));
+alter table daraja.conduct_rules add constraint conduct_rules_malus_check CHECK (((malus IS NULL) OR ((malus >= 0) AND (malus <= 5000))));
 alter table daraja.conduct_rules add constraint conduct_rules_pkey PRIMARY KEY (id);
 alter table daraja.draws add constraint draws_pkey PRIMARY KEY (id);
 alter table daraja.draws add constraint draws_venue_month_key UNIQUE (venue, month);
@@ -135,17 +136,24 @@ grant execute on function public.daraja_admin_add_staff2(text,text,text,text,tex
 grant execute on function public.daraja_admin_asks(text,text) to anon;
 grant execute on function public.daraja_admin_attendance(text,text,date,date) to anon;
 grant execute on function public.daraja_admin_attendance_set(text,jsonb) to anon;
+grant execute on function public.daraja_admin_charter(text) to anon;
 grant execute on function public.daraja_admin_close_week(text,text,date) to anon;
 grant execute on function public.daraja_admin_contacts(text,text) to anon;
 grant execute on function public.daraja_admin_deliver(text,uuid) to anon;
 grant execute on function public.daraja_admin_draw(text,text,date,text) to anon;
 grant execute on function public.daraja_admin_errors(text,integer) to anon;
+grant execute on function public.daraja_admin_line_malus(text,text,integer) to anon;
 grant execute on function public.daraja_admin_missions(text,text) to anon;
 grant execute on function public.daraja_admin_points(text,uuid,text,integer,text) to anon;
 grant execute on function public.daraja_admin_reset_pin(text,uuid) to anon;
 grant execute on function public.daraja_admin_review(text,uuid,boolean) to anon;
+grant execute on function public.daraja_admin_reward_delete(text,uuid) to anon;
+grant execute on function public.daraja_admin_reward_restore(text,uuid) to anon;
 grant execute on function public.daraja_admin_reward_save(text,jsonb) to anon;
 grant execute on function public.daraja_admin_rewards(text) to anon;
+grant execute on function public.daraja_admin_rule_delete(text,integer) to anon;
+grant execute on function public.daraja_admin_rule_restore(text,integer) to anon;
+grant execute on function public.daraja_admin_rule_save(text,jsonb) to anon;
 grant execute on function public.daraja_admin_set_birthday(text,uuid,text) to anon;
 grant execute on function public.daraja_admin_set_contact(text,text,text,text,text) to anon;
 grant execute on function public.daraja_admin_set_timer(text,text,integer) to anon;

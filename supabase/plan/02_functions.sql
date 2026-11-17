@@ -1,4 +1,4 @@
--- Généré depuis la production le 2026-11-16. Ne pas modifier à la main : régénérer.
+-- Généré depuis la production le 2026-11-17. Ne pas modifier à la main : régénérer.
 set check_function_bodies = off;
 CREATE OR REPLACE FUNCTION daraja.balance(p_staff uuid)
  RETURNS integer
@@ -172,6 +172,10 @@ begin
   end if;
 
   malus := case when r.grave then daraja.rv('malus_grave') when eff = 'rouge' then daraja.rv('malus_rouge') when eff = 'grise' then daraja.rv('malus_grise') else daraja.rv('malus_blanche') end;
+  -- malus propre à la règle (réglé par la direction) : il s'applique à sa ligne ; en cas d'aggravation, jamais moins que celui de la nouvelle ligne
+  if r.malus is not null then
+    malus := case when r.grave or eff = r.line then r.malus else greatest(r.malus, malus) end;
+  end if;
   return json_build_object('rule_id', r.id, 'base_line', r.line, 'line', eff, 'occurrence', occ, 'sanction', sanc,
     'escalation', esc, 'malus', malus, 'grave', r.grave, 'behavior', r.behavior, 'domain', r.domain,
     'direction', (r.direction_only or eff = 'rouge'));
@@ -812,6 +816,25 @@ begin
   return json_build_object('ok', true, 'n', n);
 end $function$;
 
+CREATE OR REPLACE FUNCTION public.daraja_admin_charter(p_token text)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'super' then raise exception 'forbidden'; end if;
+  return json_build_object(
+    'defaults', json_build_object('blanche', daraja.rv('malus_blanche'), 'grise', daraja.rv('malus_grise'), 'rouge', daraja.rv('malus_rouge'), 'grave', daraja.rv('malus_grave')),
+    'rules', (select coalesce(json_agg(json_build_object('id', r.id, 'line', r.line, 'domain', r.domain, 'behavior', r.behavior,
+        'base_sanction', r.base_sanction, 'recid1', r.recid1, 'recid2', r.recid2, 'malus', r.malus, 'grave', r.grave,
+        'direction_only', r.direction_only, 'active', r.active, 'sort', r.sort,
+        'used', (select count(*) from daraja.conduct_records c where c.rule_id = r.id))
+      order by case r.line when 'blanche' then 1 when 'grise' then 2 else 3 end, r.sort, r.id), '[]'::json) from daraja.conduct_rules r));
+end $function$;
+
 CREATE OR REPLACE FUNCTION public.daraja_admin_close_week(p_token text, p_venue text, p_week date)
  RETURNS json
  LANGUAGE plpgsql
@@ -917,6 +940,21 @@ begin
     group by e.message) x);
 end $function$;
 
+CREATE OR REPLACE FUNCTION public.daraja_admin_line_malus(p_token text, p_line text, p_val integer)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'super' then raise exception 'forbidden'; end if;
+  if p_line not in ('blanche', 'grise', 'rouge', 'grave') or p_val not between 0 and 5000 then return json_build_object('ok', false); end if;
+  insert into daraja.rule_values(key, val) values ('malus_' || p_line, p_val) on conflict (key) do update set val = excluded.val;
+  return json_build_object('ok', true);
+end $function$;
+
 CREATE OR REPLACE FUNCTION public.daraja_admin_missions(p_token text, p_venue text DEFAULT NULL::text)
  RETURNS json
  LANGUAGE plpgsql
@@ -977,6 +1015,38 @@ begin
   return json_build_object('ok', true);
 end $function$;
 
+CREATE OR REPLACE FUNCTION public.daraja_admin_reward_delete(p_token text, p_reward uuid)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'super' then raise exception 'forbidden'; end if;
+  if exists (select 1 from daraja.point_events where reward_id = p_reward) then
+    update daraja.rewards set active = false, archived = true where id = p_reward;
+    return json_build_object('ok', true, 'archived', true);
+  end if;
+  delete from daraja.rewards where id = p_reward;
+  return json_build_object('ok', true, 'archived', false);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_admin_reward_restore(p_token text, p_reward uuid)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'super' then raise exception 'forbidden'; end if;
+  update daraja.rewards set archived = false where id = p_reward;
+  return json_build_object('ok', found);
+end $function$;
+
 CREATE OR REPLACE FUNCTION public.daraja_admin_reward_save(p_token text, p jsonb)
  RETURNS json
  LANGUAGE plpgsql
@@ -1013,9 +1083,75 @@ begin
   s := daraja.who(p_token);
   if s.role <> 'super' then raise exception 'forbidden'; end if;
   return (select coalesce(json_agg(json_build_object('id', id, 'venue', venue, 'name', name, 'icon', icon, 'cost', cost,
-      'tier', tier, 'active', active, 'library', library, 'stock', stock, 'conditions', conditions,
+      'tier', tier, 'active', active, 'archived', archived, 'library', library, 'stock', stock, 'conditions', conditions,
       'claimed', (select count(*) from daraja.point_events e where e.reward_id = r.id))
       order by active desc, cost), '[]'::json) from daraja.rewards r);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_admin_rule_delete(p_token text, p_rule integer)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'super' then raise exception 'forbidden'; end if;
+  if exists (select 1 from daraja.conduct_records where rule_id = p_rule) then
+    update daraja.conduct_rules set active = false where id = p_rule;
+    return json_build_object('ok', true, 'archived', true);
+  end if;
+  delete from daraja.conduct_rules where id = p_rule;
+  return json_build_object('ok', true, 'archived', false);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_admin_rule_restore(p_token text, p_rule integer)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff;
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'super' then raise exception 'forbidden'; end if;
+  update daraja.conduct_rules set active = true where id = p_rule;
+  return json_build_object('ok', found);
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.daraja_admin_rule_save(p_token text, p jsonb)
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'daraja', 'public'
+AS $function$
+declare s daraja.staff; rid int; ln text := p->>'line'; beh text := left(trim(coalesce(p->>'behavior', '')), 200);
+  dom text := left(trim(coalesce(p->>'domain', '')), 60); m int := nullif(p->>'malus', '')::int;
+begin
+  s := daraja.who(p_token);
+  if s.role <> 'super' then raise exception 'forbidden'; end if;
+  if ln not in ('blanche', 'grise', 'rouge') then return json_build_object('ok', false, 'error', 'line'); end if;
+  if length(beh) < 3 then return json_build_object('ok', false, 'error', 'behavior'); end if;
+  if dom = '' then dom := 'Général'; end if;
+  if m is not null and m not between 0 and 5000 then return json_build_object('ok', false, 'error', 'malus'); end if;
+  rid := nullif(p->>'id', '')::int;
+  if rid is null then
+    insert into daraja.conduct_rules(sort, line, domain, behavior, base_sanction, recid1, recid2, malus, grave, direction_only, active)
+      values ((select coalesce(max(sort), 0) + 10 from daraja.conduct_rules), ln, dom, beh,
+        coalesce(nullif(trim(p->>'base_sanction'), ''), case ln when 'blanche' then 'Rappel à l''ordre' when 'grise' then 'Avertissement oral' else 'Avertissement écrit' end),
+        nullif(trim(p->>'recid1'), ''), nullif(trim(p->>'recid2'), ''), m,
+        coalesce((p->>'grave')::boolean, false), coalesce((p->>'direction_only')::boolean, false), true)
+      returning id into rid;
+  else
+    update daraja.conduct_rules set line = ln, domain = dom, behavior = beh,
+      base_sanction = coalesce(nullif(trim(p->>'base_sanction'), ''), base_sanction),
+      recid1 = nullif(trim(p->>'recid1'), ''), recid2 = nullif(trim(p->>'recid2'), ''), malus = m,
+      grave = coalesce((p->>'grave')::boolean, grave), direction_only = coalesce((p->>'direction_only')::boolean, direction_only)
+      where id = rid;
+    if not found then return json_build_object('ok', false, 'error', 'rule'); end if;
+  end if;
+  return json_build_object('ok', true, 'id', rid);
 end $function$;
 
 CREATE OR REPLACE FUNCTION public.daraja_admin_set_birthday(p_token text, p_staff uuid, p_mmdd text)
@@ -2250,7 +2386,7 @@ begin
   perform daraja.who(p_token);
   return (select coalesce(json_agg(json_build_object('line', line, 'domain', domain, 'behavior', behavior, 'sanction', base_sanction,
       'recid1', recid1, 'recid2', recid2, 'grave', grave,
-      'malus', case when grave then daraja.rv('malus_grave') when line = 'rouge' then daraja.rv('malus_rouge') when line = 'grise' then daraja.rv('malus_grise') else daraja.rv('malus_blanche') end) order by sort), '[]'::json)
+      'malus', coalesce(malus, case when grave then daraja.rv('malus_grave') when line = 'rouge' then daraja.rv('malus_rouge') when line = 'grise' then daraja.rv('malus_grise') else daraja.rv('malus_blanche') end)) order by sort), '[]'::json)
     from daraja.conduct_rules where active);
 end $function$;
 
