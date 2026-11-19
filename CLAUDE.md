@@ -1,32 +1,66 @@
 # Daraja — fiche de reprise
 
-Appli de formation ludique du personnel (Baromètre `baro`, ZamaZama `zz`). Tout en français.
-Le dépôt est **public** : aucun secret dans le code, un `.env` commité, un log ou un écran.
+Appli web (PWA) de formation ludique du personnel de Cadence / Baromètre Group, pour deux établissements : Baromètre (`baro`) et ZamaZama (`zz`). Propriétaire : Salmane (COO, compte direction `super`).
+Le dépôt est **public** : aucun secret dans le code, un `.env` commité, un log, une capture ou un écran.
 
-## Stack
-- React 18 + Vite. Client réseau maison `src/net.js`, appels `rpc()` dans `src/lib.jsx`.
-- Supabase, schéma `daraja`, RLS fermée partout. Tout passe par des fonctions `public.daraja_*` SECURITY DEFINER ; `daraja.who(token)` vérifie la session PIN (90 jours).
-- Rôles (`staff.role`) : `staff`, `admin` (manager d'un établissement), `super` (direction, établissement nul).
-- Vercel : site statique + fonctions `api/` + tâche planifiée (`vercel.json`).
+## Comment travailler avec Salmane
+- Toujours en **français**, réponses courtes et directes, analogies bienvenues. Questions à choix cliquables quand une décision lui revient.
+- **Une branche par chantier** (`vNNN-nom`). Rien dans `main` sans son « oui » **après captures téléphone** (maquettes en image avant toute fusion). Un push sur `main` publie l'appli : toujours lui demander avant.
+- **Corrections proposées une à une**, une modification par message.
+- Écrans : le moins de texte possible, pas de paragraphe d'explication ; des bulles d'info (`<Info>` dans `src/ui.jsx`) qui se ferment d'un toucher et ne sont jamais coupées par le bord ; un chemin logique entre les éléments cliquables.
+- Esprit de l'appli : ludique, jamais culpabilisant.
+- Valeurs métier (heures, plafonds, points, malus) en base et réglables dans l'appli, jamais en dur.
+- Ne jamais taper de PIN sur le site de production. Les variables secrètes, c'est Salmane qui les colle lui-même dans Vercel.
 
-## Règles de travail
-- Une branche par chantier ; rien dans `main` sans le « oui » de Salmane après captures téléphone. Un push sur `main` publie l'appli.
-- `npm run build` = lint + tests base (PGlite) + ouverture de chaque écran + build. Tester une migration pas encore appliquée : `PENDING=supabase/pending/x.sql npm run build`.
+## Stack et accès
+- React 18 + Vite. Client réseau maison `src/net.js`, appels `rpc()` dans `src/lib.jsx`, adresse et clé publique Supabase dans `src/config.js`.
+- **Supabase** : projet `cahtgztumteljjxmqbsr`, schéma `daraja`, RLS fermée partout. Tout passe par des fonctions `public.daraja_*` SECURITY DEFINER données à `anon` ; `daraja.who(token)` vérifie la session PIN (90 jours). Les fonctions réservées au serveur (`daraja_push_*`) ne sont données qu'à `service_role`.
+- Rôles (`staff.role`) : `staff`, `admin` (manager d'un établissement), `super` (direction, `venue` nul). Garde-fous : `daraja.can_admin(s, venue)`, `daraja.can_admin_staff(...)`. Un établissement ne voit jamais l'autre.
+- **Vercel** : projet `daraja` (`prj_1qmyveXFRj51niBxfhATMEnuVu9e`, équipe `team_D1CJCjMQbu6wHzW7Hq9WVAtt`, compte Pro), production `daraja-nine.vercel.app`. Les aperçus sont protégés (SSO) : les tests réels se font en production. Fonctions dans `api/`, en-têtes et tâche planifiée dans `vercel.json`.
+- Vérifier une publication : liste des déploiements Vercel, état `READY` sur le dernier commit de `main`.
+
+## Contrôles avant fusion
+- `npm run build` = lint + tests base (PGlite, `supabase/tests/t*.sql`) + ouverture de chaque écran (`scripts/test-screens.mjs`, mode maquette) + build. Enchaîner avec `&&`, jamais `;` avant un commit ou un push.
+- Tester une migration pas encore appliquée : `PENDING=supabase/pending/x.sql npm run build`.
 - Après une icône ajoutée : `python3 scripts/build-icons.py`.
-- Les valeurs métier vont en base (`rule_values`, `app_settings`), la structure dans le code.
+- **Captures téléphone** : `VITE_MOCK=1 npx vite build --outDir <dossier>`, servir le dossier, puis Playwright (390×844, `deviceScaleFactor: 2`). Le mode maquette lit `src/mock.js` ; rôles via `localStorage.mock_role` (`staff`, `admin`, `super`). Mettre `daraja_guide_me = '1'` pour sauter le guide.
+- Réponses équilibrées : la bonne réponse ne doit pas être la plus longue trop souvent (test `t21`, bloquant).
 
-## Notifications push (v001-notifications)
-- **Base** (`supabase/archive/v6_notifications.sql`, test `t23`) : `app_settings` clé `push` (mode `off`/`direction`/`all`, familles, heures, plafonds), `push_subscriptions`, `push_sent` (une alerte dite une fois), `push_rank`. Lecture et écriture des abonnements uniquement par les fonctions réservées à la clé service.
-- **Règles** dans `daraja.push_candidates` + `daraja_push_claim` : rien hors heures (10 h–21 h par défaut), au plus 1 par famille et 3 par jour, jamais deux établissements mélangés, malus sans détail (« Un message t'attend »), un collègue nommé seulement par son alias (sinon « Un collègue »), pas de malus d'absence.
-- **Serveur** `api/push/*` : `config` (clé publique), `subscribe` (abonner/couper son propre appareil, session vérifiée), `test` (direction), `tick` (tâche planifiée avec `Authorization: Bearer CRON_SECRET`, ou session valide après un événement), `keys` (génère les clés VAPID, direction, rien stocké).
-- **Variables Vercel** (jamais ailleurs) : `SUPABASE_SERVICE_ROLE_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `CRON_SECRET`.
-- **Tâche planifiée** : toutes les heures (`0 * * * *`, compte Vercel Pro). Rappel du défi à partir de `quiz_hour` (12 h), série en danger à partir de `serie_hour` (19 h). Les événements (nouveau duel, cadeau remis, avis validé, malus) relancent `tick` depuis l'appli (`pushKick`) ; les règles empêchent toute répétition.
-- **Téléphone** : `public/sw.js` minimal (pas de cache, pas de `fetch`), enregistré seulement au toucher « Notifications » du profil. iPhone : uniquement dans l'appli installée (iOS 16.4+), l'icône a sa propre connexion, un abonnement est lié à l'adresse (se réabonner en production). Les aperçus Vercel sont protégés : tester sur la production, mode « Direction ».
-- **Retour arrière** : mode « Arrêt » dans Admin › Réglages › 🔔 Notifications. Pour retirer le service worker des téléphones : copier `public/sw-uninstall.js` sur `public/sw.js` et publier.
-- Langue : français seul pour l'instant.
+## Mettre la base à jour (ordre à respecter)
+1. Écrire la migration dans `supabase/pending/<nom>.sql` + un test `supabase/tests/tNN_*.sql`, faire passer `PENDING=… npm run build`.
+2. Après le « oui » : appliquer la migration en production (Supabase).
+3. Régénérer le plan : exécuter `supabase/plan/export.sql` sur la production, puis `python3 scripts/build-plan.py <fichier du résultat>`. Le plan (`supabase/plan/0*.sql`) doit toujours refléter la production.
+4. Déplacer la migration dans `supabase/archive/vN_<nom>.sql`, `npm run build`, commit, fusion, push.
 
-## Formation vente (v003-formation)
-- **Base** (`supabase/archive/v7_formation.sql`, test `t24`) : `fiches` (par établissement : histoire, cocktail, vin, pourquoi, phrase à dire), `sell_asks` (« à vendre » des managers), `point_events.kind = 'vente'` (déclarée par l'équipier, en attente, validée par le manager dans la même liste que les avis).
-- **Questions** : `daraja.fiche_sync` crée « quel cocktail / quel vin conseiller avec … » pour chaque fiche (cat `vente`), mauvaises réponses prises dans les autres fiches de l'établissement ; jamais supprimées, seulement mises à jour ou éteintes.
-- **Écrans** : Accueil › Carte & ventes (`src/screens/Formation.jsx`), carte « À vendre » à l'accueil, Admin › Équipe › À vendre (`src/admin/Asks.jsx`). Plafond de déclarations par jour : `rule_values.sale_cap`.
-- Plus tard : ventes de la caisse à la place des déclarations, puis l'IA qui propose quoi pousser.
+## Ce que fait l'appli (état au 19/11/2026)
+- **Défi du jour** : 5 questions chronométrées (QCM 9 s, ordre et paires 18 s, réglables par la direction), points, série, coffre 2 fois par semaine (après défi + histoire du jour). Relecture du dernier défi jusqu'au lancement du suivant (`Review.jsx`).
+- **Duels**, classement mensuel par établissement, employé du mois, tirage, boutique de cadeaux, missions, avis clients validés par le manager.
+- **Histoires** : catalogues culture (Marrakech, légendes, escapades, terroirs, artisanat, agenda).
+- **Conduite** : lignes blanche / grise / rouge, registre, malus. Charte modifiable par la direction dans Admin › Réglages › Charte (`src/admin/Charter.jsx`) : intitulé, ligne, malus propre à chaque règle (vide = malus de la ligne ; en cas d'aggravation, le plus fort s'applique), ajout, suppression (rangée si déjà utilisée), remise. Migration `v9_parametres.sql`, test `t25`.
+- **Cadeaux** : Admin › Réglages › Cadeaux (direction) : ajouter, modifier, masquer, dupliquer, supprimer (rangé dans « Supprimés » s'il a déjà été gagné), remettre.
+- **Guide** : 4 écrans, une phrase chacun (`src/screens/Guide.jsx`), montré une fois par appareil, puis via le bouton « ? » en bas à droite (caché pendant défi et duels) ou Profil › Comment ça marche.
+
+## Notifications push (v001-notifications, en ligne, mode « Direction » pour l'instant)
+- **Base** (`supabase/archive/v6_notifications.sql`, test `t23`) : `app_settings` clé `push` (mode `off`/`direction`/`all`, familles, heures, plafonds), `push_subscriptions`, `push_sent` (une alerte dite une fois), `push_rank`.
+- **Règles** dans `daraja.push_candidates` + `daraja_push_claim` : rien hors heures, au plus 1 par famille et 3 par jour, jamais deux établissements mélangés, malus sans détail (« Un message t'attend »), un collègue nommé seulement par son alias (sinon « Un collègue »), pas de malus d'absence.
+- **Heures choisies par Salmane** : 16 h à 19 h (pointage à 16 h, service à 19 h), série en danger à 18 h. Ne pas les remettre à 10 h–21 h.
+- **Serveur** `api/push/*` : `config`, `subscribe`, `test` (direction), `tick` (tâche planifiée `Authorization: Bearer CRON_SECRET`, ou session valide après un événement), `keys` (génère les clés VAPID, rien stocké).
+- **Variables Vercel** (déjà en place, jamais ailleurs) : `SUPABASE_SERVICE_ROLE_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `CRON_SECRET`.
+- **Tâche planifiée** : toutes les heures (`0 * * * *`). Rappel du défi à partir de `quiz_hour`, série à partir de `serie_hour`. Les événements (duel, cadeau remis, avis ou vente validés, malus) relancent `tick` depuis l'appli (`pushKick`).
+- **Téléphone** : `public/sw.js` minimal (pas de cache, pas de `fetch`), enregistré seulement au toucher « Notifications » du profil. iPhone : appli installée seulement (iOS 16.4+). Testé et validé sur l'iPhone de Salmane le 16/11.
+- **Retour arrière** : mode « Arrêt » dans Admin › Réglages › 🔔 Notifications ; pour retirer le service worker : copier `public/sw-uninstall.js` sur `public/sw.js` et publier.
+- Prochaine étape quand Salmane le décide : passer le mode à « Tous ».
+
+## Formation vente (v003-formation, en ligne)
+- **Base** (`supabase/archive/v7_formation.sql`, test `t24`) : `fiches` (par établissement : histoire, cocktail, vin, pourquoi, phrase à dire), `sell_asks` (« À vendre » des managers), `point_events.kind = 'vente'` (déclarée par l'équipier, validée par le manager dans la même liste que les avis).
+- **Contenu** : 24 fiches Baromètre et 26 ZamaZama, tirées des cartes (food, mixologie, vins). Document source : « Daraja · Formation vente » (Claude Docs). Deux histoires restent à vérifier : les 4 salades de « À travers le Maroc » et l'origine du « Marrakesh 5AM ».
+- **Questions** : `daraja.fiche_sync` crée « quel cocktail / quel vin conseiller avec … » (cat `vente`), mauvaises réponses prises dans les autres fiches ; jamais supprimées (l'historique y est lié), seulement mises à jour ou éteintes.
+- **Écrans** : Accueil › Carte & ventes (`Formation.jsx`), carte « À vendre » à l'accueil, Admin › Équipe › À vendre (`Asks.jsx`). Fiches retirées remettables en bas de Carte & ventes (`v8_remettre.sql`). Plafond de déclarations par jour : `rule_values.sale_cap` (10).
+- Demandes en cours lancées le 16/11 jusqu'au 22/11 : Baromètre « Le Tigre qui pleure + S de Siroua », ZamaZama « Burrata Beldi + Tomatini », 10 pièces par vente.
+
+## Chantiers en attente (ne pas lancer sans Salmane)
+- Confirmation avant de retirer une fiche (proposée, pas encore validée).
+- Quête d'équipe (mise de côté), ligues hebdomadaires.
+- Import des pointages (attend la nouvelle appli RH).
+- Ventes par article depuis la caisse à la place des déclarations, puis l'IA qui propose quoi pousser (articles peu vendus et rentables).
+- Langues AR / EN / ES pour les notifications (français seul pour l'instant).
