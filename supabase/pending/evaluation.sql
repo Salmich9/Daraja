@@ -557,6 +557,8 @@ begin
   );
 end $function$;
 
+revoke all on daraja.eval_criteria, daraja.evals from anon, authenticated;
+revoke all on sequence daraja.eval_criteria_id_seq from anon, authenticated;
 revoke execute on all functions in schema daraja from public, anon, authenticated;
 revoke execute on function public.daraja_eval_team(text, text), public.daraja_eval_sheet(text, uuid), public.daraja_eval_save(text, uuid, jsonb, text),
   public.daraja_eval_validate(text, uuid, boolean, text), public.daraja_eval_mine(text), public.daraja_eval_seen(text),
