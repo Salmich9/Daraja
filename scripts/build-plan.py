@@ -35,7 +35,7 @@ def lit(v):
     if isinstance(v, (dict, list)): v = json.dumps(v, ensure_ascii=False)
     return "'" + str(v).replace("'", "''") + "'"
 out = [H, "-- Données de référence (contenu du jeu). Les données des équipiers ne sont pas incluses."]
-for tbl in ['venues', 'posts', 'conduct_rules', 'missions', 'quotes', 'rewards', 'quiz_settings', 'questions', 'rule_values', 'app_settings', 'fiches']:
+for tbl in ['venues', 'posts', 'conduct_rules', 'missions', 'quotes', 'rewards', 'quiz_settings', 'questions', 'rule_values', 'app_settings', 'fiches', 'eval_criteria']:
     rows = d['data'].get(tbl) or []
     if not rows: continue
     cols = list(rows[0].keys())
@@ -43,7 +43,7 @@ for tbl in ['venues', 'posts', 'conduct_rules', 'missions', 'quotes', 'rewards',
     if tbl == 'fiches': rows = [{**r, 'updated_by': None} for r in rows]
     vals = ",\n".join("(" + ", ".join(lit(r[c]) for c in cols) + ")" for r in rows)
     out.append(f"\ninsert into daraja.{tbl} ({', '.join(cols)}) values\n{vals}\non conflict do nothing;")
-for s in ['conduct_rules', 'missions', 'quotes']:
+for s in ['conduct_rules', 'missions', 'quotes', 'eval_criteria']:
     out.append(f"select setval('daraja.{s}_id_seq', (select coalesce(max(id),1) from daraja.{s}));")
 w('04_reference_data.sql', "\n".join(out) + "\n")
 print('plan régénéré')

@@ -169,7 +169,7 @@ function Quiz({ token, me, done, mode = 'daily', ctx = {}, onEnd, practice, onSt
   return (
     <div className="page" style={res ? { paddingBottom: 260 } : null}>
       <div className="row between sub u-mb-8" >
-        <span>{mode === 'test' ? 'Test' : mode === 'practice' ? 'Entraînement' : 'Manche'} {i + 1}/{qs.length} · {q.theme}</span>
+        <span>{mode === 'test' ? 'Test' : mode === 'practice' ? 'Entraînement' : 'Manche'} {i + 1}/{qs.length} · {mode === 'daily' && (data.targeted || []).includes(q.id) ? <b className="acc"><i className="ti ti-target-arrow" /> Ton axe</b> : q.theme}</span>
         {combo >= 2 ? <span className="combo pop"><i className="ti ti-bolt" /> Combo x{combo}</span> : <LevelBadge level={q.level} noPts={mode !== 'daily'} />}
       </div>
       {ready ? <Timer key={q.id} q={q} deadline={deadline} onEnd={timeout} stopped={!!res} /> : <div className="timer"><div className="tbar" /></div>}

@@ -338,3 +338,21 @@ a.btn { display:block; text-align:center; text-decoration:none; }
 .lcell input { padding: 6px 8px; font-size: 15px; }
 .lcell.ln-blanche span { color: #e9e9e9; } .lcell.ln-grise span { color: #a9b1b5; } .lcell.ln-rouge span, .lcell.ln-grave span { color: #ff7a6b; }
 .btn.danger { background: #c9473a; color: #fff; }
+/* Évaluation mensuelle */
+.kpis.k3 { grid-template-columns: repeat(3, 1fr); }
+.kpis.k3 b { font-size: 22px; }
+.ecrit { padding: 10px 2px 12px; border-bottom: 1px solid var(--line); font-size: 15px; }
+.esteps { display:grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+.esteps button { height: 28px; border-radius: 9px; border: 1px solid var(--line); background: transparent; cursor: pointer; padding: 0; }
+.esteps button.on { background: var(--acc); border-color: var(--acc); }
+.esteps button.on:nth-child(1) { opacity: .5; } .esteps button.on:nth-child(2) { opacity: .68; } .esteps button.on:nth-child(3) { opacity: .84; }
+.elv { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.elv.l3, .elv.l4 { color: var(--acc); }
+.chips { display:flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.echip { display:inline-flex; align-items:center; gap: 4px; border-radius: 20px; padding: 5px 11px; font-size: 13px; font-weight: 600; background: color-mix(in srgb, var(--good) 20%, transparent); color: var(--good); }
+.echip.ax { background: color-mix(in srgb, var(--acc) 22%, transparent); color: var(--acc); }
+.mybilan { display:flex; flex-direction: column; gap: 12px; }
+.ereturn { border: 1px solid var(--bad); }
+.pill.epend { background: color-mix(in srgb, var(--acc) 22%, transparent); color: var(--acc); }
+.pill.eback { background: color-mix(in srgb, var(--bad) 22%, transparent); color: var(--bad); }
+.spark { flex-shrink: 0; }
