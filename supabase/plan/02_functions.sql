@@ -678,7 +678,7 @@ begin
   select p.id, 'alertes', 'alertes:' || d, 'alertes', 'À valider 📋', n || ' demande' || case when n > 1 then 's attendent' else ' attend' end || ' ta validation.', '/?go=admin', 2
     from ppl p cross join lateral (
       select (select count(*) from daraja.point_events e join daraja.staff o on o.id = e.staff_id
-               where (p.role = 'super' or o.venue = p.venue)
+               where o.venue is not null and (p.role = 'super' or o.venue = p.venue)
                  and ((e.kind in ('avis', 'vente') and e.status = 'pending') or (e.kind = 'cadeau' and not e.delivered)))
            + case when p.role = 'super' then (select count(*) from daraja.conduct_records where needs_direction) else 0 end n) x
     where p.role in ('admin', 'super') and x.n > 0;

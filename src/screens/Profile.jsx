@@ -132,7 +132,7 @@ function Profile({ token, me, logout, toast, refresh, go, openTest, openGuide })
       <button className="btn ghost u-mt-24"  onClick={() => go('rules')}><i className="ti ti-book" /> Règles du jeu</button>
       {openGuide && <button className="btn ghost u-mt-8" onClick={openGuide}><i className="ti ti-help-circle" /> Comment ça marche</button>}
       {me.role === 'super' && <button className="btn ghost u-mt-10"  onClick={openTest}><i className="ti ti-flask" /> Mode test</button>}
-      <button className="btn ghost u-mt-10"  onClick={() => setAvis(true)}><i className="ti ti-star" /> Un client m'a cité dans un avis</button>
+      {me.role !== 'super' && <button className="btn ghost u-mt-10"  onClick={() => setAvis(true)}><i className="ti ti-star" /> Un client m'a cité dans un avis</button>}
       <PushToggle token={token} toast={toast} />
       <div className="card tog u-mt-10" ><span><i className={'ti ' + (snd ? 'ti-volume' : 'ti-volume-off') + ' acc'} /> Sons du jeu</span><button className={'sw ' + (snd ? 'on' : '')} aria-label="Sons du jeu" onClick={() => { setSound(!snd); setSnd(!snd); if (!snd) setTimeout(() => sfx('good'), 50) }} /></div>
       <button className="btn ghost u-mt-10 u-c-muted"  onClick={logout}><i className="ti ti-logout" /> Me déconnecter</button>
