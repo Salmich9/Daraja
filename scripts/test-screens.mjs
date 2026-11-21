@@ -35,6 +35,7 @@ const FLOWS = [
   ['admin', 'Manager évaluations', ['nav button[aria-label=admin]', 'text:Évaluations', '.evrow']],
   ['super', 'Admin grille évaluation', ['nav button[aria-label=admin]', 'text:Réglages', 'text:Évaluation', 'text:Managers']],
   ['staff', 'Bilan du mois', ['button.btn'], { mock_eval_new: '1' }],
+  ['super', 'Notification évaluations', [], { _q: '?go=evals', _expect: 'progressent' }],
 ]
 
 let fail = 0
@@ -43,10 +44,11 @@ for (const [role, name, steps, extra] of FLOWS) {
   const vc = new VirtualConsole()
   vc.on('jsdomError', e => { if (!/Not implemented/.test(e.message)) errors.push(e.message) })
   vc.on('error', (...a) => { const m = a.join(' '); if (!/act\(|Not implemented|Download the React DevTools/.test(m)) errors.push(m) })
-  const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole: vc })
+  const { _q = '', _expect, ...store } = extra || {}
+  const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost/' + _q, runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole: vc })
   const w = dom.window
   const today = new Date().toLocaleDateString('fr-CA')
-  Object.entries({ daraja_token: 'x', daraja_quote_day: today, daraja_lv_me: '9', daraja_guide_me: '1', mock_role: role, mock_duel: 'pending', daraja_sound: '0', ...extra }).forEach(([k, v]) => w.localStorage.setItem(k, v))
+  Object.entries({ daraja_token: 'x', daraja_quote_day: today, daraja_lv_me: '9', daraja_guide_me: '1', mock_role: role, mock_duel: 'pending', daraja_sound: '0', ...store }).forEach(([k, v]) => w.localStorage.setItem(k, v))
   w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {}
   w.matchMedia = w.matchMedia || (() => ({ matches: false, addEventListener() {}, removeEventListener() {} }))
   w.addEventListener('error', e => errors.push(e.message))
@@ -65,6 +67,7 @@ for (const [role, name, steps, extra] of FLOWS) {
   const txt = w.document.body.textContent
   if (/Oups, petit souci/.test(txt)) errors.push('écran « Oups » affiché')
   if (txt.trim().length < 20) errors.push('écran vide')
+  if (_expect && !txt.includes(_expect)) errors.push('attendu à l\'écran : ' + _expect)
   if (errors.length) { fail++; console.log('FAIL', name, '→', [...new Set(errors)].slice(0, 3).join(' | ')) } else console.log('OK  ', name)
   w.close()
 }

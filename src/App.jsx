@@ -28,6 +28,7 @@ export default function App() {
   const [guide, setGuide] = useState(false)
   const [levelUp, setLevelUp] = useState(null)
   const [evalCel, setEvalCel] = useState(null)
+  const [adminStart, setAdminStart] = useState(null)
   const [play, setPlay] = useState({ mode: 'daily', ctx: {} })
   const [testOpen, setTestOpen] = useState(false)
   const [preview, setPreview] = useState(null)
@@ -85,20 +86,21 @@ export default function App() {
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme === 't-zz' ? '#FFF1DE' : '#0F3B33')
   }, [theme])
 
-  // Toucher une notification ouvre l'écran exact : /?go=quiz|duels|board|shop|profile|admin, puis on nettoie l'adresse
+  // Toucher une notification ouvre l'écran exact : /?go=quiz|duels|board|shop|profile|admin|evals, puis on nettoie l'adresse
   useEffect(() => {
     if (!me) return
     const g = new URLSearchParams(location.search).get('go')
     if (!g) return
     history.replaceState(null, '', location.pathname)
     if (g === 'admin' && ['admin', 'super'].includes(me.role)) go('admin')
+    else if (g === 'evals' && ['admin', 'super'].includes(me.role)) go('admin', 'eval')
     else if (['quiz', 'duels', 'board', 'shop', 'profile'].includes(g)) go(g === 'quiz' && me.quiz_done ? 'home' : g)
   }, [me?.id])
 
   const login = t => { store.set(VK, null); setVenue(null); store.set(TK, t); setToken(t) }
   const logout = () => { rpc('daraja_logout', { p_token: token }).catch(() => {}); store.set(TK, null); store.set(VK, null); setVenue(null); setToken(null); setMe(null); setTab('home') }
   const switchVenue = v => { store.set(VK, v); setVenue(v) }
-  const go = t => { if (t === 'quiz') setPlay({ mode: 'daily', ctx: {} }); setTab(t); window.scrollTo(0, 0); if (t !== 'quiz') refresh() }
+  const go = (t, start = null) => { setAdminStart(start); if (t === 'quiz') setPlay({ mode: 'daily', ctx: {} }); setTab(t); window.scrollTo(0, 0); if (t !== 'quiz') refresh() }
   const openDuel = id => { setInvite(null); setDuelId(id); setTab('live'); window.scrollTo(0, 0) }
   const startPractice = () => { setPlay({ mode: 'practice', ctx: {} }); setTab('quiz'); window.scrollTo(0, 0) }
   const startTest = ctx => { setTestOpen(false); setPlay({ mode: 'test', ctx }); setTab('quiz'); window.scrollTo(0, 0) }
@@ -163,11 +165,11 @@ export default function App() {
       {tab === 'stories' && <Stories token={token} me={me} go={go} refresh={refresh} />}
       {tab === 'shop' && <Shop token={token} me={me} venue={venue} refresh={refresh} toast={toast} />}
       {tab === 'profile' && <Profile token={token} me={preview ? real : me} logout={logout} toast={toast} refresh={refresh} go={go} openTest={() => setTestOpen(true)} openGuide={() => setGuide(true)} />}
-      {tab === 'admin' && isAdmin && <Admin token={token} me={me} venue={venue} toast={toast} />}
+      {tab === 'admin' && isAdmin && <Admin key={adminStart || 'admin'} token={token} me={me} venue={venue} toast={toast} start={adminStart} />}
       </React.Fragment>
       {!['quiz', 'live'].includes(tab) && <button className="helpfab" aria-label="Comment ça marche" onClick={() => setGuide(true)}><i className="ti ti-help" /></button>}
       <nav className="nav">
-        {tabs.map(([k, ic, lab]) => <button key={k} aria-label={k} className={tab === k || (['quiz', 'duels', 'live', 'review', 'formation'].includes(tab) && k === 'home') || (tab === 'rules' && k === 'profile') ? 'on' : ''} onClick={() => go(k)}><span className="navic"><i className={'ti ti-' + ic} /></span><small>{lab}</small>{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && (me.direction_todo > 0 || me.errors_24h > 0)) || (k === 'home' && duelTodo.length > 0)) && <span className="dot" />}</button>)}
+        {tabs.map(([k, ic, lab]) => <button key={k} aria-label={k} className={tab === k || (['quiz', 'duels', 'live', 'review', 'formation'].includes(tab) && k === 'home') || (tab === 'rules' && k === 'profile') ? 'on' : ''} onClick={() => go(k)}><span className="navic"><i className={'ti ti-' + ic} /></span><small>{lab}</small>{((k === 'profile' && me.pending_ack > 0) || (k === 'admin' && (me.direction_todo > 0 || me.eval_todo > 0 || me.errors_24h > 0)) || (k === 'home' && duelTodo.length > 0)) && <span className="dot" />}</button>)}
       </nav>
     </div>
   )
