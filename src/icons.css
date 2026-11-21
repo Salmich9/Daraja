@@ -8,11 +8,15 @@
 .ti-album:before{content:"\f022"}
 .ti-alt:before{content:"\fc54"}
 .ti-api:before{content:"\effd"}
+.ti-arrow-back-up:before{content:"\eb77"}
+.ti-arrow-down-right:before{content:"\ea15"}
+.ti-arrow-up-right:before{content:"\ea24"}
 .ti-arrows-exchange:before{content:"\f1f4"}
 .ti-arrows-right-left:before{content:"\edb2"}
 .ti-arrows-shuffle:before{content:"\f000"}
 .ti-article:before{content:"\f1e2"}
 .ti-at:before{content:"\ea2b"}
+.ti-axe:before{content:"\ef9f"}
 .ti-background:before{content:"\fd2c"}
 .ti-backspace:before{content:"\ea2d"}
 .ti-badge:before{content:"\efc2"}
@@ -49,7 +53,9 @@
 .ti-cell:before{content:"\f05f"}
 .ti-certificate:before{content:"\ed76"}
 .ti-chart-bar:before{content:"\ea59"}
+.ti-chart-line:before{content:"\ea5c"}
 .ti-check:before{content:"\ea5e"}
+.ti-checklist:before{content:"\f074"}
 .ti-checks:before{content:"\ebaa"}
 .ti-chef-hat:before{content:"\f21d"}
 .ti-chevron-down:before{content:"\ea5f"}
@@ -215,6 +221,7 @@
 .ti-volume:before{content:"\eb51"}
 .ti-volume-off:before{content:"\f1c3"}
 .ti-vs:before{content:"\fc52"}
+.ti-weight:before{content:"\f589"}
 .ti-wifi-off:before{content:"\ecfa"}
 .ti-window:before{content:"\ef06"}
 .ti-x:before{content:"\eb55"}

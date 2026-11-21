@@ -126,6 +126,7 @@ function Profile({ token, me, logout, toast, refresh, go, openTest, openGuide })
         <div><div className="u-fw-600">{me.streak} jour{me.streak > 1 ? 's' : ''} de série</div>
           <div className="sub">Prochain défi : bonus série +{me.next_bonus} pièces{me.next_bonus >= 100 ? ' (max)' : ''}</div></div>
       </div>
+      {me.role !== 'super' && <MyEval token={token} />}
       {me.role === 'staff' && <MyConduct token={token} toast={toast} refresh={refresh} />}
       {edit && <ProfileEdit token={token} me={me} close={() => setEdit(false)} done={() => { setEdit(false); refresh(); toast('Profil mis à jour') }} />}
       <button className="btn ghost u-mt-24"  onClick={() => go('rules')}><i className="ti ti-book" /> Règles du jeu</button>
@@ -147,6 +148,21 @@ function Profile({ token, me, logout, toast, refresh, go, openTest, openGuide })
       </div>}
     </div>
   )
+}
+
+// Mon bilan : forces (Solide ou Expert), 2 axes du mois, objectif. Jamais les niveaux détaillés.
+function MyEval({ token }) {
+  const [e, setE] = useState(null)
+  useEffect(() => { rpc('daraja_eval_mine', { p_token: token }).then(setE).catch(() => {}) }, [token])
+  if (!e || (!e.strengths.length && !e.axes.length && !e.goal)) return null
+  return <>
+    <div className="sec u-pos-relative"><i className="ti ti-target-arrow acc" /> Mon bilan <Info text={'Ton manager fait le point avec toi chaque mois.' + (RV.eval_target ? ' Ton défi du jour garde ' + RV.eval_target + ' question' + (RV.eval_target > 1 ? 's' : '') + ' pour tes axes.' : '') + ' Touche pour fermer.'} /></div>
+    <div className="card mybilan">
+      {e.strengths.length > 0 && <div><div className="sub">Mes forces</div><div className="chips">{e.strengths.map(l => <span key={l} className="echip"><i className="ti ti-bolt" /> {l}</span>)}</div></div>}
+      {e.axes.length > 0 && <div><div className="sub">Ce mois-ci, on muscle</div><div className="chips">{e.axes.map(l => <span key={l} className="echip ax"><i className="ti ti-target-arrow" /> {l}</span>)}</div></div>}
+      {e.goal && <div><div className="sub">Objectif du mois</div><div className="u-fw-600 u-mt-4">{e.goal}</div></div>}
+    </div>
+  </>
 }
 
 function MyConduct({ token, toast, refresh }) {

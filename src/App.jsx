@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { useOffline, listen, sfx, MOCK, RV, TK, VK, burst, buzz, level, rpc, store } from './lib'
+import { useOffline, listen, sfx, MOCK, RV, TK, VK, EVL, burst, buzz, level, rpc, store } from './lib'
 import { Toast } from './ui'
 import { Login, QuoteSplash } from './screens/Login'
 import { Home } from './screens/Home'
@@ -27,6 +27,7 @@ export default function App() {
   const [splash, setSplash] = useState(false)
   const [guide, setGuide] = useState(false)
   const [levelUp, setLevelUp] = useState(null)
+  const [evalCel, setEvalCel] = useState(null)
   const [play, setPlay] = useState({ mode: 'daily', ctx: {} })
   const [testOpen, setTestOpen] = useState(false)
   const [preview, setPreview] = useState(null)
@@ -70,6 +71,13 @@ export default function App() {
     if (prev && n > prev) { setLevelUp(level(me.earned)); setTimeout(() => { burst(80); sfx('level') }, 150) }
     store.set(key, String(n))
   }, [me?.id, me?.earned])
+
+  // Bilan du mois validé par la direction : célébration une fois, à l'ouverture
+  useEffect(() => {
+    if (!me?.eval_new || guide || splash || evalCel) return
+    rpc('daraja_eval_mine', { p_token: token }).then(e => { if (e?.new) { setEvalCel(e); setTimeout(() => { burst(70); sfx('level') }, 150) } }).catch(() => {})
+  }, [me?.eval_new, guide, splash])
+  const closeEval = () => { setEvalCel(null); rpc('daraja_eval_seen', { p_token: token }).then(refresh).catch(() => {}) }
 
   const theme = 't-' + (me?.venue === 'zz' ? 'zz' : 'baro')
   useEffect(() => {
@@ -118,6 +126,17 @@ export default function App() {
           <h1 className="u-fs-30">Niveau {levelUp.n}</h1>
           <div className="acc u-fs-18 u-fw-600" >{levelUp.name}</div>
           <button className="btn u-mt-18" >Bravo à moi</button>
+        </div>
+      </div>}
+      {evalCel && !levelUp && <div className="sheet center" onClick={closeEval}>
+        <div className="lvup pop">
+          <i className={'ti ' + (evalCel.new.gains.length ? 'ti-trending-up' : 'ti-target-arrow') + ' acc u-fs-48'} />
+          <div className="sub u-mt-8">{evalCel.new.first ? 'Ton premier bilan' : 'Ton bilan du mois'}</div>
+          <h1 className="u-fs-28">{evalCel.new.gains.length ? 'Tu passes un cap !' : 'Bravo !'}</h1>
+          {evalCel.new.gains.map(g => <div key={g.label} className="acc u-fw-600">{g.label} · {EVL[g.to - 1]}</div>)}
+          {!evalCel.new.gains.length && evalCel.strengths.length > 0 && <div className="acc u-fw-600">{evalCel.strengths.join(' · ')}</div>}
+          {evalCel.new.coins > 0 && <div className="u-fs-22 u-fw-700 u-mt-8">+{evalCel.new.coins} pièces</div>}
+          <button className="btn u-mt-18">Bravo à moi</button>
         </div>
       </div>}
       {real.role === 'super' && !preview && tab !== 'quiz' && (

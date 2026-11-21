@@ -1,8 +1,9 @@
--- Généré depuis la production le 2026-11-17. Ne pas modifier à la main : régénérer.
+-- Généré depuis la production le 2026-11-21. Ne pas modifier à la main : régénérer.
 
 create extension if not exists pgcrypto with schema extensions;
 create schema if not exists daraja;
 
+create sequence if not exists daraja.eval_criteria_id_seq;
 create sequence if not exists daraja.push_sent_id_seq;
 create sequence if not exists daraja.conduct_rules_id_seq;
 create sequence if not exists daraja.quotes_id_seq;
@@ -141,6 +142,37 @@ create table if not exists daraja.eotm (
 );
 alter table daraja.eotm enable row level security;
 
+create table if not exists daraja.eval_criteria (
+  id integer not null default nextval('daraja.eval_criteria_id_seq'::regclass),
+  family text,
+  kind text not null default 'metier'::text,
+  label text not null,
+  cats text[] not null default '{}'::text[],
+  sort integer not null default 100,
+  active boolean not null default true
+);
+alter table daraja.eval_criteria enable row level security;
+
+create table if not exists daraja.evals (
+  id uuid not null default gen_random_uuid(),
+  staff_id uuid not null,
+  venue text,
+  grid text not null,
+  scores jsonb not null default '{}'::jsonb,
+  goal text,
+  status text not null default 'pending'::text,
+  note text,
+  by_staff uuid,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now(),
+  validated_at timestamp with time zone,
+  validated_by uuid,
+  coins integer not null default 0,
+  gains jsonb not null default '[]'::jsonb,
+  seen boolean not null default false
+);
+alter table daraja.evals enable row level security;
+
 create table if not exists daraja.fiches (
   id uuid not null default gen_random_uuid(),
   venue text not null,
@@ -256,7 +288,8 @@ create table if not exists daraja.quiz_sessions (
   answered uuid[] not null default '{}'::uuid[],
   correct integer not null default 0,
   started jsonb not null default '{}'::jsonb,
-  picks jsonb not null default '{}'::jsonb
+  picks jsonb not null default '{}'::jsonb,
+  targeted uuid[] not null default '{}'::uuid[]
 );
 alter table daraja.quiz_sessions enable row level security;
 

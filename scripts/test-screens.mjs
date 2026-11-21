@@ -29,10 +29,16 @@ const FLOWS = [
   ['super', 'Admin charte', ['nav button[aria-label=admin]', 'text:Réglages', 'text:Charte']],
   ['super', 'Admin notifications', ['nav button[aria-label=admin]', 'text:Réglages', 'text:🔔 Notifications']],
   ['super', 'Mode test', ['nav button[aria-label=profile]', 'text:Mode test']],
+  ['super', 'Admin évaluations', ['nav button[aria-label=admin]', 'text:Évaluations']],
+  ['super', 'Admin fiche évaluation', ['nav button[aria-label=admin]', 'text:Évaluations', '.evrow', 'text:Progression']],
+  ['super', 'Admin validation', ['nav button[aria-label=admin]', 'text:Évaluations', '.evpend', 'text:Renvoyer']],
+  ['admin', 'Manager évaluations', ['nav button[aria-label=admin]', 'text:Évaluations', '.evrow']],
+  ['super', 'Admin grille évaluation', ['nav button[aria-label=admin]', 'text:Réglages', 'text:Évaluation', 'text:Managers']],
+  ['staff', 'Bilan du mois', ['button.btn'], { mock_eval_new: '1' }],
 ]
 
 let fail = 0
-for (const [role, name, steps] of FLOWS) {
+for (const [role, name, steps, extra] of FLOWS) {
   const errors = []
   const vc = new VirtualConsole()
   vc.on('jsdomError', e => { if (!/Not implemented/.test(e.message)) errors.push(e.message) })
@@ -40,7 +46,7 @@ for (const [role, name, steps] of FLOWS) {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: 'http://localhost/', runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole: vc })
   const w = dom.window
   const today = new Date().toLocaleDateString('fr-CA')
-  Object.entries({ daraja_token: 'x', daraja_quote_day: today, daraja_lv_me: '9', daraja_guide_me: '1', mock_role: role, mock_duel: 'pending', daraja_sound: '0' }).forEach(([k, v]) => w.localStorage.setItem(k, v))
+  Object.entries({ daraja_token: 'x', daraja_quote_day: today, daraja_lv_me: '9', daraja_guide_me: '1', mock_role: role, mock_duel: 'pending', daraja_sound: '0', ...extra }).forEach(([k, v]) => w.localStorage.setItem(k, v))
   w.scrollTo = () => {}; w.HTMLElement.prototype.scrollIntoView = () => {}
   w.matchMedia = w.matchMedia || (() => ({ matches: false, addEventListener() {}, removeEventListener() {} }))
   w.addEventListener('error', e => errors.push(e.message))

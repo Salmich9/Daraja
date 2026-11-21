@@ -1,4 +1,4 @@
--- Généré depuis la production le 2026-11-17. Ne pas modifier à la main : régénérer.
+-- Généré depuis la production le 2026-11-21. Ne pas modifier à la main : régénérer.
 
 -- clés et contrôles
 alter table daraja.answers add constraint answers_pkey PRIMARY KEY (id);
@@ -15,6 +15,11 @@ alter table daraja.draws add constraint draws_pkey PRIMARY KEY (id);
 alter table daraja.draws add constraint draws_venue_month_key UNIQUE (venue, month);
 alter table daraja.duels add constraint duels_pkey PRIMARY KEY (id);
 alter table daraja.eotm add constraint eotm_pkey PRIMARY KEY (venue, month);
+alter table daraja.eval_criteria add constraint eval_criteria_family_check CHECK (((family IS NULL) OR (family = ANY (ARRAY['salle'::text, 'bar'::text, 'cuisine'::text, 'support'::text, 'manager'::text]))));
+alter table daraja.eval_criteria add constraint eval_criteria_kind_check CHECK ((kind = ANY (ARRAY['metier'::text, 'savoir'::text])));
+alter table daraja.eval_criteria add constraint eval_criteria_pkey PRIMARY KEY (id);
+alter table daraja.evals add constraint evals_pkey PRIMARY KEY (id);
+alter table daraja.evals add constraint evals_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'returned'::text, 'ok'::text])));
 alter table daraja.fiches add constraint fiches_pkey PRIMARY KEY (id);
 alter table daraja.fiches add constraint fiches_section_check CHECK ((section = ANY (ARRAY['entree'::text, 'plat'::text, 'dessert'::text, 'boisson'::text])));
 alter table daraja.mission_done add constraint mission_done_pkey PRIMARY KEY (staff_id, week);
@@ -64,6 +69,10 @@ alter table daraja.draws add constraint draws_winner_fkey FOREIGN KEY (winner) R
 alter table daraja.duels add constraint duels_challenger_fkey FOREIGN KEY (challenger) REFERENCES daraja.staff(id);
 alter table daraja.duels add constraint duels_opponent_fkey FOREIGN KEY (opponent) REFERENCES daraja.staff(id);
 alter table daraja.eotm add constraint eotm_winner_fkey FOREIGN KEY (winner) REFERENCES daraja.staff(id);
+alter table daraja.evals add constraint evals_by_staff_fkey FOREIGN KEY (by_staff) REFERENCES daraja.staff(id) ON DELETE SET NULL;
+alter table daraja.evals add constraint evals_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES daraja.staff(id) ON DELETE CASCADE;
+alter table daraja.evals add constraint evals_validated_by_fkey FOREIGN KEY (validated_by) REFERENCES daraja.staff(id) ON DELETE SET NULL;
+alter table daraja.evals add constraint evals_venue_fkey FOREIGN KEY (venue) REFERENCES daraja.venues(id);
 alter table daraja.fiches add constraint fiches_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES daraja.staff(id) ON DELETE SET NULL;
 alter table daraja.fiches add constraint fiches_venue_fkey FOREIGN KEY (venue) REFERENCES daraja.venues(id);
 alter table daraja.mission_done add constraint mission_done_mission_id_fkey FOREIGN KEY (mission_id) REFERENCES daraja.missions(id);
@@ -105,6 +114,8 @@ CREATE INDEX IF NOT EXISTS draws_winner_idx ON daraja.draws USING btree (winner)
 CREATE INDEX IF NOT EXISTS duels_ch_idx ON daraja.duels USING btree (challenger, status);
 CREATE INDEX IF NOT EXISTS duels_opp_idx ON daraja.duels USING btree (opponent, status);
 CREATE INDEX IF NOT EXISTS eotm_winner_idx ON daraja.eotm USING btree (winner);
+CREATE INDEX IF NOT EXISTS evals_staff_idx ON daraja.evals USING btree (staff_id, status, validated_at);
+CREATE UNIQUE INDEX IF NOT EXISTS evals_open_idx ON daraja.evals USING btree (staff_id) WHERE (status <> 'ok'::text);
 CREATE INDEX IF NOT EXISTS fiches_venue_idx ON daraja.fiches USING btree (venue, active);
 CREATE INDEX IF NOT EXISTS login_fails_device_idx ON daraja.login_fails USING btree (device, at);
 CREATE INDEX IF NOT EXISTS mission_done_validated_by_idx ON daraja.mission_done USING btree (validated_by);
@@ -142,6 +153,11 @@ grant execute on function public.daraja_admin_contacts(text,text) to anon;
 grant execute on function public.daraja_admin_deliver(text,uuid) to anon;
 grant execute on function public.daraja_admin_draw(text,text,date,text) to anon;
 grant execute on function public.daraja_admin_errors(text,integer) to anon;
+grant execute on function public.daraja_admin_eval_criteria(text) to anon;
+grant execute on function public.daraja_admin_eval_criterion_delete(text,integer) to anon;
+grant execute on function public.daraja_admin_eval_criterion_restore(text,integer) to anon;
+grant execute on function public.daraja_admin_eval_criterion_save(text,jsonb) to anon;
+grant execute on function public.daraja_admin_eval_value(text,text,integer) to anon;
 grant execute on function public.daraja_admin_line_malus(text,text,integer) to anon;
 grant execute on function public.daraja_admin_missions(text,text) to anon;
 grant execute on function public.daraja_admin_points(text,uuid,text,integer,text) to anon;
@@ -183,6 +199,12 @@ grant execute on function public.daraja_duel_respond(text,uuid,boolean) to anon;
 grant execute on function public.daraja_duel_state(text,uuid) to anon;
 grant execute on function public.daraja_duels(text) to anon;
 grant execute on function public.daraja_eotm(text,text) to anon;
+grant execute on function public.daraja_eval_mine(text) to anon;
+grant execute on function public.daraja_eval_save(text,uuid,jsonb,text) to anon;
+grant execute on function public.daraja_eval_seen(text) to anon;
+grant execute on function public.daraja_eval_sheet(text,uuid) to anon;
+grant execute on function public.daraja_eval_team(text,text) to anon;
+grant execute on function public.daraja_eval_validate(text,uuid,boolean,text) to anon;
 grant execute on function public.daraja_fiche_delete(text,uuid) to anon;
 grant execute on function public.daraja_fiche_restore(text,uuid) to anon;
 grant execute on function public.daraja_fiche_save(text,text,jsonb) to anon;

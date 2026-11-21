@@ -158,6 +158,9 @@ const dshort = d => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', mo
 
 const FAM = { salle: 'Salle', bar: 'Bar', cuisine: 'Cuisine', support: 'Accueil, sécurité et support' }
 
+// Niveaux de l'évaluation mensuelle (1 à 4)
+const EVL = ['À découvrir', 'En progrès', 'Solide', 'Expert']
+
 const first = n => (n || '').split(' ')[0]
 
 const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
@@ -167,4 +170,4 @@ const monday = (off = 0) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.s
 // Règles du jeu : remplies par le serveur avec le profil (daraja_me.rules), seule source des chiffres affichés
 const RV = {}
 
-export { deviceId, useOffline, listen, sfx, soundOn, setSound, RV, reportError, avFile, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, VK }
+export { deviceId, useOffline, listen, sfx, soundOn, setSound, RV, reportError, avFile, TK, store, MOCK, rpc, LEVELS, level, initials, fmt, LV, AV_SEEDS, AV_STYLES, AV_LIB, ROLES, waLink, burst, flyPoints, buzz, nextGift, imgSrc, first, iso, monday, dshort, LINE, TIERS, FAM, EVL, VK }
