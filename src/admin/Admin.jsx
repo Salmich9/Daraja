@@ -56,7 +56,7 @@ function Admin({ token, me, venue, toast, start }) {
       {!d.reviews.length && <div className="sub">Rien en attente</div>}
       {d.reviews.map(r => (
         <div key={r.id} className="lb">
-          <div className="u-flex-1 u-min-width-0"><div>{r.name}</div><div className="sub u-overflow-hidden u-text-overflow-ellipsis u-ws-nowrap" ><i className={'ti ' + (r.kind === 'vente' ? 'ti-target-arrow' : 'ti-star')} /> {r.note}</div></div>
+          <div className="u-flex-1 u-min-width-0"><div>{r.name}{me.role === 'super' && r.venue_name && <span className="sub"> · {r.venue_name}</span>}</div><div className="sub u-overflow-hidden u-text-overflow-ellipsis u-ws-nowrap" ><i className={'ti ' + (r.kind === 'vente' ? 'ti-target-arrow' : 'ti-star')} /> {r.note}</div></div>
           <button className="mini" onClick={() => act('daraja_admin_review', { p_event: r.id, p_ok: true }, '+' + (r.amount || RV.review) + ' pièces validées')}>+{r.amount || RV.review}</button>
           <button className="mini ghost" aria-label="Refuser" onClick={() => act('daraja_admin_review', { p_event: r.id, p_ok: false }, 'Refusé')}><i className="ti ti-x" /></button>
         </div>
@@ -66,7 +66,7 @@ function Admin({ token, me, venue, toast, start }) {
       {!d.gifts.length && <div className="sub">Rien en attente</div>}
       {d.gifts.map(g => (
         <div key={g.id} className="lb">
-          <span className="u-flex-1">{g.name} · {g.note}</span>
+          <span className="u-flex-1">{g.name} · {g.note}{me.role === 'super' && g.venue_name && <span className="sub"> · {g.venue_name}</span>}</span>
           <button className="mini" onClick={() => act('daraja_admin_deliver', { p_event: g.id }, 'Marqué remis')}>Remis</button>
         </div>
       ))}
