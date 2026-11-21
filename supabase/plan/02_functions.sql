@@ -675,13 +675,16 @@ begin
       (e.kind = 'cadeau' and e.delivered) or (e.kind in ('avis', 'vente') and e.status = 'ok') or e.kind = 'malus'
       or (e.kind = 'bonus' and e.note like 'Mois exemplaire %'))
   union all
-  select p.id, 'alertes', 'alertes:' || d, 'alertes', 'À valider 📋', n || ' demande' || case when n > 1 then 's attendent' else ' attend' end || ' ta validation.', '/?go=admin', 2
+  select p.id, 'alertes', 'alertes:' || d, 'alertes', 'À valider 📋',
+         (x.n + x.ne) || ' demande' || case when x.n + x.ne > 1 then 's attendent' else ' attend' end || ' ta validation.',
+         case when x.n = 0 then '/?go=evals' else '/?go=admin' end, 2
     from ppl p cross join lateral (
       select (select count(*) from daraja.point_events e join daraja.staff o on o.id = e.staff_id
                where o.venue is not null and (p.role = 'super' or o.venue = p.venue)
                  and ((e.kind in ('avis', 'vente') and e.status = 'pending') or (e.kind = 'cadeau' and not e.delivered)))
-           + case when p.role = 'super' then (select count(*) from daraja.conduct_records where needs_direction) else 0 end n) x
-    where p.role in ('admin', 'super') and x.n > 0;
+           + case when p.role = 'super' then (select count(*) from daraja.conduct_records where needs_direction) else 0 end n,
+             case when p.role = 'super' then (select count(*) from daraja.evals where status = 'pending') else 0 end ne) x
+    where p.role in ('admin', 'super') and x.n + x.ne > 0;
 end $function$;
 
 CREATE OR REPLACE FUNCTION daraja.push_cfg()
