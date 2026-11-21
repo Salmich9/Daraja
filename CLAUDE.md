@@ -28,17 +28,27 @@ Le dépôt est **public** : aucun secret dans le code, un `.env` commité, un lo
 
 ## Mettre la base à jour (ordre à respecter)
 1. Écrire la migration dans `supabase/pending/<nom>.sql` + un test `supabase/tests/tNN_*.sql`, faire passer `PENDING=… npm run build`.
-2. Après le « oui » : appliquer la migration en production (Supabase).
-3. Régénérer le plan : exécuter `supabase/plan/export.sql` sur la production, puis `python3 scripts/build-plan.py <fichier du résultat>`. Le plan (`supabase/plan/0*.sql`) doit toujours refléter la production.
+2. Après le « oui » : appliquer la migration en production (Supabase). Si la confirmation de `apply_migration` n'arrive pas jusqu'à Salmane (délai dépassé, rien d'appliqué : le vérifier), il colle lui-même le fichier dans Supabase › SQL Editor, onglet vide, sans rien sélectionner. Le collage ajoute des fins de ligne Windows (`\r`) dans les fonctions : les retirer ensuite (réécrire les fonctions dont `prosrc` contient `E'\r'` avec `replace(pg_get_functiondef(oid), E'\r', '')`).
+3. Régénérer le plan : exécuter `supabase/plan/export.sql` sur la production, puis `python3 scripts/build-plan.py <fichier du résultat>`. Le plan (`supabase/plan/0*.sql`) doit toujours refléter la production. L'export complet est trop gros pour transiter par l'outil Supabase : on peut exporter depuis la base d'essai (plan + migration) et comparer section par section avec la production (empreintes `md5`), puis reprendre de la production ce qui diffère (réglages modifiés dans l'appli, ordre des contraintes, séquences, déclencheurs).
 4. Déplacer la migration dans `supabase/archive/vN_<nom>.sql`, `npm run build`, commit, fusion, push.
 
-## Ce que fait l'appli (état au 19/11/2026)
+## Ce que fait l'appli (état au 21/11/2026)
 - **Défi du jour** : 5 questions chronométrées (QCM 9 s, ordre et paires 18 s, réglables par la direction), points, série, coffre 2 fois par semaine (après défi + histoire du jour). Relecture du dernier défi jusqu'au lancement du suivant (`Review.jsx`).
 - **Duels**, classement mensuel par établissement, employé du mois, tirage, boutique de cadeaux, missions, avis clients validés par le manager.
 - **Histoires** : catalogues culture (Marrakech, légendes, escapades, terroirs, artisanat, agenda).
 - **Conduite** : lignes blanche / grise / rouge, registre, malus. Charte modifiable par la direction dans Admin › Réglages › Charte (`src/admin/Charter.jsx`) : intitulé, ligne, malus propre à chaque règle (vide = malus de la ligne ; en cas d'aggravation, le plus fort s'applique), ajout, suppression (rangée si déjà utilisée), remise. Migration `v9_parametres.sql`, test `t25`.
 - **Cadeaux** : Admin › Réglages › Cadeaux (direction) : ajouter, modifier, masquer, dupliquer, supprimer (rangé dans « Supprimés » s'il a déjà été gagné), remettre.
+- **Évaluation mensuelle** : voir la section dédiée plus bas.
 - **Guide** : 4 écrans, une phrase chacun (`src/screens/Guide.jsx`), montré une fois par appareil, puis via le bouton « ? » en bas à droite (caché pendant défi et duels) ou Profil › Comment ça marche.
+
+## Évaluation mensuelle (v009-evaluation, en ligne le 21/11/2026)
+- **Base** (`supabase/archive/v10_evaluation.sql`, test `t26`) : `eval_criteria` (grille par famille `salle`/`bar`/`cuisine`/`support`/`manager`, `family` nul = pour tous ; `metier` lié à des thèmes de questions `cats`, `savoir` = savoir-être), `evals` (une fiche : `scores` = {id du critère: 1 à 4}, objectif du mois, `pending` → `ok` ou `returned`), `quiz_sessions.targeted`.
+- **Niveaux** : 1 À découvrir · 2 En progrès · 3 Solide · 4 Expert (`EVL` dans `src/lib.jsx`).
+- **Circuit** : le manager remplit la fiche quand il veut (pas de rappel, choix de Salmane) → la direction valide ou renvoie avec un mot ; rien ne compte avant validation. La direction évalue les managers (grille « manager »), validé tout de suite. File « À valider » commune aux deux établissements pour la direction.
+- **Pièces** : `eval_up` (20) par niveau au-dessus du meilleur déjà validé (jamais deux fois pour le même niveau), plafond `eval_cap` (60) par fiche ; célébration à l'ouverture des niveaux gagnés depuis la fiche précédente.
+- **Ce que voit l'équipier** (Profil › Mon bilan) : 3 forces au plus (Solide ou Expert), ses 2 axes, l'objectif. Jamais les niveaux détaillés (seule exception : la célébration nomme le niveau gagné).
+- **Défi ciblé** : `eval_target` (2) questions sur 5 visent les 2 axes (`daraja.eval_targets` : note du manager pour `eval_weight` %, défis des 30 derniers jours pour le reste ; sans fiche, les défis seuls), au niveau de la personne ; marquées « 🎯 Ton axe ».
+- **Écrans** : Admin › Équipe › Évaluations (`src/admin/Evals.jsx` : liste, fiche, progression sur 6 fiches, validation), Admin › Réglages › Évaluation (grille et les 4 valeurs, direction).
 
 ## Notifications push (v001-notifications, en ligne, mode « Direction » pour l'instant)
 - **Base** (`supabase/archive/v6_notifications.sql`, test `t23`) : `app_settings` clé `push` (mode `off`/`direction`/`all`, familles, heures, plafonds), `push_subscriptions`, `push_sent` (une alerte dite une fois), `push_rank`.

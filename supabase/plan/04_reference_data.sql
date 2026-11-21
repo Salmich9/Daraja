@@ -1,4 +1,4 @@
--- Généré depuis la production le 2026-11-17. Ne pas modifier à la main : régénérer.
+-- Généré depuis la production le 2026-11-21. Ne pas modifier à la main : régénérer.
 
 -- Données de référence (contenu du jeu). Les données des équipiers ne sont pas incluses.
 
@@ -155,36 +155,36 @@ insert into daraja.rewards (id, venue, name, icon, cost, active, tier, condition
 ('a89a513c-5e47-44a5-9423-ec6b2707b82d', null, 'Jus frais ou mocktail offert', 'glass', 100, false, 'plaisir', '{}', null, true, false),
 ('7af83b77-cc49-4844-9540-b5661c6a3f6e', null, 'Bravo de la direction sur le groupe', 'speakerphone', 120, false, 'plaisir', '{}', null, true, false),
 ('55e996d6-6cc6-48be-af66-bfa600a026b9', null, 'Avatar ou badge exclusif', 'sparkles', 150, false, 'plaisir', '{}', null, true, false),
-('96e5f7af-fdaa-4025-8a29-5f5f311e55b2', null, 'Café ou boisson offerte', 'coffee', 150, true, 'plaisir', '{}', null, false, false),
 ('7283f4b9-6e7c-4f59-a86b-a2243c1114c3', null, 'Choisir la playlist d''un début de service', 'music', 200, false, 'plaisir', '{}', null, true, false),
 ('7986be29-6419-4199-9ce2-867a1a29de68', null, 'Pause prolongée de 15 min', 'clock-pause', 250, false, 'plaisir', '{}', null, true, false),
 ('c31f5827-45aa-4195-ac01-a37d5d53f8f5', null, 'Repas du personnel amélioré', 'salad', 300, false, 'plaisir', '{}', null, true, false),
-('90194010-e885-4091-89f9-db6626b3435b', null, 'Repas offert', 'tools-kitchen-2', 300, true, 'plaisir', '{}', null, false, false),
 ('b7f9dbd2-48cc-4bb2-b2bc-e1bb4a2492c6', null, 'Recharge téléphone 50 DH', 'device-mobile-message', 400, false, 'bon', '{}', null, true, false),
-('df6bf9c0-5cbf-47ca-bca2-d84c3d30d241', null, 'Échange de planning prioritaire', 'arrows-exchange', 450, false, 'temps', '{}', null, true, false),
+('96e5f7af-fdaa-4025-8a29-5f5f311e55b2', null, 'Café ou boisson offerte', 'coffee', 500, true, 'plaisir', '{}', null, false, false),
 ('9c395946-61f6-4811-8384-b368fc8c9767', null, 'Partir 1 h plus tôt', 'door-exit', 500, false, 'temps', '{}', null, true, false),
-('d6541f8a-cece-4c68-a8f0-ee0c9f9cdcaf', null, 'Choix du jour de repos', 'calendar-check', 600, true, 'temps', '{}', null, false, false),
-('4fcf054b-1743-4de0-86e1-766f02ce4b85', null, 'Places de cinéma pour 2', 'movie', 800, true, 'bon', '{}', null, true, false),
 ('aff747ab-b51e-4caa-875d-057f69bf5b65', null, 'Vis ma vie : une journée dans un autre poste', 'switch-horizontal', 1000, false, 'experience', '{}', null, true, false),
 ('966e02c6-e10b-48df-8ca9-2feef5e24e9f', null, 'Bon d''achat 200 DH', 'ticket', 1000, true, 'bon', '{}', null, false, false),
-('f2fcc26a-fa2e-4018-b281-f34bb37e4bb7', null, '½ journée off', 'sun', 1200, false, 'temps', '{}', null, true, false),
-('6d58254b-ecff-4e69-b53e-e17f4c830c3c', null, 'Barbier, hammam ou spa', 'bath', 1200, true, 'bon', '{}', null, true, false),
-('ba7e2292-cbac-4372-9230-47ec65cf7c98', null, 'Dégustation chez un fournisseur', 'glass-full', 1500, false, 'experience', '{}', null, true, false),
-('860ce4ca-77c6-4dc6-9ea8-d53c44582ffa', null, 'Place pour un match', 'ball-football', 1500, false, 'bon', '{}', null, true, false),
+('90194010-e885-4091-89f9-db6626b3435b', null, 'Repas offert', 'tools-kitchen-2', 1500, true, 'plaisir', '{}', null, false, false),
 ('e2938115-3a5f-4c70-8fc3-d1b12a66c8a9', null, 'Bon Decathlon 300 DH', 'shopping-bag', 1500, false, 'bon', '{}', null, true, false),
+('df6bf9c0-5cbf-47ca-bca2-d84c3d30d241', null, 'Échange de planning prioritaire', 'arrows-exchange', 1500, true, 'temps', '{}', null, true, false),
+('ba7e2292-cbac-4372-9230-47ec65cf7c98', null, 'Dégustation chez un fournisseur', 'glass-full', 1500, false, 'experience', '{}', null, true, false),
 ('e7236e79-96c6-4990-b632-a9169b5d4abf', null, 'Dîner pour 2 à Baromètre ou ZamaZama', 'tools-kitchen-2', 1800, false, 'experience', '{}', null, true, false),
+('f2fcc26a-fa2e-4018-b281-f34bb37e4bb7', null, '½ journée off', 'sun', 2000, true, 'temps', '{}', null, true, false),
 ('6b88df15-cc66-4748-b1f1-edd6db90cef9', null, 'Baskets ou tenue', 'shirt', 2000, false, 'bon', '{}', null, true, false),
-('221242b7-3cec-45a3-b4af-5414da181146', null, 'Journée off payée', 'beach', 2500, true, 'temps', '{}', null, true, false),
+('d6541f8a-cece-4c68-a8f0-ee0c9f9cdcaf', null, 'Choix du jour de repos', 'calendar-check', 2000, true, 'temps', '{}', null, false, false),
+('4fcf054b-1743-4de0-86e1-766f02ce4b85', null, 'Places de cinéma pour 2', 'movie', 2500, true, 'bon', '{}', null, true, false),
 ('ee1c7871-d68f-48f6-b302-914de1e9958b', null, 'Prime 500 DH', 'cash', 2500, true, 'bon', '{}', null, false, false),
-('9f4aac88-35f8-409d-a810-6687568c4c9c', null, 'Masterclass mixologie', 'glass-full', 3000, true, 'experience', '{}', null, false, false),
-('5efcf3b4-e691-4cc0-a6db-00a12e4d0a95', null, 'Dîner pour 2 dans un grand restaurant', 'chef-hat', 4000, true, 'experience', '{}', null, false, false),
+('6d58254b-ecff-4e69-b53e-e17f4c830c3c', null, 'Barbier, hammam ou spa', 'bath', 3000, true, 'bon', '{}', null, true, false),
+('221242b7-3cec-45a3-b4af-5414da181146', null, 'Journée off payée', 'beach', 3500, true, 'temps', '{}', null, true, false),
+('9f4aac88-35f8-409d-a810-6687568c4c9c', null, 'Masterclass mixologie', 'glass-full', 5000, true, 'experience', '{}', null, false, false),
 ('acebc8a7-9c38-4a0d-aedf-ebeb24b183c5', null, 'Formation certifiante (WSET 1, barista)', 'certificate', 5000, false, 'gros', '{}', null, true, false),
-('0ad0d635-f3ed-444c-a117-fbe5b6e366e1', null, 'Prime exceptionnelle 1 000 DH', 'cash', 5000, true, 'gros', '{}', null, true, false),
 ('071e7431-73f8-404c-b716-b677e2f9beee', null, 'Soirée dans un bar du 50 Best', 'trophy', 6000, false, 'gros', '{}', null, true, false),
-('ac9b21ba-6aad-46e5-966f-fd7872f6a241', null, 'Week-end à Agafay ou Essaouira', 'tent', 8000, true, 'gros', '{}', null, true, false),
-('ceb70654-1dae-4226-a782-ab0442c2b625', null, 'Smartphone', 'device-mobile', 9000, true, 'gros', '{}', null, false, false),
-('0de616f3-6e28-4fb9-838e-c8d6c74d0121', null, 'Visite d''un domaine viticole', 'bottle', 10000, true, 'experience', '{"max_late": 10, "min_days": 20}', null, true, false),
-('46ecd8a5-73dc-48a8-a2f8-00f0479ce9ff', null, 'Week-end pour 2', 'plane', 10000, false, 'gros', '{}', null, false, false)
+('860ce4ca-77c6-4dc6-9ea8-d53c44582ffa', null, 'Place pour un match', 'ball-football', 7500, false, 'bon', '{}', null, true, false),
+('0ad0d635-f3ed-444c-a117-fbe5b6e366e1', null, 'Prime exceptionnelle 1 000 DH', 'cash', 7500, true, 'gros', '{}', null, true, false),
+('5efcf3b4-e691-4cc0-a6db-00a12e4d0a95', null, 'Dîner pour 2 dans un grand restaurant', 'chef-hat', 10000, true, 'experience', '{}', null, false, false),
+('46ecd8a5-73dc-48a8-a2f8-00f0479ce9ff', null, 'Week-end pour 2', 'plane', 10000, false, 'gros', '{}', null, false, false),
+('ac9b21ba-6aad-46e5-966f-fd7872f6a241', null, 'Week-end à Agafay ou Essaouira', 'tent', 12500, true, 'gros', '{}', null, true, false),
+('0de616f3-6e28-4fb9-838e-c8d6c74d0121', null, 'Visite d''un domaine viticole', 'bottle', 15000, true, 'experience', '{"max_late": 10, "min_days": 20}', null, true, false),
+('ceb70654-1dae-4226-a782-ab0442c2b625', null, 'Smartphone', 'device-mobile', 20000, true, 'gros', '{}', null, false, false)
 on conflict do nothing;
 
 insert into daraja.quiz_settings (venue, family, key, enabled) values
@@ -197,7 +197,9 @@ insert into daraja.quiz_settings (venue, family, key, enabled) values
 ('baro', 'support', 'cat:cocktails', true),
 ('baro', 'support', 'cat:vins', true),
 ('baro', 'support', 'cat:carte', true),
-('baro', 'support', 'cat:cuisine', true)
+('baro', 'support', 'cat:cuisine', true),
+('baro', 'salle', 'level:1', true),
+('baro', 'salle', 'cat:hospitalite', true)
 on conflict do nothing;
 
 insert into daraja.questions (id, venue, theme, question, options, answer_idx, explanation, active, level, kind, payload, cat) values
@@ -885,10 +887,14 @@ insert into daraja.rule_values (key, val) values
 ('duel_tie', 10),
 ('duel_win', 20),
 ('eotm', 100),
-('malus_blanche', 20),
-('malus_grave', 1000),
-('malus_grise', 100),
-('malus_rouge', 300),
+('eval_cap', 60),
+('eval_target', 2),
+('eval_up', 20),
+('eval_weight', 50),
+('malus_blanche', 250),
+('malus_grave', 5000),
+('malus_grise', 1500),
+('malus_rouge', 2500),
 ('mission', 10),
 ('presence', 3),
 ('progress', 50),
@@ -959,6 +965,39 @@ insert into daraja.fiches (id, venue, section, title, story, cocktail, wine, why
 ('662ad47c-1f17-4066-9040-ebeb5cfdb816', 'zz', 'dessert', 'Tiramisu au café Arabica', 'Mascarpone et biscuit imbibé de café parfumé aux épices.', 'Martini Espresso', 'Amaretto (digestif)', 'Café contre café ; l''Amaretto est la liqueur que l''on met souvent dans le tiramisu.', '« Un tiramisu avec un Martini Espresso, c''est le dessert et le café en un. »', 460, true, null, '2026-11-16T17:32:42.908254+00:00'),
 ('5a752645-2f3f-4409-a952-ff9604e34fc9', 'zz', 'dessert', 'Panna cotta orientale', 'Au thé vert, avec un coulis d''hibiscus.', 'Rose de Damas', 'Perrier-Jouët Blason Rosé', 'L''hibiscus du coulis et celui du cocktail se répondent ; le thé vert reste léger.', '« La panna cotta au thé vert et hibiscus, avec la Rose de Damas : la même fleur dans l''assiette et dans le verre. »', 465, true, null, '2026-11-16T17:32:42.908254+00:00')
 on conflict do nothing;
+
+insert into daraja.eval_criteria (id, family, kind, label, cats, sort, active) values
+(1, 'salle', 'metier', 'Carte', '{"carte"}', 10, true),
+(2, 'salle', 'metier', 'Cocktails', '{"cocktails"}', 20, true),
+(3, 'salle', 'metier', 'Vins', '{"vins","terroirs"}', 30, true),
+(4, 'salle', 'metier', 'Vente', '{"vente"}', 40, true),
+(5, 'salle', 'metier', 'Anglais', '{"anglais"}', 50, true),
+(6, 'salle', 'metier', 'Culture Marrakech', '{"marrakech","legendes","escapades","artisanat","agenda","histoire"}', 60, true),
+(7, 'salle', 'metier', 'Hygiène et sécurité', '{"securite"}', 70, true),
+(8, 'bar', 'metier', 'Cocktails', '{"cocktails"}', 10, true),
+(9, 'bar', 'metier', 'Vins', '{"vins","terroirs"}', 20, true),
+(10, 'bar', 'metier', 'Carte', '{"carte"}', 30, true),
+(11, 'bar', 'metier', 'Vente', '{"vente"}', 40, true),
+(12, 'bar', 'metier', 'Anglais', '{"anglais"}', 50, true),
+(13, 'bar', 'metier', 'Culture Marrakech', '{"marrakech","legendes","escapades","artisanat","agenda","histoire"}', 60, true),
+(14, 'bar', 'metier', 'Hygiène et sécurité', '{"securite"}', 70, true),
+(15, 'cuisine', 'metier', 'Carte et recettes', '{"carte"}', 10, true),
+(16, 'cuisine', 'metier', 'Hygiène et sécurité', '{"cuisine","securite"}', 20, true),
+(17, 'cuisine', 'metier', 'Culture Marrakech', '{"marrakech","legendes","escapades","artisanat","agenda","histoire","terroirs"}', 30, true),
+(18, 'support', 'metier', 'Caisse', '{"caisse"}', 10, true),
+(19, 'support', 'metier', 'Anglais', '{"anglais"}', 20, true),
+(20, 'support', 'metier', 'Hygiène et sécurité', '{"securite"}', 30, true),
+(21, 'support', 'metier', 'Culture Marrakech', '{"marrakech","legendes","escapades","artisanat","agenda","histoire"}', 40, true),
+(22, 'manager', 'metier', 'Animer l''équipe', '{}', 10, true),
+(23, 'manager', 'metier', 'Transmettre', '{}', 20, true),
+(24, 'manager', 'metier', 'Organiser le service', '{}', 30, true),
+(25, 'manager', 'metier', 'Montrer l''exemple', '{}', 40, true),
+(26, null, 'savoir', 'Accueil et sourire', '{}', 110, true),
+(27, null, 'savoir', 'Ponctualité et tenue', '{}', 120, true),
+(28, null, 'savoir', 'Esprit d''équipe', '{}', 130, true),
+(29, null, 'savoir', 'Initiative', '{}', 140, true)
+on conflict do nothing;
 select setval('daraja.conduct_rules_id_seq', (select coalesce(max(id),1) from daraja.conduct_rules));
 select setval('daraja.missions_id_seq', (select coalesce(max(id),1) from daraja.missions));
 select setval('daraja.quotes_id_seq', (select coalesce(max(id),1) from daraja.quotes));
+select setval('daraja.eval_criteria_id_seq', (select coalesce(max(id),1) from daraja.eval_criteria));
